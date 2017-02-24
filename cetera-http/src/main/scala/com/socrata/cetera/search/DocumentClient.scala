@@ -40,7 +40,12 @@ trait BaseDocumentClient {
       requireAuth: Boolean)
     : SearchRequestBuilder
 
-  def buildFacetRequest(domainSet: DomainSet, user: Option[User], requireAuth: Boolean): SearchRequestBuilder
+  def buildFacetRequest(
+      domainSet: DomainSet,
+      searchParams: SearchParamSet,
+      user: Option[User],
+      requireAuth: Boolean)
+  : SearchRequestBuilder
 }
 
 class DocumentClient(
@@ -174,9 +179,13 @@ class DocumentClient(
       .setSize(0) // no docs, aggs only
   }
 
-  def buildFacetRequest(domainSet: DomainSet, user: Option[User], requireAuth: Boolean): SearchRequestBuilder = {
+  def buildFacetRequest(
+      domainSet: DomainSet,
+      searchParams: SearchParamSet,
+      user: Option[User],
+      requireAuth: Boolean)
+  : SearchRequestBuilder = {
     val aggSize = 0 // agg count unlimited
-    val searchSize = 0 // no docs, aggs only
 
     val datatypeAgg = AggregationBuilders
       .terms("datatypes")
@@ -203,21 +212,14 @@ class DocumentClient(
           .field(DomainMetadataFieldType.Value.rawFieldName)
           .size(aggSize)))
 
-    val domainSpecificFilter = compositeFilter(domainSet, SearchParamSet(), user, requireAuth)
+    val baseRequest = buildBaseRequest(domainSet, searchParams, ScoringParamSet(), user, requireAuth)
 
-    val filteredAggs = AggregationBuilders
-      .filter("domain_filter")
-      .filter(domainSpecificFilter)
-      .subAggregation(datatypeAgg)
-      .subAggregation(categoryAgg)
-      .subAggregation(tagAgg)
-      .subAggregation(metadataAgg)
-
-    val preparedSearch = esClient.client
-      .prepareSearch(indexAliasName)
-      .addAggregation(filteredAggs)
-      .setSize(searchSize)
-
-    preparedSearch
+    baseRequest
+      .addAggregation(datatypeAgg)
+      .addAggregation(categoryAgg)
+      .addAggregation(tagAgg)
+      .addAggregation(metadataAgg)
+      .setSearchType("count")
+      .setSize(0) // no docs, aggs only
   }
 }

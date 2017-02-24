@@ -91,6 +91,8 @@ class CountService(
   // scalastyle:ignore cyclomatic.complexity
   def aggregate(field: DocumentFieldType with Countable with Rawable)(req: HttpRequest): HttpResponse = {
     implicit val cEncode = field match {
+      // TODO: we only ever use the first 4 of these. We should maybe reconsider our trait organization in
+      // FieldTypes so it isn't necessary to include unused fields here.
       case CategoriesFieldType => Count.encode("category")
       case TagsFieldType => Count.encode("tag")
       case DomainCategoryFieldType => Count.encode("domain_category")

@@ -48,10 +48,6 @@ class Router(
     Route("/catalog/tags", countResource(TagsFieldType)),
     Route("/catalog/v1/tags", countResource(TagsFieldType)),
 
-    // document counts for queries grouped by owner
-    Route("/catalog/owners", countResource(OwnerIdFieldType)),
-    Route("/catalog/v1/owners", countResource(OwnerIdFieldType)),
-
     // document counts for queries grouped by domain_category
     Route("/catalog/domain_categories", countResource(DomainCategoryFieldType)),
     Route("/catalog/v1/domain_categories", countResource(DomainCategoryFieldType)),

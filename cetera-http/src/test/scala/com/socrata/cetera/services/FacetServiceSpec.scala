@@ -54,12 +54,12 @@ class FacetServiceSpec
 
   test("retrieve all visible domain facets for domains that are unlocked") {
     val domainResults = List(
-      facetService.doAggregate(domains(0).domainCname, AuthParams(), None, None),
-      facetService.doAggregate(domains(1).domainCname, AuthParams(), None, None),
-      facetService.doAggregate(domains(2).domainCname, AuthParams(), None, None),
-      facetService.doAggregate(domains(3).domainCname, AuthParams(), None, None),
-      facetService.doAggregate(domains(4).domainCname, AuthParams(), None, None),
-      facetService.doAggregate(domains(5).domainCname, AuthParams(), None, None))
+      facetService.doAggregate(Map.empty, domains(0).domainCname, AuthParams(), None, None),
+      facetService.doAggregate(Map.empty, domains(1).domainCname, AuthParams(), None, None),
+      facetService.doAggregate(Map.empty, domains(2).domainCname, AuthParams(), None, None),
+      facetService.doAggregate(Map.empty, domains(3).domainCname, AuthParams(), None, None),
+      facetService.doAggregate(Map.empty, domains(4).domainCname, AuthParams(), None, None),
+      facetService.doAggregate(Map.empty, domains(5).domainCname, AuthParams(), None, None))
 
     val domainFacets = domainResults.map{ r =>
       val facets = r._2
@@ -73,36 +73,25 @@ class FacetServiceSpec
     // domain 0 has 2 datasets (zeta-0001 and zeta-0007), a calendar (fxf-0), a href (fxf-8) and a DL (zeta-0012) that are anonymously viewable
     domainFacets(0).datatypes should contain theSameElementsAs(List(ValueCount("dataset", 2), ValueCount("calendar",1),
       ValueCount("datalens",1), ValueCount("href",1)))
-    // domain 0 has 3 views with the "alpha to omega" category and 2 with "Fun" and 1 with "Pumas"
     domainFacets(0).categories should contain theSameElementsAs(List(ValueCount("Alpha to Omega",2), ValueCount("Fun",2), ValueCount("Pumas",1)))
-    // domain 0 has 3 views with the "1-one" tag and 1 with "2-two"
-    domainFacets(0).tags should contain theSameElementsAs(List(ValueCount("1-one",2)))
-    // domain 0 has 1 view with the "8" metadata value
+    domainFacets(0).tags should contain theSameElementsAs(List(ValueCount("1-one",2), ValueCount("facts",1)))
     domainFacets(0).metadata should contain theSameElementsAs(List(ValueCount("8",2), ValueCount("1",2), ValueCount("3",2)))
 
     // domain 1 has 1 chart (fxf-1) that is anonymously viewable
     domainFacets(1).datatypes should contain theSameElementsAs(List(ValueCount("chart", 1)))
-    // it has the "Beta" category
     domainFacets(1).categories should contain theSameElementsAs(List(ValueCount("Beta",1)))
-    // and two tags: "1-one" and "2-two"
     domainFacets(1).tags should contain theSameElementsAs(List(ValueCount("1-one",1), ValueCount("2-two",1)))
-    // and the "2" custom metadata value
     domainFacets(1).metadata should contain theSameElementsAs(List(ValueCount("2",1)))
 
     // domain 2 has 1 story (fxf-10) and 1 filter (zeta-0005) that are anonymously viewable
     domainFacets(2).datatypes should contain theSameElementsAs(List(ValueCount("filter",1), ValueCount("story",1)))
-    // it has the "Gamma" category
     domainFacets(2).categories should contain theSameElementsAs(List(ValueCount("Fun",1), ValueCount("Gamma",1)))
-    // and two tags: "1-one" and "2-two"
     domainFacets(2).tags should contain theSameElementsAs(List(ValueCount("1-one",1), ValueCount("2-two",1)))
-    // and the "3" custom metadata value
     domainFacets(2).metadata should contain theSameElementsAs(List(ValueCount("3",1)))
 
     // domain 3 has 1 dataset (zeta-0002) that is anonymously viewable
     domainFacets(3).datatypes should contain theSameElementsAs(List(ValueCount("dataset", 1), ValueCount("href", 1), ValueCount("federated_href", 1)))
-    // these both have the "Fun" category
     domainFacets(3).categories should contain theSameElementsAs(List(ValueCount("Fun",1)))
-    // and neither have tags or metadata
     domainFacets(3).tags should be(List(ValueCount("1-one", 2), ValueCount("2-two", 2)))
     domainFacets(3).metadata should be('empty)
 
@@ -117,6 +106,25 @@ class FacetServiceSpec
     domainFacets(5).categories should be('empty)
     domainFacets(5).tags should be('empty)
     domainFacets(5).metadata should be('empty)
+  }
+
+  test("retrieve all visible domain facets while respecting query params") {
+    val context = domains(0)
+    val params = Map(
+      "domains" -> context.domainCname,
+      "categories" -> "Fun",
+      "tags" -> "facts"
+    ).mapValues(Seq(_))
+    // these ^ params leave a single dataset, zeta-0007
+    val (_, facets, timings, _) = facetService.doAggregate(params, context.domainCname, AuthParams(cookie=Some("c=cookie")), Some(context.domainCname), None)
+    val datatypes = facets.find(_.facet == "datatypes").map(_.values).getOrElse(fail())
+    val categories = facets.find(_.facet == "categories").map(_.values).getOrElse(fail())
+    val tags = facets.find(_.facet == "tags").map(_.values).getOrElse(fail())
+
+    datatypes should contain theSameElementsAs(List(ValueCount("dataset", 1)))
+    categories should contain theSameElementsAs(List(ValueCount("Fun", 1)))
+    tags should contain theSameElementsAs(List(ValueCount("facts", 1)))
+    facets.foreach(f => f.count should be(f.values.map(_.count).sum))
   }
 
   test("retrieve all visible domain facets on a locked domain if user is authed properly") {
@@ -145,7 +153,7 @@ class FacetServiceSpec
         .withBody(CompactJsonWriter.toString(userBody))
     )
 
-    val (_, facets, timings, _) = facetService.doAggregate(context.domainCname, AuthParams(cookie=Some("c=cookie")), Some(context.domainCname), None)
+    val (_, facets, timings, _) = facetService.doAggregate(Map.empty, context.domainCname, AuthParams(cookie=Some("c=cookie")), Some(context.domainCname), None)
     val datatypes = facets.find(_.facet == "datatypes").map(_.values).getOrElse(fail())
     val categories = facets.find(_.facet == "categories").map(_.values).getOrElse(fail())
     val tags = facets.find(_.facet == "tags").map(_.values).getOrElse(fail())
@@ -197,7 +205,7 @@ class FacetServiceSpec
     )
 
     intercept[DomainNotFoundError] {
-      facetService.doAggregate("bs-domain.com", AuthParams(cookie=Some("c=cookie")), Some(context.domainCname), None)
+      facetService.doAggregate(Map.empty, "bs-domain.com", AuthParams(cookie=Some("c=cookie")), Some(context.domainCname), None)
     }
   }
 
@@ -230,7 +238,7 @@ class FacetServiceSpec
     )
 
     intercept[UnauthorizedError] {
-      facetService.doAggregate(context.domainCname, AuthParams(cookie=Some("c=cookie")), Some(context.domainCname), None)
+      facetService.doAggregate(Map.empty, context.domainCname, AuthParams(cookie=Some("c=cookie")), Some(context.domainCname), None)
     }
   }
 }

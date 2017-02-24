@@ -115,12 +115,6 @@ case object TagsFieldType extends DocumentFieldType with Scorable with Rawable {
   }
 }
 
-// A domain category is a domain-specific (customer-specified) category (as
-// opposed to a Socrata-specific canonical category).
-case object DomainCategoryFieldType extends DocumentFieldType with Countable with Rawable {
-  val fieldName: String = "customer_category"
-}
-
 case object OwnerIdFieldType extends DocumentFieldType with Countable with NativelyRawable {
   val fieldName: String = "owner_id"
 }
@@ -237,6 +231,12 @@ case object HideFromDataJsonFieldType extends DocumentFieldType {
 // Domain tags are customer-defined tags (which surface as topics in the front end).
 case object DomainTagsFieldType extends DocumentFieldType with Countable with Rawable {
   val fieldName: String = "customer_tags"
+}
+
+// A domain category is a domain-specific (customer-specified) category (as
+// opposed to a Socrata-specific canonical category).
+case object DomainCategoryFieldType extends DocumentFieldType with Countable with Rawable {
+  val fieldName: String = "customer_category"
 }
 
 // TODO: cetera-etl rename customer_metadata_flattened to domain_metadata_flattened

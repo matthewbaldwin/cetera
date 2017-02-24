@@ -30,6 +30,7 @@ class FacetService(
   lazy val logger = LoggerFactory.getLogger(classOf[FacetService])
 
   def doAggregate( // scalastyle:ignore method.length
+      queryParameters: MultiQueryParams,
       cname: String,
       authParams: AuthParams,
       extendedHost: Option[String],
@@ -38,6 +39,7 @@ class FacetService(
 
     val startMs = Timings.now()
     val (authorizedUser, setCookies) = coreClient.optionallyAuthenticateUser(extendedHost, authParams, requestId)
+    val searchParams = QueryParametersParser(queryParameters).searchParamSet
 
     val (domainSet, domainSearchTime) = domainClient.findSearchableDomains(
       Some(cname), extendedHost, Some(Set(cname)),
@@ -49,12 +51,11 @@ class FacetService(
       case None => // domain exists but user isn't authorized to see it
         throw UnauthorizedError(authedUser, s"search for facets on $cname")
       case Some(d) => // domain exists and is viewable by user
-        val request = documentClient.buildFacetRequest(domainSet, authedUser, requireAuth = false)
+        val request = documentClient.buildFacetRequest(domainSet, searchParams, authedUser, requireAuth = false)
         logger.info(LogHelper.formatEsRequest(request))
         val res = request.execute().actionGet()
+
         val aggs = res.getAggregations.asMap().asScala
-          .getOrElse("domain_filter", throw new NoSuchElementException).asInstanceOf[Filter]
-          .getAggregations.asMap().asScala
 
         val datatypesValues = aggs("datatypes").asInstanceOf[Terms]
           .getBuckets.asScala.map(b => ValueCount(b.getKey, b.getDocCount)).filter(_.value.nonEmpty)
@@ -88,7 +89,8 @@ class FacetService(
     val requestId = req.header(HeaderXSocrataRequestIdKey)
 
     try {
-      val (status, facets, timings, setCookies) = doAggregate(cname, authParams, extendedHost, requestId)
+      val (status, facets, timings, setCookies) =
+        doAggregate(req.multiQueryParams, cname, authParams, extendedHost, requestId)
       logger.info(LogHelper.formatRequest(req, timings))
       Http.decorate(Json(facets, pretty = true), status, setCookies)
     } catch {
