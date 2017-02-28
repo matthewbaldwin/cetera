@@ -8,16 +8,18 @@ import com.socrata.cetera.types._
 
 // TODO: Ultimately, these should accept Sortables rather than Strings
 object Sorts {
+  val MissingSortStrategry = "_last"
+
   val sortScoreDesc: SortBuilder = {
-    SortBuilders.scoreSort().order(SortOrder.DESC).missing("_last")
+    SortBuilders.scoreSort().order(SortOrder.DESC).missing(MissingSortStrategry)
   }
 
   def sortFieldAsc(field: String): SortBuilder = {
-    SortBuilders.fieldSort(field).order(SortOrder.ASC).missing("_last")
+    SortBuilders.fieldSort(field).order(SortOrder.ASC).missing(MissingSortStrategry)
   }
 
   def sortFieldDesc(field: String): SortBuilder = {
-    SortBuilders.fieldSort(field).order(SortOrder.DESC).missing("_last")
+    SortBuilders.fieldSort(field).order(SortOrder.DESC).missing(MissingSortStrategry)
   }
 
   def buildAverageScoreSort(
@@ -29,7 +31,7 @@ object Sorts {
     SortBuilders
       .fieldSort(fieldName)
       .order(SortOrder.DESC)
-      .missing("_last")
+      .missing(MissingSortStrategry)
       .sortMode("avg")
       .setNestedFilter(
         FilterBuilders.termsFilter(

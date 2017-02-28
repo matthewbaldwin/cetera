@@ -9,7 +9,6 @@ import com.socrata.cetera.esDocumentType
 import com.socrata.cetera.handlers.{PagingParamSet, ScoringParamSet, SearchParamSet}
 import com.socrata.cetera.errors.MissingRequiredParameterError
 import com.socrata.cetera.search.DocumentAggregations.chooseAggregation
-import com.socrata.cetera.search.DocumentFilters.compositeFilter
 import com.socrata.cetera.search.DocumentQueries.{autocompleteQuery, chooseMatchQuery, compositeFilteredQuery}
 import com.socrata.cetera.types._
 

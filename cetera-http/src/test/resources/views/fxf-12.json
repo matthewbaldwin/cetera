@@ -18,7 +18,8 @@
     "id": "fxf-12",
     "columns": [],
     "name": "A Multiword Title",
-    "attribution": null
+    "attribution": null,
+    "provenance": "official"
   },
   "animl_annotations": {
     "categories": [
@@ -85,5 +86,6 @@
   "grants": [],
   "hide_from_catalog": false,
   "hide_from_data_json": false,
-  "license": "Academic Free License"
+  "license": "Academic Free License",
+  "provenance": "official"
 }

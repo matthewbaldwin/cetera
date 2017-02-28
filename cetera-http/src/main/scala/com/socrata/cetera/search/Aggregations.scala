@@ -1,10 +1,9 @@
 package com.socrata.cetera.search
 
-import org.elasticsearch.index.query.FilterBuilders.boolFilter
+import org.elasticsearch.index.query.FilterBuilder
 import org.elasticsearch.search.aggregations.bucket.terms.Terms
 import org.elasticsearch.search.aggregations.{AbstractAggregationBuilder, AggregationBuilders}
 
-import com.socrata.cetera.auth.User
 import com.socrata.cetera.esDocumentType
 import com.socrata.cetera.types._
 
@@ -95,10 +94,7 @@ object DocumentAggregations {
 object DomainAggregations {
   private val aggSize = 0 // agg count unlimited
 
-  def domains(domainSet: DomainSet, user: Option[User]): AbstractAggregationBuilder = {
-    val visibilityFilter = boolFilter()
-      .must(DocumentFilters.anonymousFilter(domainSet, includeContextApproval = false, isDomainAgg = true))
-
+  def domains(filter: FilterBuilder): AbstractAggregationBuilder =
     AggregationBuilders
       .terms("domains") // "domains" is an agg of terms on field "domain_cname.raw"
       .field("domain_cname.raw")
@@ -109,9 +105,8 @@ object DomainAggregations {
           .childType(esDocumentType)
           .subAggregation(
             AggregationBuilders
-              .filter("visible") // "visible" is an agg of documents matching the following filter
-              .filter(visibilityFilter)
+              .filter("filtered") // "visible" is an agg of documents matching the following filter
+              .filter(filter)
           )
       )
-  }
 }

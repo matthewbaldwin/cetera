@@ -5,6 +5,7 @@ import com.rojoma.json.v3.codec.JsonDecode
 import com.rojoma.json.v3.util.AutomaticJsonCodecBuilder
 
 import com.socrata.cetera.types.Domain
+import com.socrata.cetera.auth.User._
 
 case class User(
     id: String,
@@ -17,7 +18,7 @@ case class User(
   def hasRole(role: String): Boolean = roleName.exists(r => r.startsWith(role))
   def hasOneOfRoles(roles: Seq[String]): Boolean = roles.map(hasRole(_)).fold(false)(_ || _)
   def isSuperAdmin: Boolean = flags.exists(_.contains("admin"))
-  def isAdmin: Boolean = hasRole("administrator") || isSuperAdmin
+  def isAdmin: Boolean = hasRole(Administrator) || isSuperAdmin
 
   def authorizedOnDomain(domainId: Int): Boolean = {
     authenticatingDomain.exists(_.domainId == domainId) || isSuperAdmin
@@ -31,13 +32,13 @@ case class User(
   }
 
   def canViewLockedDownCatalog(domainId: Int): Boolean =
-    canViewResource(domainId, hasOneOfRoles(Seq("editor", "publisher", "viewer", "administrator")))
+    canViewResource(domainId, hasOneOfRoles(Seq(Editor, Publisher, Viewer, Administrator)))
 
   def canViewPrivateMetadata(domainId: Int): Boolean =
-    canViewResource(domainId, hasOneOfRoles(Seq("publisher", "administrator")))
+    canViewResource(domainId, hasOneOfRoles(Seq(Publisher, Administrator)))
 
   def canViewAllViews(domainId: Int): Boolean =
-    canViewResource(domainId, hasOneOfRoles(Seq("publisher", "designer", "viewer", "administrator")))
+    canViewResource(domainId, hasOneOfRoles(Seq(Publisher, Designer, Viewer, Administrator)))
 
   def canViewAllUsers: Boolean =
     authenticatingDomain.exists(d => canViewResource(d.domainId, isAdmin)) || isSuperAdmin
@@ -51,6 +52,12 @@ case class User(
 
 object User {
   implicit val jCodec = AutomaticJsonCodecBuilder[User]
+
+  val Administrator = "administrator"
+  val Designer = "designer"
+  val Editor = "editor"
+  val Publisher = "publisher"
+  val Viewer = "viewer"
 
   def apply(j: JValue): Option[User] = JsonDecode.fromJValue[User](j).fold(_ => None, Some(_))
 }

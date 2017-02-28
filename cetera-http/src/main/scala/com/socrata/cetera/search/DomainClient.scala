@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory
 import com.socrata.cetera._
 import com.socrata.cetera.auth.{CoreClient, User}
 import com.socrata.cetera.errors.DomainNotFoundError
+import com.socrata.cetera.handlers.SearchParamSet
 import com.socrata.cetera.search.DomainFilters.{cnamesFilter, idsFilter, isCustomerDomainFilter}
 import com.socrata.cetera.types.{Domain, DomainCnameFieldType, DomainSet}
 import com.socrata.cetera.util.LogHelper
@@ -23,7 +24,12 @@ trait BaseDomainClient {
       requestId: Option[String])
     : (DomainSet, Long)
 
-  def buildCountRequest(domainSet: DomainSet, user: Option[User]): SearchRequestBuilder
+  def buildCountRequest(
+      domainSet: DomainSet,
+      searchParams: SearchParamSet,
+      user: Option[User],
+      requireAuth: Boolean)
+  : SearchRequestBuilder
 }
 
 class DomainClient(esClient: ElasticSearchClient, coreClient: CoreClient, indexAliasName: String)
@@ -194,14 +200,21 @@ class DomainClient(esClient: ElasticSearchClient, coreClient: CoreClient, indexA
     (domains, timing)
   }
 
-  // NOTE: I do not currently honor counting according to parameters
-  def buildCountRequest(domainSet: DomainSet, user: Option[User]): SearchRequestBuilder = {
-    val domainFilter = idsFilter(domainSet.allIds)
-    val aggregation = DomainAggregations.domains(domainSet, user)
+  // NOTE: this method will acknowledge all params except 'q' and 'q_internal'
+  def buildCountRequest(
+      domainSet: DomainSet,
+      searchParams: SearchParamSet,
+      user: Option[User],
+      requireAuth: Boolean)
+  : SearchRequestBuilder = {
+    val domainFilter = DomainFilters.idsFilter(domainSet.domains.map(_.domainId))
+    // NOTE: this only filters by search params that are translated into filters and not
+    //       the 'q' param which is translated into a query
+    val docFilters = DocumentFilters(forDomainSearch = true).compositeFilter(domainSet, searchParams, user, requireAuth)
 
     esClient.client.prepareSearch(indexAliasName).setTypes(esDomainType)
       .setQuery(QueryBuilders.filteredQuery(QueryBuilders.matchAllQuery(), domainFilter))
-      .addAggregation(aggregation)
+      .addAggregation(DomainAggregations.domains(docFilters))
       .setSearchType(SearchType.COUNT)
       .setSize(0) // no docs, aggs only
   }

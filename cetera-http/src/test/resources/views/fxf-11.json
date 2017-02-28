@@ -18,7 +18,8 @@
     "id": "fxf-11",
     "columns": [],
     "name": "Five",
-    "attribution": null
+    "attribution": null,
+    "provenance": "official"
   },
   "animl_annotations": {
     "categories": [
@@ -84,5 +85,7 @@
   "preview_image_id": null,
   "grants": [],
   "hide_from_catalog": false,
-  "hide_from_data_json": false
+  "hide_from_data_json": false,
+  "license": "Academic Free License",
+  "provenance": "official"
 }

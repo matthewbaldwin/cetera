@@ -10,6 +10,9 @@ import com.socrata.cetera._
 import com.socrata.cetera.response.InternalTimings
 
 object LogHelper {
+  val PathSeparator = "/"
+  val NewLine = "\n"
+
   // WARN: changing this will likely break Sumo (regex-based log parser)
   def formatRequest(request: HttpRequest, timings: InternalTimings): String = {
     List[String](
@@ -33,12 +36,13 @@ object LogHelper {
     val sb = StringBuilder.newBuilder
 
     sb.append(s"received http request:\n")
-    sb.append(s"${req.method} ${req.requestPath.mkString("/","/","")}${req.queryStr.map("?" + _).getOrElse("")}\n")
+    sb.append(s"${req.method} ${req.requestPath.mkString(PathSeparator, PathSeparator,"")}${req.queryStr.map("?" + _)
+      .getOrElse("")}$NewLine")
     req.headerNames.foreach { n =>
-      sb.append(s"$n: ${req.headers(n).mkString(", ")}\n")
+      sb.append(s"$n: ${req.headers(n).mkString(", ")}$NewLine")
     }
     sb.append("\n")
-    Source.fromInputStream(req.inputStream).getLines().foreach(line => sb.append(s"$line\n"))
+    Source.fromInputStream(req.inputStream).getLines().foreach(line => sb.append(s"$line$NewLine"))
 
     sb.toString()
   }
@@ -46,9 +50,9 @@ object LogHelper {
   def formatSimpleHttpRequestBuilderVerbose(req: RequestBuilder): String = {
     val sb = StringBuilder.newBuilder
 
-    sb.append(s"sending http request:\n")
-    sb.append(s"${req.method.getOrElse("GET")} ${req.path.mkString("/", "/", "")}\n")
-    sb.append(req.headers.map { case (k,v) => s"$k: $v" }.mkString("\n"))
+    sb.append(s"sending http request:$NewLine")
+    sb.append(s"${req.method.getOrElse("GET")} ${req.path.mkString(PathSeparator, PathSeparator, "")}$NewLine")
+    sb.append(req.headers.map { case (k,v) => s"$k: $v" }.mkString(NewLine))
 
     sb.toString()
   }

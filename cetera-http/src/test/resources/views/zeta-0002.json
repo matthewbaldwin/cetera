@@ -19,7 +19,8 @@
     "columns": [
     ],
     "name": "",
-    "attribution": null
+    "attribution": null,
+    "provenance": "official"
   },
   "animl_annotations": {
     "categories": [
@@ -77,9 +78,10 @@
     "screen_name": "Phony King of England"
   },
   "shared_to": [],
-  "attribution": null,
+  "attribution": "nottingham",
   "preview_image_id": null,
   "grants": [],
   "hide_from_catalog": false,
-  "hide_from_data_json": false
+  "hide_from_data_json": false,
+  "provenance": "official"
 }

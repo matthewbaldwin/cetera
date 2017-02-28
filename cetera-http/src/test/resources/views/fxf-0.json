@@ -18,7 +18,8 @@
     "id": "fxf-0",
     "columns": [],
     "name": "One",
-    "attribution": null
+    "attribution": null,
+    "provenance": "community"
   },
   "animl_annotations": {
     "categories": [
@@ -102,9 +103,10 @@
     "screen_name": "Robin Hood"
   },
   "shared_to": [],
-  "attribution": null,
+  "attribution": "nottingham",
   "preview_image_id": null,
   "grants": [],
   "hide_from_catalog": false,
-  "hide_from_data_json": false
+  "hide_from_data_json": false,
+  "provenance": "community"
 }

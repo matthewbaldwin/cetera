@@ -40,7 +40,7 @@ class DomainCountService(domainClient: BaseDomainClient, coreClient: CoreClient)
   }
 
   private def format(counts: Seq[JValue]): SearchResults[Count] =
-    SearchResults(counts.map { c => Count(c.dyn.key.!, c.dyn.documents.visible.doc_count.!) }, counts.size)
+    SearchResults(counts.map { c => Count(c.dyn.key.!, c.dyn.documents.filtered.doc_count.!) }, counts.size)
 
   def doAggregate(
       queryParameters: MultiQueryParams,
@@ -58,9 +58,8 @@ class DomainCountService(domainClient: BaseDomainClient, coreClient: CoreClient)
     )
     val authedUser = authorizedUser.map(u => u.copy(authenticatingDomain = domainSet.extendedHost))
 
-    val search = domainClient.buildCountRequest(domainSet, authedUser)
+    val search = domainClient.buildCountRequest(domainSet, searchParams, authedUser, false)
     logger.info(LogHelper.formatEsRequest(search))
-
     val res = search.execute.actionGet
     val timings = InternalTimings(Timings.elapsedInMillis(now), Seq(domainSearchTime, res.getTookInMillis))
     val json = JsonReader.fromString(res.toString)

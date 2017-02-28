@@ -1,64 +1,81 @@
 package com.socrata.cetera.search
 
+import org.elasticsearch.index.query.FilterBuilder
 import org.elasticsearch.index.query.FilterBuilders._
-import org.elasticsearch.index.query.{BoolFilterBuilder, FilterBuilder, FilterBuilders, MatchAllFilterBuilder}
 
 import com.socrata.cetera.auth.User
 import com.socrata.cetera.errors.UnauthorizedError
 import com.socrata.cetera.esDocumentType
-import com.socrata.cetera.handlers.{SearchParamSet, UserSearchParamSet}
+import com.socrata.cetera.handlers.SearchParamSet
 import com.socrata.cetera.types._
 
+// the `forDomainSearch` param, if true, prepends "document." to every fieldName used in search.
+// TODO: revisit choice to make this a case class. Is there a cleaner way to ensure that all
+// filters have the appropriate prefix when called from the domainClient?
 // scalastyle:ignore number.of.methods
-object DocumentFilters {
+case class DocumentFilters(forDomainSearch: Boolean = false) {
 
-  def datatypeFilter(datatypes: Set[String], aggPrefix: String = ""): FilterBuilder = {
-    val validatedDatatypes = datatypes.flatMap(t => Datatype(t).map(_.singular))
-    termsFilter(aggPrefix + DatatypeFieldType.fieldName, validatedDatatypes.toSeq: _*)
-  }
+  val fieldNamePrefix = if (forDomainSearch) esDocumentType + "." else ""
 
-  def userFilter(user: String, aggPrefix: String = ""): FilterBuilder =
-    termFilter(aggPrefix + OwnerIdFieldType.fieldName, user)
+  // ------------------------------------------------------------------------------------------
+  // These are the building blocks of all other filters defined in this class.
+  // In order to properly support search over domains (vs. documents), please ensure
+  // that each of these filters include the `fieldNamePrefix`
+  // ------------------------------------------------------------------------------------------
+  def datatypeFilter(datatypes: Set[String]): FilterBuilder =
+    termsFilter(fieldNamePrefix + DatatypeFieldType.fieldName, datatypes.toSeq: _*)
 
-  def sharedToFilter(user: String, aggPrefix: String = ""): FilterBuilder =
-    termFilter(aggPrefix + SharedToFieldType.rawFieldName, user)
+  def userFilter(user: String): FilterBuilder =
+    termFilter(fieldNamePrefix + OwnerIdFieldType.fieldName, user)
 
-  def attributionFilter(attribution: String, aggPrefix: String = ""): FilterBuilder =
-    termFilter(aggPrefix + AttributionFieldType.rawFieldName, attribution)
+  def sharedToFilter(user: String): FilterBuilder =
+    termFilter(fieldNamePrefix + SharedToFieldType.rawFieldName, user)
 
-  def provenanceFilter(provenance: String, aggPrefix: String = ""): FilterBuilder =
-    termFilter(aggPrefix + ProvenanceFieldType.rawFieldName, provenance)
+  def attributionFilter(attribution: String): FilterBuilder =
+    termFilter(fieldNamePrefix + AttributionFieldType.rawFieldName, attribution)
 
-  def licenseFilter(license: String, aggPrefix: String = ""): FilterBuilder =
-    termFilter(aggPrefix + LicenseFieldType.rawFieldName, license)
+  def provenanceFilter(provenance: String): FilterBuilder =
+    termFilter(fieldNamePrefix + ProvenanceFieldType.rawFieldName, provenance)
 
-  def parentDatasetFilter(parentDatasetId: String, aggPrefix: String = ""): FilterBuilder =
-    termFilter(aggPrefix + ParentDatasetIdFieldType.fieldName, parentDatasetId)
+  def licenseFilter(license: String): FilterBuilder =
+    termFilter(fieldNamePrefix + LicenseFieldType.rawFieldName, license)
 
-  def hideFromCatalogFilter(isDomainAgg: Boolean = false): FilterBuilder = {
-    val prefix = if (isDomainAgg) esDocumentType + "." else ""
-    notFilter(termFilter(prefix + HideFromCatalogFieldType.fieldName, true))
-  }
+  def parentDatasetFilter(parentDatasetId: String): FilterBuilder =
+    termFilter(fieldNamePrefix + ParentDatasetIdFieldType.fieldName, parentDatasetId)
 
-  def idFilter(ids: Set[String]): FilterBuilder = {
-    termsFilter(IdFieldType.fieldName, ids.toSeq: _*)
-  }
+  def hiddenFromCatalogFilter(hidden: Boolean = true): FilterBuilder =
+    termFilter(fieldNamePrefix + HideFromCatalogFieldType.fieldName, hidden)
 
-  def domainIdFilter(domainIds: Set[Int], aggPrefix: String = ""): FilterBuilder = {
-    termsFilter(aggPrefix + SocrataIdDomainIdFieldType.fieldName, domainIds.toSeq: _*)
-  }
+  def idFilter(ids: Set[String]): FilterBuilder =
+    termsFilter(fieldNamePrefix + IdFieldType.fieldName, ids.toSeq: _*)
 
-  def raStatusAccordingToParentDomainFilter(status: ApprovalStatus, aggPrefix: String = ""): FilterBuilder =
-    termFilter(aggPrefix + status.raAccordingToParentField, true)
+  def domainIdFilter(domainIds: Set[Int]): FilterBuilder =
+    termsFilter(fieldNamePrefix + SocrataIdDomainIdFieldType.fieldName, domainIds.toSeq: _*)
 
-  def raStatusAccordingToContextFilter(status: ApprovalStatus, context: Domain, aggPrefix: String = ""): FilterBuilder =
-    termsFilter(aggPrefix + status.raQueueField, context.domainId)
+  def raStatusAccordingToParentDomainFilter(status: ApprovalStatus, hasStatus: Boolean = true): FilterBuilder =
+    termFilter(fieldNamePrefix + status.raAccordingToParentField, hasStatus)
 
-  def derivedFilter(derived: Boolean = true, aggPrefix: String = ""): FilterBuilder =
-    termFilter(aggPrefix + IsDefaultViewFieldType.fieldName, !derived)
+  def raStatusAccordingToContextFilter(status: ApprovalStatus, contextId: Int): FilterBuilder =
+    termFilter(fieldNamePrefix + status.raQueueField, contextId)
 
-  def explicitlyHiddenFilter(hidden: Boolean = true, aggPrefix: String = ""): FilterBuilder =
-    termFilter(aggPrefix + HideFromCatalogFieldType.fieldName, hidden)
+  def modStatusFilter(status: ApprovalStatus): FilterBuilder =
+    termFilter(fieldNamePrefix + ModerationStatusFieldType.fieldName, status.status)
+
+  def defaultViewFilter(default: Boolean = true): FilterBuilder =
+    termFilter(fieldNamePrefix + IsDefaultViewFieldType.fieldName, default)
+
+  def publicFilter(public: Boolean = true): FilterBuilder =
+    termFilter(fieldNamePrefix + IsPublicFieldType.fieldName, public)
+
+  def publishedFilter(published: Boolean = true): FilterBuilder =
+    termFilter(fieldNamePrefix + IsPublishedFieldType.fieldName, published)
+
+  def customerCategoriesFilter(tags: Set[String]): FilterBuilder =
+    termsFilter(fieldNamePrefix + DomainCategoryFieldType.rawFieldName, tags.toSeq: _*)
+
+  def customerTagsFilter(tags: Set[String]): FilterBuilder =
+    termsFilter(fieldNamePrefix + DomainTagsFieldType.rawFieldName, tags.toSeq: _*)
+  // ------------------------------------------------------------------------------------------
 
   // this filter limits documents to those owned/shared to the user
   // or visible to user based on their domain and role
@@ -94,7 +111,7 @@ object DocumentFilters {
         vs.foldLeft(boolFilter()) { (b, v) =>
           b.should(
             nestedFilter(
-              parentField,
+              fieldNamePrefix + parentField,
               boolFilter()
                 .must(termsFilter(keyField, k))
                 .must(termsFilter(valueField, v))
@@ -161,7 +178,7 @@ object DocumentFilters {
   // views from moderated domains + default views from unmoderated sites
   def vmSearchContextFilter(domainSet: DomainSet): Option[FilterBuilder] =
     domainSet.searchContext.collect { case c: Domain if c.moderationEnabled =>
-      val beDefault = termFilter(IsDefaultViewFieldType.fieldName, true)
+      val beDefault = defaultViewFilter(default = true)
       val beFromModeratedDomain = domainIdFilter(domainSet.moderationEnabledIds)
       boolFilter().should(beDefault).should(beFromModeratedDomain)
     }
@@ -170,16 +187,16 @@ object DocumentFilters {
   // having been through or are presently in the context's RA queue
   def raSearchContextFilter(domainSet: DomainSet): Option[FilterBuilder] =
     domainSet.searchContext.collect { case c: Domain if c.routingApprovalEnabled =>
-      val beApprovedByContext = raStatusAccordingToContextFilter(ApprovalStatus.approved, c)
-      val beRejectedByContext = raStatusAccordingToContextFilter(ApprovalStatus.rejected, c)
-      val bePendingWithinContextsQueue = raStatusAccordingToContextFilter(ApprovalStatus.pending, c)
+      val beApprovedByContext = raStatusAccordingToContextFilter(ApprovalStatus.approved, c.domainId)
+      val beRejectedByContext = raStatusAccordingToContextFilter(ApprovalStatus.rejected, c.domainId)
+      val bePendingWithinContextsQueue = raStatusAccordingToContextFilter(ApprovalStatus.pending, c.domainId)
       boolFilter().should(beApprovedByContext).should(beRejectedByContext).should(bePendingWithinContextsQueue)
     }
 
   // this filter limits results based on the processes in place on the search context
   //  - if view moderation is enabled, all derived views from unmoderated federated domains are removed
   //  - if R&A is enabled, all views whose self or parent has not been through the context's RA queue are removed
-  def searchContextFilter(domainSet: DomainSet, isDomainAgg: Boolean = false): Option[FilterBuilder] = {
+  def searchContextFilter(domainSet: DomainSet): Option[FilterBuilder] = {
     val vmFilter = vmSearchContextFilter(domainSet)
     val raFilter = raSearchContextFilter(domainSet)
     List(vmFilter, raFilter).flatten match {
@@ -199,52 +216,48 @@ object DocumentFilters {
   }
 
   // this filter limits results to those with the given status
-  def moderationStatusFilter(status: ApprovalStatus, domainSet: DomainSet, isDomainAgg: Boolean = false)
+  def moderationStatusFilter(status: ApprovalStatus, domainSet: DomainSet)
   : FilterBuilder = {
-    val aggPrefix = if (isDomainAgg) esDocumentType + "." else ""
-
     status match {
       case ApprovalStatus.approved =>
         // to be approved a view must either be
         //   * a default/approved view from a moderated domain
         //   * any view from an unmoderated domain (as they are approved by default)
         // NOTE: funkiness with federation is handled by the searchContext filter.
-        val beDefault = termFilter(aggPrefix + IsDefaultViewFieldType.fieldName, true)
-        val beApproved = termFilter(aggPrefix + ModerationStatusFieldType.fieldName, ApprovalStatus.approved.status)
-        val beFromUnmoderatedDomain = domainIdFilter(domainSet.moderationDisabledIds, aggPrefix)
+        val beDefault = defaultViewFilter()
+        val beApproved = modStatusFilter(ApprovalStatus.approved)
+        val beFromUnmoderatedDomain = domainIdFilter(domainSet.moderationDisabledIds)
         boolFilter().should(beDefault).should(beApproved).should(beFromUnmoderatedDomain)
       case _ =>
         // to be rejected/pending, a view must be a derived view from a moderated domain with the given status
-        val beFromModeratedDomain = domainIdFilter(domainSet.moderationEnabledIds, aggPrefix)
-        val beDerived = termFilter(aggPrefix + IsDefaultViewFieldType.fieldName, false)
-        val haveGivenStatus = termFilter(aggPrefix + ModerationStatusFieldType.fieldName, status.status)
+        val beFromModeratedDomain = domainIdFilter(domainSet.moderationEnabledIds)
+        val beDerived = defaultViewFilter(false)
+        val haveGivenStatus = modStatusFilter(status)
         boolFilter().must(beFromModeratedDomain).must(beDerived).must(haveGivenStatus)
     }
   }
 
-  def datalensStatusFilter(status: ApprovalStatus, isDomainAgg: Boolean = false): FilterBuilder = {
-    val aggPrefix = if (isDomainAgg) esDocumentType + "." else ""
-    val beADatalens = datatypeFilter(DatalensDatatype.allVarieties, aggPrefix)
+  // this filter limits results to datalens with the given status
+  def datalensStatusFilter(status: ApprovalStatus): FilterBuilder = {
+    val beADatalens = datatypeFilter(DatalensDatatype.allVarieties)
     status match {
       case ApprovalStatus.approved =>
         // limit results to those that are not unapproved datalens
-        val beUnapproved =
-          notFilter(termFilter(aggPrefix + ModerationStatusFieldType.fieldName, ApprovalStatus.approved.status))
+        val beUnapproved = notFilter(modStatusFilter(ApprovalStatus.approved))
         notFilter(boolFilter().must(beADatalens).must(beUnapproved))
       case _ =>
         // limit results to those with the given status
-        val haveGivenStatus = termFilter(aggPrefix + ModerationStatusFieldType.fieldName, status.status)
+        val haveGivenStatus = modStatusFilter(status)
         boolFilter().must(beADatalens).must(haveGivenStatus)
     }
   }
 
   // this filter limits results to those with the given R&A status on their parent domain
-  def raStatusFilter(status: ApprovalStatus, domainSet: DomainSet, isDomainAgg: Boolean = false): FilterBuilder = {
+  def raStatusFilter(status: ApprovalStatus, domainSet: DomainSet): FilterBuilder = {
     status match {
       case ApprovalStatus.approved =>
-        val prefix = if (isDomainAgg) esDocumentType + "." else ""
-        val beFromRADisabledDomain = domainIdFilter(domainSet.raDisabledIds, prefix)
-        val haveGivenStatus = raStatusAccordingToParentDomainFilter(ApprovalStatus.approved, prefix)
+        val beFromRADisabledDomain = domainIdFilter(domainSet.raDisabledIds)
+        val haveGivenStatus = raStatusAccordingToParentDomainFilter(ApprovalStatus.approved)
         boolFilter()
           .should(beFromRADisabledDomain)
           .should(haveGivenStatus)
@@ -260,7 +273,7 @@ object DocumentFilters {
   // this filter limits results to those with the given R&A status on a given context
   def raStatusOnContextFilter(status: ApprovalStatus, domainSet: DomainSet): Option[FilterBuilder] =
     domainSet.searchContext.collect {
-      case c: Domain if c.routingApprovalEnabled => raStatusAccordingToContextFilter(status, c)
+      case c: Domain if c.routingApprovalEnabled => raStatusAccordingToContextFilter(status, c.domainId)
     }
 
   // this filter limits results to those with a given approval status
@@ -273,12 +286,11 @@ object DocumentFilters {
   def approvalStatusFilter(
       status: ApprovalStatus,
       domainSet: DomainSet,
-      includeContextApproval: Boolean = true,
-      isDomainAgg: Boolean = false)
+      includeContextApproval: Boolean = true)
   : FilterBuilder = {
-    val haveGivenVMStatus = moderationStatusFilter(status, domainSet, isDomainAgg)
-    val haveGivenDLStatus = datalensStatusFilter(status, isDomainAgg)
-    val haveGivenRAStatus = raStatusFilter(status, domainSet, isDomainAgg)
+    val haveGivenVMStatus = moderationStatusFilter(status, domainSet)
+    val haveGivenDLStatus = datalensStatusFilter(status)
+    val haveGivenRAStatus = raStatusFilter(status, domainSet)
     val haveGivenRAStatusOnContext = raStatusOnContextFilter(status, domainSet)
 
     status match {
@@ -295,21 +307,48 @@ object DocumentFilters {
     }
   }
 
-  // this filter limits results to those that are public or private; public by default.
-  def publicFilter(public: Boolean = true, isDomainAgg: Boolean = false): FilterBuilder = {
-    val prefix = if (isDomainAgg) esDocumentType + "." else ""
-    termFilter(prefix + IsPublicFieldType.fieldName, public)
+  // this filter limits results down to the given socrata categories (this assumes no search context is present)
+  def socrataCategoriesFilter(categories: Set[String]): FilterBuilder = {
+    boolFilter().should(
+      nestedFilter(
+        fieldNamePrefix + CategoriesFieldType.fieldName,
+        termsFilter(CategoriesFieldType.Name.rawFieldName, categories.toSeq: _*)
+      )
+    )
   }
 
-  // this filter limits results to those that are published or unpublished; published by default.
-  def publishedFilter(published: Boolean = true, isDomainAgg: Boolean = false): FilterBuilder = {
-    val prefix = if (isDomainAgg) esDocumentType + "." else ""
-    termFilter(prefix + IsPublishedFieldType.fieldName, published)
+  // this filter limits results down to the given socrata tags (this assumes no search context is present)
+  def socrataTagsFilter(tags: Set[String]): FilterBuilder = {
+    boolFilter().should(
+      nestedFilter(
+        fieldNamePrefix + TagsFieldType.fieldName,
+        termsFilter(TagsFieldType.Name.rawFieldName, tags.toSeq: _*)
+      )
+    )
+  }
+
+  // this filter limits results down to the (socrata or customer) categories (depending on search context)
+  def categoryFilter(categories: Set[String], context: Option[Domain]): Option[FilterBuilder] = {
+    if (forDomainSearch) {
+      if (context.isDefined) Some(customerCategoriesFilter(categories)) else Some(socrataCategoriesFilter(categories))
+    } else {
+      None // when searching across documents, we prefer a match query over filters
+    }
+  }
+
+  // this filter limits results down to the (socrata or customer) tags (depending on search context)
+  def tagFilter(tags: Set[String], context: Option[Domain]): Option[FilterBuilder] = {
+    if (forDomainSearch) {
+      if (context.isDefined) Some(customerTagsFilter(tags)) else Some(socrataTagsFilter(tags))
+    } else {
+      None // when searching across documents, we prefer a match query over filters
+    }
   }
 
   // this filter limits results down to those requested by various search params
   def searchParamsFilter(searchParams: SearchParamSet, user: Option[User], domainSet: DomainSet)
   : Option[FilterBuilder] = {
+    val haveContext = domainSet.searchContext.isDefined
     val typeFilter = searchParams.datatypes.map(datatypeFilter(_))
     val ownerFilter = searchParams.user.map(userFilter(_))
     val sharingFilter = (user, searchParams.sharedTo) match {
@@ -322,18 +361,23 @@ object DocumentFilters {
     val parentIdFilter = searchParams.parentDatasetId.map(parentDatasetFilter(_))
     val idsFilter = searchParams.ids.map(idFilter(_))
     val metaFilter = searchParams.domainMetadata.flatMap(combinedMetadataFilter(_, user))
-    val derivationFilter = searchParams.derived.map(derivedFilter(_))
+    val derivationFilter = searchParams.derived.map(d => defaultViewFilter(!d))
     val licensesFilter = searchParams.license.map(licenseFilter(_))
+    // we want to honor categories and tags in domain search only, and this can only be done via filters.
+    // for document search however, we score these in queries
+    val catFilter = searchParams.categories.flatMap(c => categoryFilter(c, domainSet.searchContext))
+    val tagsFilter = searchParams.tags.flatMap(c => tagFilter(c, domainSet.searchContext))
 
     // the params below are those that would also influence visibility. these can only serve to further
     // limit the set of views returned from what the visibilityFilters allow.
     val privacyFilter = searchParams.public.map(publicFilter(_))
     val publicationFilter = searchParams.published.map(publishedFilter(_))
-    val hiddenFilter = searchParams.explicitlyHidden.map(explicitlyHiddenFilter(_))
+    val hiddenFilter = searchParams.explicitlyHidden.map(hiddenFromCatalogFilter(_))
     val approvalFilter = searchParams.approvalStatus.map(approvalStatusFilter(_, domainSet))
 
     List(typeFilter, ownerFilter, sharingFilter, attrFilter, provFilter, parentIdFilter, idsFilter, metaFilter,
-      derivationFilter, privacyFilter, publicationFilter, hiddenFilter, approvalFilter, licensesFilter).flatten match {
+      derivationFilter, privacyFilter, publicationFilter, hiddenFilter, approvalFilter, licensesFilter,
+      catFilter, tagsFilter).flatten match {
       case Nil => None
       case filters: Seq[FilterBuilder] => Some(filters.foldLeft(boolFilter()) { (b, f) => b.must(f) })
     }
@@ -341,12 +385,12 @@ object DocumentFilters {
 
   // this filter limits results to those that would show at /browse , i.e. public/published/approved/unhidden
   // optionally acknowledging the context, which sometimes should matter and sometimes should not
-  def anonymousFilter(domainSet: DomainSet, includeContextApproval: Boolean = true, isDomainAgg: Boolean = false)
+  def anonymousFilter(domainSet: DomainSet, includeContextApproval: Boolean = true)
   : FilterBuilder = {
-    val bePublic = publicFilter(public = true, isDomainAgg)
-    val bePublished = publishedFilter(published = true, isDomainAgg)
-    val beApproved = approvalStatusFilter(ApprovalStatus.approved, domainSet, includeContextApproval, isDomainAgg)
-    val beUnhidden = hideFromCatalogFilter(isDomainAgg)
+    val bePublic = publicFilter(public = true)
+    val bePublished = publishedFilter(published = true)
+    val beApproved = approvalStatusFilter(ApprovalStatus.approved, domainSet, includeContextApproval)
+    val beUnhidden = hiddenFromCatalogFilter(hidden = false)
 
     boolFilter()
       .must(bePublic)

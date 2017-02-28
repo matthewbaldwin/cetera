@@ -65,6 +65,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(false)
       doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(false)
       doc.isSharedOrOwned("robin-hood") should be(true)
       verifyVmMissing(doc)
       verifyRaMissing(doc, 0)
@@ -77,6 +78,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(false)
       doc.isHiddenFromCatalog should be(true)
+      doc.isDefaultView should be(false)
       doc.isSharedOrOwned("robin-hood") should be(true)
       verifyVmMissing(doc)
       verifyRaMissing(doc, 0)
@@ -89,6 +91,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(false)
       doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(true)
       doc.isSharedOrOwned("robin-hood") should be(true)
       verifyVmMissing(doc)
       verifyRaMissing(doc, 0)
@@ -101,6 +104,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(false)
       doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(false)
       doc.isSharedOrOwned("robin-hood") should be(true)
       verifyVmMissing(doc)
       verifyRaMissing(doc, 0)
@@ -113,6 +117,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(true)
       doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(false)
       doc.isSharedOrOwned("lil-john") should be(true)
       doc.isSharedOrOwned("cook-mons") should be(true)
       doc.isSharedOrOwned("maid-marian") should be(true)
@@ -127,6 +132,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(false)
       doc.isDatalens should be(false)
       doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(true)
       doc.isSharedOrOwned("cook-mons") should be(true)
       doc.isSharedOrOwned("Little John") should be(true)
       verifyVmMissing(doc)
@@ -140,6 +146,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(false)
       doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(true)
       doc.isSharedOrOwned("lil-john") should be(true)
       doc.isSharedOrOwned("King Richard") should be(true)
       verifyVmMissing(doc)
@@ -153,6 +160,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(true)
       doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(false)
       doc.isSharedOrOwned("lil-john") should be(true)
       doc.isSharedOrOwned("maid-marian") should be(true)
       verifyVmRejected(doc)  // b/c is a datalens
@@ -166,6 +174,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(true)
       doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(false)
       doc.isSharedOrOwned("lil-john") should be(true)
       verifyVmApproved(doc)  // b/c is a datalens
       verifyRaMissing(doc, 0)
@@ -180,6 +189,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(false)
       doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(false)
       doc.isSharedOrOwned("maid-marian") should be(true)
       verifyVmApproved(doc)
       verifyRaMissing(doc, 1)
@@ -191,6 +201,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(false)
       doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(false)
       doc.isSharedOrOwned("maid-marian") should be(true)
       doc.isSharedOrOwned("friar-tuck") should be(true)
       verifyVmRejected(doc)
@@ -203,6 +214,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(false)
       doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(false)
       doc.isSharedOrOwned("maid-marian") should be(true)
       doc.isSharedOrOwned("friar-tuck") should be(true)
       verifyVmPending(doc)
@@ -218,6 +230,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(true)
       doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(false)
       doc.isSharedOrOwned("robin-hood") should be(true)
       verifyVmPending(doc)  // b/c is a datalens
       verifyRaPending(doc, 2)
@@ -231,6 +244,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(false)
       doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(false)
       doc.isSharedOrOwned("robin-hood") should be(true)
       verifyVmMissing(doc)
       verifyRaRejected(doc, 2)
@@ -244,35 +258,12 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(false)
       doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(true)
       doc.isSharedOrOwned("robin-hood") should be(true)
-      verifyVmMissing(doc)
+      verifyVmMissing(doc) // is default view
       verifyRaApproved(doc, 2)
       verifyRaMissing(doc, 0)
-      verifyRaPending(doc, 3)
-    }
-
-    "have the expected statuses for fxf-11" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "fxf-11").get
-      doc.isPublic should be(true)
-      doc.isPublished should be(true)
-      doc.isDatalens should be(false)
-      doc.isHiddenFromCatalog should be(false)
-      doc.isSharedOrOwned("prince-john") should be(true)
-      verifyVmMissing(doc)
       verifyRaApproved(doc, 3)
-      verifyRaMissing(doc, 0)
-    }
-
-    "have the expected statuses for fxf-12" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "fxf-12").get
-      doc.isPublic should be(true)
-      doc.isPublished should be(true)
-      doc.isDatalens should be(false)
-      doc.isHiddenFromCatalog should be(false)
-      doc.isSharedOrOwned("prince-john") should be(true)
-      verifyVmMissing(doc)
-      verifyRaApproved(doc, 3)
-      verifyRaMissing(doc, 0)
     }
 
     "have the expected statuses for zeta-0003" in {
@@ -281,6 +272,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(false)
       doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(true)
       doc.isSharedOrOwned("robin-hood") should be(true)
       doc.isSharedOrOwned("Little John") should be(true)
       verifyVmMissing(doc)
@@ -295,6 +287,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(false)
       doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(false)
       doc.isSharedOrOwned("john-clan") should be(true)
       verifyVmMissing(doc)
       verifyRaApproved(doc, 2)
@@ -308,6 +301,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(false)
       doc.isHiddenFromCatalog should be(true)
+      doc.isDefaultView should be(false)
       doc.isSharedOrOwned("prince-john") should be(true)
       verifyVmMissing(doc)
       verifyRaApproved(doc, 2)
@@ -323,6 +317,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(false)
       doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(true)
       doc.isSharedOrOwned("prince-john") should be(true)
       verifyVmMissing(doc) // b/c is a default view
       verifyRaRejected(doc, 3)
@@ -334,9 +329,34 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(false)
       doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(false)
       doc.isSharedOrOwned("prince-john") should be(true)
       verifyVmPending(doc)
       verifyRaPending(doc, 3)
+    }
+
+    "have the expected statuses for fxf-11" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "fxf-11").get
+      doc.isPublic should be(true)
+      doc.isPublished should be(true)
+      doc.isDatalens should be(false)
+      doc.isHiddenFromCatalog should be(false)
+      doc.isPublic should be(true)
+      doc.isSharedOrOwned("prince-john") should be(true)
+      verifyVmMissing(doc)  // is default view
+      verifyRaApproved(doc, 3)
+    }
+
+    "have the expected statuses for fxf-12" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "fxf-12").get
+      doc.isPublic should be(true)
+      doc.isPublished should be(true)
+      doc.isDatalens should be(false)
+      doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(true)
+      doc.isSharedOrOwned("prince-john") should be(true)
+      verifyVmMissing(doc)  // is default view
+      verifyRaApproved(doc, 3)
     }
 
     "have the expected statuses for zeta-0002" in {
@@ -345,6 +365,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(false)
       doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(false)
       doc.isSharedOrOwned("prince-john") should be(true)
       verifyVmApproved(doc)
       verifyRaApproved(doc, 3)
@@ -356,6 +377,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(false)
       doc.isHiddenFromCatalog should be(false)
+      doc.isPublic should be(false)
       doc.isSharedOrOwned("prince-john") should be(true)
       verifyVmApproved(doc)
       verifyRaApproved(doc, 3)
@@ -367,6 +389,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(false)
       doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(false)
       doc.isSharedOrOwned("prince-john") should be(true)
       doc.isSharedOrOwned("lil-john") should be(true)
       verifyVmPending(doc)
@@ -379,6 +402,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(true)
       doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(false)
       doc.isSharedOrOwned("prince-john") should be(true)
       doc.isSharedOrOwned("lil-john") should be(true)
       verifyVmApproved(doc)
@@ -393,6 +417,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isDatalens should be(true)
       doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(false)
       doc.isSharedOrOwned("prince-john") should be(true)
       verifyVmApproved(doc)
       verifyRaApproved(doc, 8)

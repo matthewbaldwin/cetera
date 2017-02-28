@@ -125,7 +125,7 @@ object DocumentQueries {
     // This is a FilterBuilder, which incorporates all of the remaining constraints.
     // These constraints determine whether a document is considered part of the selection set, but
     // they do not affect the relevance score of the document.
-    val compositeFilter = DocumentFilters.compositeFilter(domainSet, searchParams, user, requireAuth)
+    val compositeFilter = DocumentFilters().compositeFilter(domainSet, searchParams, user, requireAuth)
     QueryBuilders.filteredQuery(categoriesAndTagsQuery, compositeFilter)
   }
 

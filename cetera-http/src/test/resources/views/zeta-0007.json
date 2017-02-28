@@ -20,7 +20,7 @@
     ],
     "name": "",
     "attribution": "The Merry Men",
-    "provenance": "official"
+    "provenance": "community"
   },
   "animl_annotations": {
     "categories": [
@@ -82,9 +82,9 @@
     "King Richard"
   ],
   "attribution": "The Merry Men",
-  "provenance": "official",
   "preview_image_id": "123456789",
   "grants": [],
   "hide_from_catalog": false,
-  "hide_from_data_json": false
+  "hide_from_data_json": false,
+  "provenance": "community"
 }

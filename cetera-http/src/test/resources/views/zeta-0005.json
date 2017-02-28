@@ -19,7 +19,8 @@
     "columns": [
     ],
     "name": "",
-    "attribution": null
+    "attribution": null,
+    "provenance": "community"
   },
   "animl_annotations": {
     "categories": [
@@ -76,5 +77,6 @@
   "preview_image_id": null,
   "grants": [],
   "hide_from_catalog": false,
-  "hide_from_data_json": false
+  "hide_from_data_json": false,
+  "provenance": "community"
 }
