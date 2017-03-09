@@ -161,6 +161,8 @@ object Format {
 
   def isPublished(j: JValue): Boolean = extractJBoolean(j.dyn.is_published.?).exists(identity)
 
+  def isHidden(j: JValue): Boolean = extractJBoolean(j.dyn.hide_from_catalog.?).exists(identity)
+
   private def literallyApproved(j: JValue): Boolean = {
     val status = extractJString(j.dyn.moderation_status.?)
     status.contains(ApprovalStatus.approved.status)
@@ -229,13 +231,14 @@ object Format {
     val contextDomainId = domainSet.searchContext.map(d => d.domainId).getOrElse(0)
     val public = isPublic(j)
     val published = isPublished(j)
+    val hidden = isHidden(j)
     val routingApproval = routingApproved(j, viewsDomain)
     val moderationApproval = moderationApproved(j, viewsDomain)
     val datalensApproval = datalensApproved(j)
     val(moderationApprovalOnContext, routingApprovalOnContext) = contextApprovals(j, viewsDomain, domainSet)
     val viewGrants = grants(j)
     val anonymousVis =
-      public & published &
+      public & published & !hidden &
       routingApproval.getOrElse(true) & routingApprovalOnContext.getOrElse(true) &
       moderationApproval.getOrElse(true) & moderationApprovalOnContext.getOrElse(true) &
       datalensApproval.getOrElse(true)
@@ -246,6 +249,7 @@ object Format {
       license = viewLicense,
       isPublic = Some(public),
       isPublished = Some(published),
+      isHidden = Some(hidden),
       isModerationApproved = moderationApproval,
       isModerationApprovedOnContext = moderationApprovalOnContext,
       isRoutingApproved = routingApproval,

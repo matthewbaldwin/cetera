@@ -64,6 +64,7 @@ case class Metadata(
     license: Option[String],
     isPublic: Option[Boolean] = None,
     isPublished: Option[Boolean] = None,
+    isHidden: Option[Boolean] = None,
     isModerationApproved: Option[Boolean] = None,
     isModerationApprovedOnContext: Option[Boolean] = None,
     isRoutingApproved: Option[Boolean] = None,

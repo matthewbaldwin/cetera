@@ -57,7 +57,8 @@
   "metadata": {
     "domain": "petercetera.net",
     "is_public": true,
-    "is_published":true,
+    "is_published": true,
+    "is_hidden": false,
     "visible_to_anonymous": true,
     "score": 0.98,
     "grants": [
