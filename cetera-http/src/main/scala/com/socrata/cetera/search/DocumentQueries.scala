@@ -617,7 +617,8 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
     val scoreFunctions = Boosts.scriptScoreFunctions(scriptScoreFunctions)
     val dataTypeBoosts = Boosts.datatypeBoostFunctions(scoringParams.datatypeBoosts)
     val domainBoosts = Boosts.domainBoostFunctions(domainSet.domainIdBoosts)
-    val allScoringFunctions = (scoreFunctions ++ dataTypeBoosts ++ domainBoosts)
+    val officialBoost = Boosts.officialBoostFunction(scoringParams.officialBoost)
+    val allScoringFunctions = scoreFunctions ++ dataTypeBoosts ++ domainBoosts ++ officialBoost
     val fnScoreQuery = functionScoreQuery(query, allScoringFunctions.toArray)
     fnScoreQuery.scoreMode(FnScoreMode.MULTIPLY).boostMode(CombineFunction.REPLACE)
   }

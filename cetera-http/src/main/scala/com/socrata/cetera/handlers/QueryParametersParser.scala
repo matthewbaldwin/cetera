@@ -254,6 +254,9 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
     }
   }
 
+  def prepareOfficialBoost(queryParameters: MultiQueryParams): Float =
+    queryParameters.typedFirst[NonNegativeFloat](Params.boostOfficial).map(validated(_).value).getOrElse(1.0f)
+
   // Yes we compute searchQuery twice because this is a smell
   def prepareMinShouldMatch(queryParameters: MultiQueryParams): Option[String] = {
     val searchQuery = prepareSearchQuery(queryParameters)
@@ -345,6 +348,7 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
       prepareFieldBoosts(queryParameters),
       prepareDatatypeBoosts(queryParameters),
       prepareDomainBoosts(queryParameters),
+      prepareOfficialBoost(queryParameters),
       prepareMinShouldMatch(queryParameters),
       prepareSlop(queryParameters)
     )
@@ -450,6 +454,7 @@ object Params {
   // e.g., boostDomains[example.com]=1.23&boostDomains[data.seattle.gov]=4.56
   val boostDomains = boostParamPrefix + "Domains"
 
+  val boostOfficial = boostParamPrefix + "Official"
   val functionScore = "function_score"
   val minShouldMatch = "min_should_match"
   val slop = "slop"
@@ -470,7 +475,7 @@ object Params {
   // Explicit Param Lists
   ///////////////////////
 
-  // HEY! when adding/removing parameters update `keys` or `mapKeys` as appropriate.
+  // HEY! when adding/removing parameters update `catalog{String,Array,Map}Keys`  as appropriate.
   // These are used to distinguish catalog keys from custom metadata fields
 
   // If your param is a simple key/value pair, add it here
@@ -497,6 +502,7 @@ object Params {
     boostColumns,
     boostDescription,
     boostTitle,
+    boostOfficial,
     functionScore,
     minShouldMatch,
     slop,

@@ -27,6 +27,7 @@ case class ScoringParamSet(
     fieldBoosts: Map[CeteraFieldType with Boostable, Float] = Map.empty,
     datatypeBoosts: Map[Datatype, Float] = Map.empty,
     domainBoosts: Map[String, Float] = Map.empty,
+    officialBoost: Float = 1.toFloat,
     minShouldMatch: Option[String] = None,
     slop: Option[Int] = None)
 

@@ -137,7 +137,7 @@ class UserQueriesSpec extends WordSpec with ShouldMatchers with TestESDomains {
         screenNames = Some(Set("Ad men")),
         flags = Some(Set("admin")),
         roles = Some(Set("admin")))
-      
+
       val user = User("", None, roleName = None, rights = None, flags = Some(List("admin")))
       val compositeQuery = UserQueries.compositeQuery(params, Some(domains(2)), Some(user))
       val actual = JsonReader.fromString(compositeQuery.toString)
@@ -149,7 +149,7 @@ class UserQueriesSpec extends WordSpec with ShouldMatchers with TestESDomains {
               {"terms": {"screen_name.raw": ["ad men"], "boost": 1.0}},
               {"terms": {"flags": ["admin"], "boost": 1.0}},
               {
-                "nested": {                  
+                "nested": {
                   "query": {
                     "bool": {
                       "must": [

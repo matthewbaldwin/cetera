@@ -6,8 +6,7 @@ import org.elasticsearch.script.{Script, ScriptType}
 import org.elasticsearch.index.query.functionscore._
 import FunctionScoreQueryBuilder.FilterFunctionBuilder
 import org.elasticsearch.index.query.QueryBuilders.termQuery
-import com.socrata.cetera.types.{
-  Datatype, DatatypeFieldType, ScriptScoreFunction, SocrataIdDomainIdFieldType}
+import com.socrata.cetera.types._
 
 object Boosts {
   def datatypeBoostFunctions(
@@ -40,4 +39,18 @@ object Boosts {
           ScoreFunctionBuilders.weightFactorFunction(weight)
         )
     }.toList
+
+  val officialProvenance = "official"
+
+  def officialBoostFunction(
+    weight: Float)
+    : Option[FilterFunctionBuilder] =
+  weight match {
+    // It's not worth applying this filter in the case that it does nothing
+    case 1.0f => None
+    case _ => Some(new FilterFunctionBuilder(
+      termQuery(ProvenanceFieldType.fieldName, officialProvenance),
+      ScoreFunctionBuilders.weightFactorFunction(weight)))
+  }
+
 }

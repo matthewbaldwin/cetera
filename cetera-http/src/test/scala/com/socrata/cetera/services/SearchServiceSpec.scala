@@ -220,7 +220,7 @@ class SearchServiceSpec extends FunSuiteLike
     wasSearchQueryLogged(metricsFile.getAbsolutePath, query) should be(true)
   }
 
-  test("if a domain is given in the searchContext and an advance query is given, the query should be logged") {
+  test("if a domain is given in the searchContext and an advanced query is given, the query should be logged") {
     val query = "(log this query OR don't) AND (check up on it OR don't)"
     val params = Map(
       "domains" -> "opendata-demo.socrata.com,petercetera.net",

@@ -23,7 +23,7 @@ class BoostsSpec extends WordSpec with ShouldMatchers {
       Boosts.datatypeBoostFunctions(datatypeBoosts).length shouldEqual(3)
     }
 
-    "add datatype boosts to the query" in {      
+    "add datatype boosts to the query" in {
       val datatypeBoosts = Map[Datatype, Float](
         DatasetDatatype -> 1.23f,
         DatalensDatatype -> 2.34f,
@@ -68,7 +68,7 @@ class BoostsSpec extends WordSpec with ShouldMatchers {
       actual should be (expected)
     }
 
-    "do nothing to the query if given no datatype boosts" in {      
+    "do nothing to the query if given no datatype boosts" in {
       val boostFunctions = Boosts.datatypeBoostFunctions(Map.empty[Datatype, Float])
       val query = QueryBuilders.functionScoreQuery(QueryBuilders.matchAllQuery, boostFunctions.toArray)
       val actual = JsonReader.fromString(query.toString)
@@ -82,7 +82,7 @@ class BoostsSpec extends WordSpec with ShouldMatchers {
               "boost": 1.0,
               "query": {"match_all": {"boost": 1.0}}
           }
-      }      
+      }
       """
 
       actual should be (expected)
@@ -159,6 +159,40 @@ class BoostsSpec extends WordSpec with ShouldMatchers {
       """
 
       actual should be(expected)
+    }
+  }
+
+  "boostOfficial" should {
+    "return None in the case of a boost of 1" in {
+      val boostFunction = Boosts.officialBoostFunction(1.0f)
+      boostFunction should be(None)
+    }
+
+    "add a boost to the official provenance type if given a provenance boost" in {
+      val boostFunction = Boosts.officialBoostFunction(2.0f).get
+      val query = QueryBuilders.functionScoreQuery(QueryBuilders.matchAllQuery, Array(boostFunction))
+      val actual = JsonReader.fromString(query.toString)
+
+      val expected = j"""
+      {
+          "function_score": {
+              "functions": [
+                  {
+                      "filter": {
+                          "term": {"provenance": {"value": "official", "boost": 1.0}}
+                      },
+                      "weight": 2.0
+                  }
+              ],
+              "score_mode": "multiply",
+              "max_boost": 3.4028235E+38,
+              "boost": 1.0,
+              "query": {"match_all": {"boost": 1.0}}
+          }
+      }
+      """
+
+      actual should be (expected)
     }
   }
 }

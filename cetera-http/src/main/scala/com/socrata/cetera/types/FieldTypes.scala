@@ -132,10 +132,6 @@ case object AttributionFieldType extends DocumentFieldType with Countable with R
   val fieldName: String = "attribution"
 }
 
-case object ProvenanceFieldType extends DocumentFieldType with Countable with NativelyRawable {
-  val fieldName: String = "provenance"
-}
-
 case object LicenseFieldType extends DocumentFieldType with Countable with NativelyRawable {
   val fieldName: String = "license"
 }
@@ -308,6 +304,10 @@ case object DatatypeFieldType extends DocumentFieldType with Boostable {
   val fieldName: String = "datatype"
 }
 
+case object ProvenanceFieldType extends DocumentFieldType with Countable with NativelyRawable with Boostable {
+  val fieldName: String = "provenance"
+}
+
 
 //////////////
 // For sorting
@@ -359,4 +359,3 @@ case object UserRole extends UserFieldType {
 case object UserDomainId extends UserFieldType {
   val fieldName: String = "roles.domain_id"
 }
-
