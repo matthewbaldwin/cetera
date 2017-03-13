@@ -14,7 +14,7 @@ The results objects contains 5 fields:
 
 - `resource` A json object representing a dataset, visualization or other asset. Fields are described below.
 - `classification` A json object describing the asset's classification by categories and tags. Fields are described below.
-- `metadata` A json object containing metadata about the asset. The only field returned in this object is the `domain` field which names the domain that owns the asset.
+- `metadata` A json object containing metadata about the asset.
 - `permalink` The permanent link of the asset.
 - `link` The prettier, but non-permanent, link of the asset.
 
@@ -226,6 +226,19 @@ assets with the given attribution by specifying this parameter.
 
     [Search Endpoint][]
 
+## Searching by license [/catalog/v1{?license}]
+Assets can be released under various licenses. The caller can restrict the results to only the
+assets with the given license by specifying this parameter.
+
++ Parameters
+    + license (optional, string, `Creative Commons Attribution 3.0 Unported`) ... Limits results to assets released under a particular license. Case-sensitive, exact-match.
+
+### Asset Attribution Search API [GET]
+
++ Response 200
+
+    [Search Endpoint][]
+
 ## Text search [/catalog/v1{?q,min_should_match}]
 Assets may be searched by any of the text found in the
 `name, description, category, column names, column fieldnames and column descriptions`.
@@ -302,7 +315,7 @@ The search service allows pagination of results.  By default, we will return at 
     [Search Endpoint][]
 
 
-## Complete Search API [/catalog/v1{?domains,search_context,categories,tags,only,attribution,q,derived_from,offset,limit,order,min_should_match}]
+## Complete Search API [/catalog/v1{?domains,search_context,categories,tags,only,attribution,q,derived_from,offset,limit,order,license,min_should_match}]
 The full search API is detailed here.
 
 + Parameters
@@ -332,6 +345,8 @@ The full search API is detailed here.
       If a non-accepted sort string is specified, the query will fail.
     + min_should_match (optional, string, `3<60%` ...
       The number or percent of words that must match. See [the Elasticsearch docs](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-minimum-should-match.html) for the format.
+    + license (optional, string, `Creative Commons Attribution 3.0 Unported`) ...
+      Limits results to assets released under a particular license. Case-sensitive, exact-match.
 
 ### Search API with all options [GET]
 
