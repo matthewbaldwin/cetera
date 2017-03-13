@@ -274,11 +274,13 @@ limit the results to those that derive from a particular dataset.
 
     [Search Endpoint][]
     
-## Searching for official or community created views [/catalog/v1{?provenance}]
-Each asset is either created by a government official or by a citizen of the community.
-The search service tracks this information in the `provenance` field. 
-A `provenance=official` param will limit the results to those created by an official.
-A `provenance=community` param will limit the results to those created by the community.
+## Searching for official or community-created views [/catalog/v1{?provenance}]
+While many assets on Socrata are owned by government data publishers and other staff, some visualizations,
+maps, filtered views, and more visible in a data catalog may have been created by a 
+member of the community. These assets are usually denoted with a "Community" badge on 
+the data catalog; this search service accounts for this information in the `provenance` field. 
+Filtering by `provenance=official` will limit results to assets owned by roled users on the domain.
+Conversely, filtering by `provenance=community` will limit results to community-owned views.
 
 
 + Parameters
