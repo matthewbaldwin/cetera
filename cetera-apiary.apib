@@ -273,6 +273,25 @@ limit the results to those that derive from a particular dataset.
 + Response 200
 
     [Search Endpoint][]
+    
+## Searching for official or community created views [/catalog/v1{?provenance}]
+Each asset is either created by a government official or by a citizen of the community.
+The search service tracks this information in the `provenance` field. 
+A `provenance=official` param will limit the results to those created by an official.
+A `provenance=community` param will limit the results to those created by the community.
+
+
++ Parameters
+    + provenance (optional, string, `official`) ...
+      Limit results to the provenance of the asset (`official`, `community`).
+      If not present searches both types of provenance.
+
+### Derived assets search API [GET]
+
++ Response 200
+
+    [Search Endpoint][]
+    
 
 ## Sort order [/catalog/v1{?order}]
 The results of all the above filters can be sorted by a number of fields.
@@ -315,7 +334,7 @@ The search service allows pagination of results.  By default, we will return at 
     [Search Endpoint][]
 
 
-## Complete Search API [/catalog/v1{?domains,search_context,categories,tags,only,attribution,q,derived_from,offset,limit,order,license,min_should_match}]
+## Complete Search API [/catalog/v1{?domains,search_context,categories,tags,only,attribution,provenance,q,derived_from,offset,limit,order,license,min_should_match}]
 The full search API is detailed here.
 
 + Parameters
@@ -336,6 +355,9 @@ The full search API is detailed here.
       Limit results to a particular asset type (`datasets`, `charts`, `maps`, `datalenses`, `stories`, `files`, `hrefs`).
       If not present searches all types
     + attribution (optional, string, `Gaming Commission`) ... Limits results to assets attributed an entity. Case-sensitive.
+    + provenance (optional, string, `official`) ...
+      Limit results to the provenance of the asset (`official`, `community`).
+      If not present searches both types of provenance.
     + q (optional, string, `lottery retailers`) ... A string for full text search
     + derived_from (optional, string, `2vvn-pdyi`) ... Limit results to assets derived from dataset by id.
     + offset (optional, number, `0`) ... Initial starting point for paging (0 by default)
@@ -391,7 +413,7 @@ Note that while this API mirrors the top-level search API, the behavior of the `
 
 ## Count by and list domains [/catalog/v1/domains]
 Returns each domain and the count of assets owned by that domain. The counts may be restricted according to
-any of the query parameters described in the Complete Search API.
+any of the query parameters described in the Complete Search API, with the exception of the `q` text search param.
 
 ### Count by domain API [GET]
 
