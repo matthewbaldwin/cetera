@@ -44,12 +44,15 @@ The classification object contains 5 fields:
 - `domain_metadata` An array of objects with the "key" and "value" of any custom metadata given to this asset by the owning domain
 
 
-The production API endpoint for the public version of this API is `https://api.us.socrata.com/api/catalog/v1`.
+The production API endpoints for the public version of this API are at `https://api.us.socrata.com/api/catalog/v1`
+for domains in North America and 
+`https://api.eu.socrata.com/api/catalog/v1` for all other domains.
 For example, to query for datasets categorized as `Crime`, you could use the following query:
 
 <a class="tryit" href="http://api.us.socrata.com/api/catalog/v1?categories=public%20safety">http://api.us.socrata.com/api/catalog/v1?categories=public safety</a>
 
-* Please note that we assume all calls include a Socrata app token, either via the X-App-Token header or the $$app_token parameters set to a valid token. This is assumed and not documented in the API spec below. Please refer to our main
+* Please note that we assume all calls include a valid Socrata app token via the X-App-Token header.
+This is assumed and not documented in the API spec below. Please refer to our main
 [Developer site](https://dev.socrata.com/docs/app-tokens.html) for information on using an app token.*
 
 # Search Endpoint [/catalog/v1]
