@@ -1,5 +1,10 @@
 package com.socrata.cetera.types
 
+import scala.collection.JavaConverters._
+
+import org.elasticsearch.search.SearchHit
+
+
 // scalastyle:ignore number.of.types
 
 /////////////////////////////////
@@ -203,10 +208,6 @@ case object ParentDatasetIdFieldType extends DocumentFieldType {
   val fieldName: String = "socrata_id.parent_dataset_id"
 }
 
-case object IdFieldType extends DocumentFieldType {
-  val fieldName: String = "_id"
-}
-
 case object IsPublicFieldType extends DocumentFieldType {
   val fieldName: String = "is_public"
 }
@@ -277,6 +278,14 @@ case object DomainPrivateMetadataFieldType extends DocumentFieldType with Mapabl
 
 case object TitleFieldType extends DocumentFieldType with Boostable with Rawable with Autocompletable {
   val fieldName: String = "indexed_metadata.name"
+
+  def fromSearchHit(searchHit: SearchHit): String = {
+    val source = searchHit.getSource()
+    val indexedMetadata = source.get("indexed_metadata").asInstanceOf[java.util.Map[String, Object]].asScala
+    indexedMetadata.get("name").collect {
+      case name: String => name
+    }.get
+  }
 }
 
 case object DescriptionFieldType extends DocumentFieldType with Boostable {
@@ -330,10 +339,6 @@ case object NameFieldType extends DocumentFieldType with Sortable {
 
 ////////////////
 // U'sarians
-
-case object UserId extends UserFieldType {
-  val fieldName: String = "id"
-}
 
 case object UserScreenName extends UserFieldType with Rawable {
   val fieldName: String = "screen_name"

@@ -1,26 +1,21 @@
 package com.socrata.cetera.search
 
-import org.elasticsearch.index.query.FilterBuilders
-import org.elasticsearch.search.sort.{FieldSortBuilder, SortBuilder, SortBuilders, SortOrder}
+import org.elasticsearch.index.query.QueryBuilders.termsQuery
+import org.elasticsearch.search.sort._
 
 import com.socrata.cetera.handlers.SearchParamSet
 import com.socrata.cetera.types._
 
 // TODO: Ultimately, these should accept Sortables rather than Strings
 object Sorts {
-  val MissingSortStrategry = "_last"
+  def sortScoreDesc: ScoreSortBuilder =
+    SortBuilders.scoreSort().order(SortOrder.DESC)
 
-  val sortScoreDesc: SortBuilder = {
-    SortBuilders.scoreSort().order(SortOrder.DESC).missing(MissingSortStrategry)
-  }
+  def sortFieldAsc(field: String): FieldSortBuilder =
+    SortBuilders.fieldSort(field).order(SortOrder.ASC)
 
-  def sortFieldAsc(field: String): SortBuilder = {
-    SortBuilders.fieldSort(field).order(SortOrder.ASC).missing(MissingSortStrategry)
-  }
-
-  def sortFieldDesc(field: String): SortBuilder = {
-    SortBuilders.fieldSort(field).order(SortOrder.DESC).missing(MissingSortStrategry)
-  }
+  def sortFieldDesc(field: String): FieldSortBuilder =
+    SortBuilders.fieldSort(field).order(SortOrder.DESC)
 
   def buildAverageScoreSort(
       fieldName: String,
@@ -31,53 +26,57 @@ object Sorts {
     SortBuilders
       .fieldSort(fieldName)
       .order(SortOrder.DESC)
-      .missing(MissingSortStrategry)
-      .sortMode("avg")
-      .setNestedFilter(
-        FilterBuilders.termsFilter(
-          rawFieldName,
-          classifications.toSeq: _*
-        )
-      )
+      .sortMode(SortMode.AVG)
+      .setNestedFilter(termsQuery(rawFieldName, classifications.toSeq: _*))
   }
 
-  // Map of param to sorts on ES fields
-  // These sorts are tentative and will not be documented in apiary until finalized
-  val paramSortMap = Map[String, SortBuilder](
-    // Default
-    // Due to current logic in DocumentClient, this is used only as a key--its value is not returned from here.
-    "relevance" -> sortScoreDesc,
+  /** Get the appropriate SortBuilder given a sort parameter string
+    *
+    * @param sortParam the sort parameter string
+    * @return a SortBuilder
+    */
+  def mapSortParam(sortParam: String): Option[SortBuilder[_]] = // scalastyle:ignore cyclomatic.complexity
+    sortParam match {
+      // Timestamps
+      case "createdAt ASC" => Some(sortFieldAsc(CreatedAtFieldType.fieldName))
+      case "createdAt DESC" => Some(sortFieldDesc(CreatedAtFieldType.fieldName))
+      case "createdAt" => Some(sortFieldDesc(CreatedAtFieldType.fieldName))
+      case "updatedAt ASC" => Some(sortFieldAsc(UpdatedAtFieldType.fieldName))
+      case "updatedAt DESC" => Some(sortFieldDesc(UpdatedAtFieldType.fieldName))
+      case "updatedAt" => Some(sortFieldDesc(UpdatedAtFieldType.fieldName))
 
-    // Timestamps
-    "createdAt ASC" -> sortFieldAsc(CreatedAtFieldType.fieldName),
-    "createdAt DESC" -> sortFieldDesc(CreatedAtFieldType.fieldName),
-    "createdAt" -> sortFieldDesc(CreatedAtFieldType.fieldName),
+      // Page view
+      case "page_views_last_week ASC" => Some(sortFieldAsc(PageViewsLastWeekFieldType.fieldName))
+      case "page_views_last_week DESC" => Some(sortFieldDesc(PageViewsLastWeekFieldType.fieldName))
+      case "page_views_last_week" => Some(sortFieldDesc(PageViewsLastWeekFieldType.fieldName))
+      case "page_views_last_month ASC" => Some(sortFieldAsc(PageViewsLastMonthFieldType.fieldName))
+      case "page_views_last_month DESC" => Some(sortFieldDesc(PageViewsLastMonthFieldType.fieldName))
+      case "page_views_last_month" => Some(sortFieldDesc(PageViewsLastMonthFieldType.fieldName))
+      case "page_views_total ASC" => Some(sortFieldAsc(PageViewsTotalFieldType.fieldName))
+      case "page_views_total DESC" => Some(sortFieldDesc(PageViewsTotalFieldType.fieldName))
+      case "page_views_total" => Some(sortFieldDesc(PageViewsTotalFieldType.fieldName))
 
-    "updatedAt ASC" -> sortFieldAsc(UpdatedAtFieldType.fieldName),
-    "updatedAt DESC" -> sortFieldDesc(UpdatedAtFieldType.fieldName),
-    "updatedAt" -> sortFieldDesc(UpdatedAtFieldType.fieldName),
+      // Alphabetical
+      case "name" => Some(sortFieldAsc(NameFieldType.fieldName))
+      case "name ASC" => Some(sortFieldAsc(NameFieldType.fieldName))
+      case "name DESC" => Some(sortFieldDesc(NameFieldType.fieldName))
 
-    // Page views
-    "page_views_last_week ASC" -> sortFieldAsc(PageViewsLastWeekFieldType.fieldName),
-    "page_views_last_week DESC" -> sortFieldDesc(PageViewsLastWeekFieldType.fieldName),
-    "page_views_last_week" -> sortFieldDesc(PageViewsLastWeekFieldType.fieldName),
+      // Relevance
+      case "relevance" => Some(sortScoreDesc)
 
-    "page_views_last_month ASC" -> sortFieldAsc(PageViewsLastMonthFieldType.fieldName),
-    "page_views_last_month DESC" -> sortFieldDesc(PageViewsLastMonthFieldType.fieldName),
-    "page_views_last_month" -> sortFieldDesc(PageViewsLastMonthFieldType.fieldName),
+      // Otherwise...
+      case _ => None
+    }
 
-    "page_views_total ASC" -> sortFieldAsc(PageViewsTotalFieldType.fieldName),
-    "page_views_total DESC" -> sortFieldDesc(PageViewsTotalFieldType.fieldName),
-    "page_views_total" -> sortFieldDesc(PageViewsTotalFieldType.fieldName),
-
-    // Alphabetical
-    "name" -> sortFieldAsc(NameFieldType.fieldName),
-    "name ASC" -> sortFieldAsc(NameFieldType.fieldName),
-    "name DESC" -> sortFieldDesc(NameFieldType.fieldName)
-  )
-
-  // First pass logic is very simple. query >> categories >> tags >> default
-  def chooseSort(searchContext: Option[Domain], searchParams: SearchParamSet): SortBuilder =
+  /** Get the appropriate SortBuilder given a searchContext and a searcHparams
+    *
+    * First pass logic is very simple. query >> categories >> tags >> default
+    *
+    * @param searchContext an optional search context domain
+    * @param searchParams the SearchParamSet
+    * @return a SortBuilder
+    */
+  def chooseSort(searchContext: Option[Domain], searchParams: SearchParamSet): SortBuilder[_] =
     (searchParams.searchQuery, searchContext, searchParams.categories, searchParams.tags) match {
       // ODN Categories
       case (NoQuery, None, Some(cats), _) =>

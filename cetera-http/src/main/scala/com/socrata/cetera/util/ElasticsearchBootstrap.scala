@@ -4,7 +4,7 @@ import scala.io.Source
 
 import com.rojoma.json.v3.ast.JValue
 import com.rojoma.json.v3.util.JsonUtil
-import org.elasticsearch.indices.IndexAlreadyExistsException
+import org.elasticsearch.ResourceAlreadyExistsException
 import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
 
@@ -54,13 +54,13 @@ object ElasticsearchBootstrap {
           .execute.actionGet
 
         client.client.admin.indices.preparePutMapping(index)
-          .setType(esDomainType)
-          .setSource(datatypeMappings(esDomainType))
+          .setType(esDocumentType)
+          .setSource(datatypeMappings(esDocumentType))
           .execute.actionGet
 
         client.client.admin.indices.preparePutMapping(index)
-          .setType(esDocumentType)
-          .setSource(datatypeMappings(esDocumentType))
+          .setType(esDomainType)
+          .setSource(datatypeMappings(esDomainType))
           .execute.actionGet
 
         client.client.admin.indices.preparePutMapping(index)
@@ -74,7 +74,7 @@ object ElasticsearchBootstrap {
           .execute.actionGet
 
       } catch {
-        case e: IndexAlreadyExistsException =>
+        case e: ResourceAlreadyExistsException =>
           logger.info(s"actually that index ($indexAliasName) already exists!")
       }
     }

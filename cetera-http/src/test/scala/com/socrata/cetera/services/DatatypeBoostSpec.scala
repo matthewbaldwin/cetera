@@ -8,7 +8,6 @@ import com.socrata.cetera.auth.AuthParams
 import com.socrata.cetera.handlers.Params
 import com.socrata.cetera.metrics.BalboaClient
 import com.socrata.cetera.response.{SearchResult, SearchResults}
-import com.socrata.cetera.search._
 import com.socrata.cetera.types._
 
 class DatatypeBoostSpec extends FunSuiteLike with Matchers with TestESData with BeforeAndAfterAll {

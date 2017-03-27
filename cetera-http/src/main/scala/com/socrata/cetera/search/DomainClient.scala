@@ -1,14 +1,15 @@
 package com.socrata.cetera.search
 
-import org.elasticsearch.action.search.{SearchRequestBuilder, SearchType}
-import org.elasticsearch.index.query.{FilterBuilders, QueryBuilders}
+import org.elasticsearch.action.search.SearchRequestBuilder
+import org.elasticsearch.index.query.QueryBuilder
+import org.elasticsearch.index.query.QueryBuilders._
 import org.slf4j.LoggerFactory
 
 import com.socrata.cetera._
 import com.socrata.cetera.auth.{CoreClient, User}
 import com.socrata.cetera.errors.DomainNotFoundError
 import com.socrata.cetera.handlers.SearchParamSet
-import com.socrata.cetera.search.DomainFilters.{cnamesFilter, idsFilter, isCustomerDomainFilter}
+import com.socrata.cetera.search.DomainQueries.{cnamesQuery, idQuery, isCustomerDomainQuery}
 import com.socrata.cetera.types.{Domain, DomainCnameFieldType, DomainSet}
 import com.socrata.cetera.util.LogHelper
 
@@ -54,9 +55,10 @@ class DomainClient(esClient: ElasticSearchClient, coreClient: CoreClient, indexA
     if (cnames.isEmpty) {
       (Set.empty, 0L)
     } else {
-      val query = QueryBuilders.termsQuery(DomainCnameFieldType.rawFieldName, cnames.toList: _*)
+      val query = termsQuery(DomainCnameFieldType.rawFieldName, cnames.toList: _*)
 
-      val search = esClient.client.prepareSearch(indexAliasName).setTypes(esDomainType)
+      val search = esClient.client.prepareSearch(indexAliasName)
+        .setTypes(esDomainType)
         .setQuery(query)
         .setSize(cnames.size)
 
@@ -170,20 +172,17 @@ class DomainClient(esClient: ElasticSearchClient, coreClient: CoreClient, indexA
     }
   }
 
-  // TODO: handle unlimited domain count with aggregation or scan+scroll query
-  // if we get 42 thousand customer domains before addressing this, most of us will probably be millionaires anyway.
-  private val customerDomainSearchSize = 42000
-
-  // when query doesn't define domain filter, we assume all customer domains.
+  // when query doesn't define a domain set, we assume all customer domains.
   private def customerDomainSearch(additionalDomains: Set[String]): (Set[Domain], Long) = {
-    val domainFilter = cnamesFilter(additionalDomains)
-    val filter = FilterBuilders.boolFilter().should(isCustomerDomainFilter).should(domainFilter)
-    val search = esClient.client.prepareSearch(indexAliasName).setTypes(esDomainType)
-      .setQuery(QueryBuilders.filteredQuery(
-        QueryBuilders.matchAllQuery(),
-        filter)
-      )
-      .setSize(customerDomainSearchSize)
+    val domainQuery = boolQuery()
+      .should(isCustomerDomainQuery)
+      .should(cnamesQuery(additionalDomains))
+
+    val search = esClient.client.prepareSearch(indexAliasName)
+      .setTypes(esDomainType)
+      .setQuery(boolQuery().filter(domainQuery))
+      .setSize(DomainClient.MaxDomainsCount)
+
     logger.info(LogHelper.formatEsRequest(search))
 
     val res = search.execute.actionGet
@@ -206,16 +205,23 @@ class DomainClient(esClient: ElasticSearchClient, coreClient: CoreClient, indexA
       searchParams: SearchParamSet,
       user: Option[User],
       requireAuth: Boolean)
-  : SearchRequestBuilder = {
-    val domainFilter = DomainFilters.idsFilter(domainSet.domains.map(_.domainId))
-    // NOTE: this only filters by search params that are translated into filters and not
-    //       the 'q' param which is translated into a query
-    val docFilters = DocumentFilters(forDomainSearch = true).compositeFilter(domainSet, searchParams, user, requireAuth)
+    : SearchRequestBuilder = {
+    val domainQuery = idQuery(domainSet.domains.map(_.domainId))
+    // NOTE: this limits the selection set based on facet constraints, but pays no attention to the
+    // 'q' parameter
+    val docQuery = DocumentQuery(forDomainSearch = true).compositeQuery(
+      domainSet, searchParams, user, requireAuth)
 
-    esClient.client.prepareSearch(indexAliasName).setTypes(esDomainType)
-      .setQuery(QueryBuilders.filteredQuery(QueryBuilders.matchAllQuery(), domainFilter))
-      .addAggregation(DomainAggregations.domains(docFilters))
-      .setSearchType(SearchType.COUNT)
-      .setSize(0) // no docs, aggs only
+    esClient.client.prepareSearch(indexAliasName)
+      .setTypes(esDomainType)
+      .setQuery(boolQuery().must(matchAllQuery()).filter(domainQuery))
+      .addAggregation(DomainAggregations.domains(docQuery, DomainClient.MaxDomainsCount))
+      .setSize(0)
   }
+}
+
+object DomainClient {
+  // NOTE: rather than incurring the cost of an extra query to ES when we need a size parameter corresponding to the
+  // number of domains, we keep this constant, which should be a reasonable upper bound for the number of domains
+  val MaxDomainsCount = 10000
 }

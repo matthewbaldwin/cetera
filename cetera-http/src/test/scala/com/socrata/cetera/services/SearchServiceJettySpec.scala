@@ -10,7 +10,7 @@ import com.rojoma.json.v3.interpolation._
 import com.rojoma.json.v3.io.CompactJsonWriter
 import com.socrata.http.server.HttpRequest
 import com.socrata.http.server.HttpRequest.AugmentedHttpServletRequest
-import org.elasticsearch.action.search.SearchRequestBuilder
+import org.elasticsearch.action.search.{SearchRequestBuilder, SearchAction}
 import org.mockserver.integration.ClientAndServer._
 import org.mockserver.model.HttpRequest._
 import org.mockserver.model.HttpResponse._
@@ -67,7 +67,7 @@ class SearchServiceJettySpec extends FunSuiteLike with Matchers with MockFactory
 
     mockDocumentClient.expects('buildSearchRequest)(
       DomainSet(), SearchParamSet(), ScoringParamSet(), PagingParamSet(), authedUser, false)
-      .returns(new SearchRequestBuilder(client.client))
+      .returns(new SearchRequestBuilder(client.client, SearchAction.INSTANCE))
 
     val servReq = mock[HttpServletRequest]
     servReq.expects('getMethod)().anyNumberOfTimes.returns("GET")

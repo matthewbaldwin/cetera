@@ -1,15 +1,19 @@
 package com.socrata.cetera.search
 
+import scala.language.existentials
+
 import org.elasticsearch.action.search.SearchRequestBuilder
 import org.elasticsearch.index.query.QueryBuilders
 import org.elasticsearch.search.aggregations.AggregationBuilders
+import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder
+import org.elasticsearch.search.fetch.subphase.highlight.SearchContextHighlight.FieldOptions
 
 import com.socrata.cetera.auth.User
 import com.socrata.cetera.esDocumentType
 import com.socrata.cetera.handlers.{PagingParamSet, ScoringParamSet, SearchParamSet}
 import com.socrata.cetera.errors.MissingRequiredParameterError
 import com.socrata.cetera.search.DocumentAggregations.chooseAggregation
-import com.socrata.cetera.search.DocumentQueries.{autocompleteQuery, chooseMatchQuery, compositeFilteredQuery}
+
 import com.socrata.cetera.types._
 
 trait BaseDocumentClient {
@@ -35,6 +39,7 @@ trait BaseDocumentClient {
       field: DocumentFieldType with Countable with Rawable,
       domainSet: DomainSet,
       searchParams: SearchParamSet,
+      pagingParams: PagingParamSet,
       user: Option[User],
       requireAuth: Boolean)
     : SearchRequestBuilder
@@ -42,9 +47,10 @@ trait BaseDocumentClient {
   def buildFacetRequest(
       domainSet: DomainSet,
       searchParams: SearchParamSet,
+      pagingParams: PagingParamSet,
       user: Option[User],
       requireAuth: Boolean)
-  : SearchRequestBuilder
+    : SearchRequestBuilder
 }
 
 class DocumentClient(
@@ -82,17 +88,16 @@ class DocumentClient(
     : SearchRequestBuilder = {
 
     // Construct basic match query
-    val matchQuery = chooseMatchQuery(searchParams.searchQuery, mergeDefaultScoringParams(scoringParams), user)
+    val matchQuery = DocumentQuery().chooseMatchQuery(
+      searchParams.searchQuery, mergeDefaultScoringParams(scoringParams), user)
 
     // Wrap basic match query in filtered query for filtering
-    val filteredQuery = compositeFilteredQuery(domainSet, searchParams, matchQuery, user, requireAuth)
+    val filteredQuery = DocumentQuery().compositeFilteredQuery(
+      domainSet, searchParams, matchQuery, user, requireAuth)
 
     // Wrap filtered query in function score query for boosting
-    val query = QueryBuilders.functionScoreQuery(filteredQuery)
-    Boosts.applyScoreFunctions(query, scriptScoreFunctions)
-    Boosts.applyDatatypeBoosts(query, scoringParams.datatypeBoosts)
-    Boosts.applyDomainBoosts(query, domainSet.domainIdBoosts)
-    query.scoreMode("multiply").boostMode("replace")
+    val query = DocumentQuery().scoringQuery(
+      filteredQuery, domainSet, scriptScoreFunctions, scoringParams)
 
     val preparedSearch = esClient.client
       .prepareSearch(indexAliasName)
@@ -108,32 +113,38 @@ class DocumentClient(
       scoringParams: ScoringParamSet,
       pagingParams: PagingParamSet,
       user: Option[User],
-      requireAuth: Boolean): SearchRequestBuilder = {
+      requireAuth: Boolean)
+    : SearchRequestBuilder = {
     // Construct basic match query against title autocomplete field
-    val query = searchParams.searchQuery match {
-      case SimpleQuery(queryString) => autocompleteQuery(queryString)
+    val matchQuery = searchParams.searchQuery match {
+      case SimpleQuery(queryString) => DocumentQuery().autocompleteQuery(queryString)
       case _ => throw new MissingRequiredParameterError("q", "search query")
     }
 
-    val filteredQuery = compositeFilteredQuery(domainSet, searchParams, query, user, requireAuth)
+    val filteredQuery = DocumentQuery().compositeFilteredQuery(
+      domainSet, searchParams, matchQuery, user, requireAuth)
 
-    val fnScoreQuery = QueryBuilders.functionScoreQuery(filteredQuery)
-    Boosts.applyScoreFunctions(fnScoreQuery, scriptScoreFunctions)
-    Boosts.applyDatatypeBoosts(fnScoreQuery, scoringParams.datatypeBoosts)
-    Boosts.applyDomainBoosts(fnScoreQuery, domainSet.domainIdBoosts)
-    fnScoreQuery.scoreMode("multiply").boostMode("replace")
+    // Wrap filtered query in function score query for boosting
+    val query = DocumentQuery().scoringQuery(
+      filteredQuery, domainSet, scriptScoreFunctions, scoringParams)
+
+    val highlighterOptions = new FieldOptions()
+      .preTags()
+
+    val highlighter = new HighlightBuilder()
+      .field(TitleFieldType.autocompleteFieldName)
+      .highlighterType("fvh")
+      .preTags("<span class=highlight>")
+      .postTags("</span>")
 
     esClient.client
       .prepareSearch(indexAliasName)
       .setFrom(pagingParams.offset)
       .setSize(pagingParams.limit)
-      .setQuery(fnScoreQuery)
+      .setQuery(query)
       .setTypes(esDocumentType)
-      .addField(TitleFieldType.fieldName)
-      .addHighlightedField(TitleFieldType.autocompleteFieldName)
-      .setHighlighterType("fvh")
-      .setHighlighterPreTags("<span class=highlight>")
-      .setHighlighterPostTags("</span>")
+      .setFetchSource(Array(TitleFieldType.fieldName), Array.empty[String])
+      .highlighter(highlighter)
   }
 
   def buildSearchRequest(
@@ -150,8 +161,10 @@ class DocumentClient(
     // WARN: Sort will totally blow away score if score isn't part of the sort
     // "Relevance" without a query can mean different things, so chooseSort decides
     val sort = pagingParams.sortOrder match {
-      case Some(so) if so != "relevance" => Sorts.paramSortMap.get(so).get // will raise if invalid param got through
-      case _ => Sorts.chooseSort(domainSet.searchContext, searchParams)
+      case Some(so) if so != "relevance" =>
+        Sorts.mapSortParam(so).get // will raise if invalid param got through
+      case _ =>
+        Sorts.chooseSort(domainSet.searchContext, searchParams)
     }
 
     baseRequest
@@ -164,52 +177,50 @@ class DocumentClient(
       field: DocumentFieldType with Countable with Rawable,
       domainSet: DomainSet,
       searchParams: SearchParamSet,
+      pagingParams: PagingParamSet,
       user: Option[User],
       requireAuth: Boolean)
     : SearchRequestBuilder = {
 
-    val aggregation = chooseAggregation(field)
+    val aggregation = chooseAggregation(field, pagingParams.limit)
 
     val baseRequest = buildBaseRequest(domainSet, searchParams, ScoringParamSet(), user, requireAuth)
 
     baseRequest
       .addAggregation(aggregation)
-      .setSearchType("count")
       .setSize(0) // no docs, aggs only
   }
 
   def buildFacetRequest(
       domainSet: DomainSet,
       searchParams: SearchParamSet,
+      pagingParams: PagingParamSet,
       user: Option[User],
       requireAuth: Boolean)
-  : SearchRequestBuilder = {
-    val aggSize = 0 // agg count unlimited
-
+    : SearchRequestBuilder = {
     val datatypeAgg = AggregationBuilders
       .terms("datatypes")
       .field(DatatypeFieldType.fieldName)
-      .size(aggSize)
+      .size(pagingParams.limit)
 
     val categoryAgg = AggregationBuilders
       .terms("categories")
       .field(DomainCategoryFieldType.rawFieldName)
-      .size(aggSize)
+      .size(pagingParams.limit)
 
     val tagAgg = AggregationBuilders
       .terms("tags")
       .field(DomainTagsFieldType.rawFieldName)
-      .size(aggSize)
+      .size(pagingParams.limit)
 
     val metadataAgg = AggregationBuilders
-      .nested("metadata")
-      .path(DomainMetadataFieldType.fieldName)
+      .nested("metadata", DomainMetadataFieldType.fieldName)
       .subAggregation(AggregationBuilders.terms("keys")
         .field(DomainMetadataFieldType.Key.rawFieldName)
-        .size(aggSize)
+        .size(pagingParams.limit)
         .subAggregation(AggregationBuilders.terms("values")
           .field(DomainMetadataFieldType.Value.rawFieldName)
-          .size(aggSize)))
+          .size(pagingParams.limit)))
 
     val baseRequest = buildBaseRequest(domainSet, searchParams, ScoringParamSet(), user, requireAuth)
 
@@ -218,7 +229,6 @@ class DocumentClient(
       .addAggregation(categoryAgg)
       .addAggregation(tagAgg)
       .addAggregation(metadataAgg)
-      .setSearchType("count")
       .setSize(0) // no docs, aggs only
   }
 }

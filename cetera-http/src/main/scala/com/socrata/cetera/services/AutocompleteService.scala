@@ -38,25 +38,28 @@ class AutocompleteService(
 
     // remove auth stuff since we're ignoring it
     val authedUserId = authorizedUser.map(_.id)
+
     val (domains, domainSearchTime) = domainClient.findSearchableDomains(
       searchParams.searchContext, extendedHost, searchParams.domains,
       excludeLockedDomains = true, authorizedUser, requestId
     )
+
     val authedUser = authorizedUser.map(u => u.copy(authenticatingDomain = domains.extendedHost))
     val req = documentClient.buildAutocompleteSearchRequest(
-      domains, searchParams, scoringParams, pagingParams, authedUser, requireAuth
-    )
+      domains, searchParams, scoringParams, pagingParams, authedUser, requireAuth)
 
     logger.info(LogHelper.formatEsRequest(req))
+
     val res = req.execute.actionGet
     val totalHits = res.getHits.totalHits
     val completions = res.getHits.hits.flatMap { hit =>
       try {
         Some(CompletionResult.fromElasticsearchHit(hit))
       }
-      catch { case e: Exception =>
-        logger.info(e.getMessage)
-        None
+      catch {
+        case e: Exception =>
+          logger.info(e.getMessage)
+          None
       }
     }.toList.distinct
 

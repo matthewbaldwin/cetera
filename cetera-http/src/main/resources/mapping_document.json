@@ -7,12 +7,13 @@
       "properties": {
         "categories": {
           "type": "nested",
+          "dynamic": "false",
           "properties": {
             "name": {
-              "type": "string",
+              "type": "text",
               "analyzer": "snowball_en",
               "fields": {
-                "raw": { "type": "string", "index": "not_analyzed", "store": true }
+                "raw": { "type": "keyword", "store": true }
               },
               "copy_to": [ "fts_analyzed", "fts_raw" ]
             },
@@ -21,12 +22,13 @@
         },
         "tags": {
           "type": "nested",
+          "dynamic": "false",
           "properties": {
             "name": {
-              "type": "string",
+              "type": "text",
               "analyzer": "snowball_en",
               "fields": {
-                "raw": { "type": "string", "index": "not_analyzed", "store": true }
+                "raw": { "type": "keyword", "store": true }
               },
               "copy_to": [ "fts_analyzed", "fts_raw" ]
             },
@@ -43,29 +45,30 @@
     "is_rejected_by_parent_domain": { "type": "boolean" },
     "created_at": { "type": "date", "format": "dateOptionalTime" },
     "customer_category": {
-      "type": "string",
+      "type": "text",
       "analyzer": "snowball_en",
       "fields": {
-        "raw": { "type": "string", "index": "not_analyzed" }
+        "raw": { "type": "keyword" }
       },
       "copy_to": [ "fts_analyzed", "fts_raw" ]
     },
     "customer_metadata_flattened": {
       "type": "nested",
+      "dynamic": "false",
       "properties": {
         "key": {
-          "type": "string",
+          "type": "text",
           "analyzer": "snowball_en",
           "fields": {
-            "raw": { "type": "string", "index": "not_analyzed", "store": true }
+            "raw": { "type": "keyword", "store": true }
           },
           "copy_to": [ "fts_analyzed", "fts_raw" ]
         },
         "value": {
-          "type": "string",
+          "type": "text",
           "analyzer": "snowball_en",
           "fields": {
-            "raw": { "type": "string", "index": "not_analyzed", "store": true }
+            "raw": { "type": "keyword", "store": true }
           },
           "copy_to": [ "fts_analyzed", "fts_raw" ]
         }
@@ -73,16 +76,13 @@
     },
     "private_customer_metadata_flattened": {
       "type": "nested",
+      "dynamic": "false",
       "properties": {
         "key": {
-          "type": "string",
+          "type": "text",
           "analyzer": "snowball_en",
           "fields": {
-            "raw": {
-              "type": "string",
-              "index": "not_analyzed",
-              "store": true
-            }
+            "raw": { "type": "keyword", "store": true }
           },
           "copy_to": [
             "private_fts_analyzed",
@@ -90,12 +90,11 @@
           ]
         },
         "value": {
-          "type": "string",
+          "type": "text",
           "analyzer": "snowball_en",
           "fields": {
             "raw": {
-              "type": "string",
-              "index": "not_analyzed",
+              "type": "keyword",
               "store": true
             }
           },
@@ -107,58 +106,58 @@
       }
     },
     "customer_tags": {
-      "type": "string",
+      "type": "text",
       "analyzer": "snowball_en",
       "fields": {
-        "raw": { "type": "string", "index": "not_analyzed" }
+        "raw": { "type": "keyword" }
       },
       "copy_to": [ "fts_analyzed", "fts_raw" ]
     },
-    "datatype": { "type": "string", "index": "not_analyzed" },
-    "fts_analyzed": { "type": "string", "analyzer": "snowball_en" },
-    "fts_raw": { "type": "string", "index": "not_analyzed" },
-    "private_fts_analyzed": { "type": "string", "analyzer": "snowball_en" },
-    "private_fts_raw": { "type": "string", "index": "not_analyzed" },
+    "datatype": { "type": "keyword" },
+    "fts_analyzed": { "type": "text", "analyzer": "snowball_en" },
+    "fts_raw": { "type": "keyword" },
+    "private_fts_analyzed": { "type": "text", "analyzer": "snowball_en" },
+    "private_fts_raw": { "type": "keyword" },
     "indexed_metadata": {
       "properties": {
         "columns_description": {
-          "type": "string",
+          "type": "text",
           "analyzer": "snowball_en",
           "fields": {
-            "raw": { "type": "string", "index": "not_analyzed" }
+            "raw": { "type": "keyword" }
           },
           "copy_to": [ "fts_analyzed", "fts_raw" ]
         },
         "columns_field_name": {
-          "type": "string",
+          "type": "text",
           "analyzer": "snowball_en",
           "fields": {
-            "raw": { "type": "string", "index": "not_analyzed" }
+            "raw": { "type": "keyword" }
           },
           "copy_to": [ "fts_analyzed", "fts_raw" ]
         },
         "columns_name": {
-          "type": "string",
+          "type": "text",
           "analyzer": "snowball_en",
           "fields": {
-            "raw": { "type": "string", "index": "not_analyzed" }
+            "raw": { "type": "keyword" }
           },
           "copy_to": [ "fts_analyzed", "fts_raw" ]
         },
         "description": {
-          "type": "string",
+          "type": "text",
           "analyzer": "snowball_en",
           "fields": {
-            "raw": { "type": "string", "index": "not_analyzed" }
+            "raw": { "type": "keyword" }
           },
           "copy_to": [ "fts_analyzed", "fts_raw" ]
         },
         "name": {
-          "type": "string",
+          "type": "text",
           "analyzer": "snowball_en",
           "fields": {
-            "raw": { "type": "string", "index": "not_analyzed" },
-            "autocomplete": { "type": "string", "index_analyzer": "autocomplete", "term_vector": "with_positions_offsets" }
+            "raw": { "type": "keyword" },
+            "autocomplete": { "type": "text", "analyzer": "autocomplete", "term_vector": "with_positions_offsets", "search_analyzer": "standard" }
           },
           "copy_to": [ "fts_analyzed", "fts_raw" ]
         }
@@ -168,20 +167,19 @@
     "is_published": { "type": "boolean" },
     "hide_from_catalog": { "type": "boolean"},
     "hide_from_data_json": { "type": "boolean"},
-    "shared_to": {
-      "type": "string",
-      "index": "not_analyzed"
-    },
+    "lens_view_type": { "type": "keyword" },
+    "lens_display_type": { "type": "keyword" },
+    "shared_to": { "type": "keyword" },
     "grants": {
       "type": "nested",
+      "dynamic": "false",
       "properties": {
-        "user_id": { "type": "string", "index": "not_analyzed" },
-        "type": { "type": "string", "index": "not_analyzed" }
+        "user_id": { "type": "keyword" },
+        "type": { "type": "keyword" }
       }
     },
     "is_default_view": { "type": "boolean" },
-    "is_moderation_approved": { "type": "boolean" },
-    "moderation_status": { "type": "string", "index": "not_analyzed" },
+    "moderation_status": { "type": "keyword" },
     "page_views": {
       "properties": {
         "page_views_last_month": { "type": "long" },
@@ -192,21 +190,19 @@
         "page_views_total_log": { "type": "float" }
       }
     },
-    "popularity": { "type": "float" },
     "resource": {
-      "type": "nested",
       "enabled": false,
       "properties": {
-        "attribution": { "type": "string", "index": "no" },
-        "columns_description": { "type": "string", "index": "no"},
-        "columns_field_name": { "type": "string", "index": "no" },
-        "columns_name": { "type": "string", "index": "no" },
+        "attribution": { "type": "keyword", "index": false },
+        "columns_description": { "type": "keyword", "index": false },
+        "columns_field_name": { "type": "keyword", "index": false },
+        "columns_name": { "type": "keyword", "index": false },
         "createdAt": { "type": "date", "format": "dateOptionalTime" },
-        "description": { "type": "string", "index": "no" },
+        "description": { "type": "keyword", "index": false },
         "download_count": { "type": "long" },
-        "id": { "type": "string", "index": "no" },
-        "name": { "type": "string", "index": "no" },
-        "parent_fxf": { "type": "string", "index": "no" },
+        "id": { "type": "keyword", "index": false },
+        "name": { "type": "keyword", "index": false },
+        "parent_fxf": { "type": "keyword", "index": false },
         "page_views": {
           "properties": {
             "page_views_last_month": { "type": "long" },
@@ -214,46 +210,34 @@
             "page_views_total": { "type": "long" }
           }
         },
-        "provenance": { "type": "string", "index": "no" },
-        "type": { "type": "string", "index": "no" },
+        "provenance": { "type": "keyword", "index": false },
+        "type": { "type": "keyword", "index": false },
         "updatedAt": { "type": "date", "format": "dateOptionalTime" }
       }
     },
     "socrata_id": {
       "properties": {
-        "dataset_id": { "type": "string", "index": "not_analyzed" },
-        "nbe_id": { "type": "string", "index": "not_analyzed" },
-        "obe_id": { "type": "string", "index": "not_analyzed" },
-        "parent_dataset_id": { "type": "string", "index": "not_analyzed" },
+        "dataset_id": { "type": "keyword" },
+        "nbe_id": { "type": "keyword" },
+        "obe_id": { "type": "keyword" },
+        "parent_dataset_id": { "type": "keyword" },
         "domain_id": { "type": "long" }
       }
     },
-    "update_freq": { "type": "float" },
     "updated_at": { "type": "date", "format": "dateOptionalTime" },
     "indexed_at": { "type": "date", "format": "dateOptionalTime" },
-    "viewtype": { "type": "string", "index": "not_analyzed" },
-    "owner": {
-      "properties": {
-        "id": { "type": "string", "index": "not_analyzed" },
-        "screen_name": { "type": "string", "index": "no" },
-        "email": { "type": "string", "index": "no" },
-        "role_name": { "type": "string", "index": "no" },
-        "profile_image_url_large": { "type": "string", "index": "no" },
-        "profile_image_url_medium": { "type": "string", "index": "no" },
-        "profile_image_url_small": { "type": "string", "index": "no" }
-      }
-    },
-    "owner_id": { "type": "string", "index": "not_analyzed" },
+    "viewtype": { "type": "keyword" },
+    "owner_id": { "type": "keyword" },
     "attribution": {
-      "type": "string",
+      "type": "text",
       "analyzer": "case_insensitive_en",
       "fields": {
-        "raw": { "type": "string", "index": "not_analyzed" }
+        "raw": { "type": "keyword" }
       },
       "copy_to": [ "fts_analyzed", "fts_raw" ]
     },
-    "preview_image_id": { "type": "string", "index": "no" },
-    "provenance": { "type": "string", "index": "not_analyzed" },
-    "license": { "type": "string", "index": "not_analyzed" }
+    "preview_image_id": { "type": "keyword", "index": false },
+    "provenance": { "type": "keyword" },
+    "license": { "type": "keyword" }
   }
 }

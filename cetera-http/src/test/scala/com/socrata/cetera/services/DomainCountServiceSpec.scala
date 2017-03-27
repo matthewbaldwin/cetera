@@ -7,7 +7,6 @@ import com.rojoma.json.v3.io.JsonReader
 import com.socrata.http.server.HttpRequest
 import com.socrata.http.server.HttpRequest.AugmentedHttpServletRequest
 import org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
-import org.elasticsearch.index.query.FilterBuilder
 import org.scalamock.scalatest.proxy.MockFactory
 import org.scalatest.{BeforeAndAfterAll, FunSuiteLike, Matchers, ShouldMatchers, WordSpec}
 import org.springframework.mock.web.MockHttpServletResponse
@@ -16,7 +15,6 @@ import com.socrata.cetera._
 import com.socrata.cetera.auth.AuthParams
 import com.socrata.cetera.errors.DomainNotFoundError
 import com.socrata.cetera.handlers.Params
-import com.socrata.cetera.handlers.util._
 import com.socrata.cetera.search._
 import com.socrata.cetera.types.Count
 
@@ -49,7 +47,7 @@ class DomainCountServiceSpec extends WordSpec with ShouldMatchers with BeforeAnd
   }
 
   "counting documents by domains when no params are passed - and thus hitting up customer domains" should {
-    "have the correct counts" in {
+    "have the correct counts" in {      
       val expectedResults = List(
         Count(domains(0).domainCname, docCountsByDomain.getOrElse(0, 0)),
         Count(domains(2).domainCname, docCountsByDomain.getOrElse(2, 0)),
@@ -200,7 +198,7 @@ class DomainCountServiceSpec extends WordSpec with ShouldMatchers with BeforeAnd
   }
   // ------------------------------------------------------------------------------------------------
 
-  "counting documents by domains with a bucket of seach params - noting the lack of search context and use of socrata cats/tags" should {
+  "counting documents by domains with a bucket of search params - noting the lack of search context and use of socrata cats/tags" should {
     "have the correct counts " in {
       val context = "petercetera.net"
       val expectedResults = List(Count(context, 1)) // this describes fxf-0 and only fxf-0
@@ -217,7 +215,7 @@ class DomainCountServiceSpec extends WordSpec with ShouldMatchers with BeforeAnd
     }
   }
 
-  "counting documents by domains with a bucket of seach params - noting the presence of a search context and customer cats/tags" should {
+  "counting documents by domains with a bucket of search params - noting the presence of a search context and customer cats/tags" should {
     "have the correct counts " in {
       val context = "petercetera.net"
       val expectedResults = List(Count(context, 1)) // this describes fxf-0 and only fxf-0

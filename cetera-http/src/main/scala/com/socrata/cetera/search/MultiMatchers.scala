@@ -12,8 +12,6 @@ object MultiMatchers {
   type MatchType = MultiMatchQueryBuilder.Type
   type MatchQuery = MultiMatchQueryBuilder
 
-  val docFilters = DocumentFilters(forDomainSearch = false)
-
   private def refineMatch(query: MatchQuery, mmType: MatchType, scoringParams: ScoringParamSet): Unit =
     mmType match {
       case CROSS_FIELDS =>
@@ -61,8 +59,9 @@ object MultiMatchers {
       user: User)
   : QueryBuilder = {
     val privateMatch = privateMatchQuery(q, mmType, scoringParams)
-    val privateFilter = docFilters.privateMetadataUserRestrictionsFilter(user)
-    val matchPrivateFieldsAndRespectPrivacy = QueryBuilders.filteredQuery(privateMatch, privateFilter)
+    val privateFilter = DocumentQuery(forDomainSearch = false).privateMetadataUserRestrictionsQuery(user)
+    val matchPrivateFieldsAndRespectPrivacy = QueryBuilders.boolQuery().must(privateMatch).filter(privateFilter)
+
     val matchPublicFields = publicMatchQuery(q, mmType, scoringParams)
     QueryBuilders.boolQuery()
       .should(matchPublicFields)

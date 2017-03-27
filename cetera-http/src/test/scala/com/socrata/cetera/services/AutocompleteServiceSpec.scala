@@ -3,7 +3,6 @@ package com.socrata.cetera.services
 import java.nio.charset.{Charset, CodingErrorAction}
 
 import com.rojoma.json.v3.ast.JString
-import com.rojoma.simplearm.v2._
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, FunSuiteLike, Matchers}
 
 import com.socrata.cetera.TestESData
@@ -31,7 +30,7 @@ class AutocompleteServiceSpec
   test("an autocomplete search without a search query throws") {
     intercept[MissingRequiredParameterError] {
       val basicDomain = domains(0).domainCname
-      val params = Map("search_context" -> basicDomain, "domains" -> basicDomain).mapValues(Seq(_))      
+      val params = Map("search_context" -> basicDomain, "domains" -> basicDomain).mapValues(Seq(_))
       autocompleteService.doSearch(params, requireAuth = false, AuthParams(), None, None)._2
     }
   }

@@ -3,8 +3,8 @@ package com.socrata.cetera
 import java.io.File
 import java.nio.file.Files
 
-import org.elasticsearch.common.settings.ImmutableSettings
-import org.elasticsearch.node.NodeBuilder._
+import org.elasticsearch.common.settings.Settings
+import org.elasticsearch.node.Node
 
 import com.socrata.cetera.search.ElasticSearchClient
 
@@ -12,13 +12,16 @@ class TestESClient(testSuiteName: String)
   extends ElasticSearchClient("", 0, "", testSuiteName) { // host:port & cluster name are immaterial
 
   val tempDataDir = Files.createTempDirectory("elasticsearch_data_").toFile
-  val testSettings = ImmutableSettings.settingsBuilder()
+
+  val testSettings = Settings.builder()
     .put("cluster.name", testSuiteName)
-    .put("client.transport.sniff", false)
-    .put("discovery.zen.ping.multicast.enabled", false)
     .put("path.data", tempDataDir.toString)
-    .build
-  val node = nodeBuilder().settings(testSettings).local(true).node()
+    .put("path.home", "target/elasticsearch")
+    .put("transport.type", "local")
+    .put("http.enabled", "false")
+    .build()
+
+  val node = new Node(testSettings).start()
 
   override val client = node.client()
 

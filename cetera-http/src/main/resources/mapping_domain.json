@@ -2,37 +2,37 @@
   "dynamic": "strict",
   "properties": {
     "domain_cname": {
-      "type": "string",
+      "type": "text",
       "analyzer": "simple",
       "fields": {
-        "analyzed": { "type": "string", "analyzer": "snowball_en" },
-        "raw": { "type": "string", "index": "not_analyzed" }
+        "analyzed": { "type": "text", "analyzer": "snowball_en" },
+        "raw": { "type": "keyword" }
       },
       "copy_to": [ "fts_analyzed", "fts_raw" ]
     },
-    "domain_name": { "type": "string", "index": "no" },
+    "domain_name": { "type": "keyword", "index": false },
     "domain_id": { "type": "long" },
-    "fts_analyzed": { "type": "string", "analyzer": "snowball_en" },
-    "fts_raw": { "type": "string", "index": "not_analyzed" },
+    "fts_analyzed": { "type": "text", "analyzer": "snowball_en" },
+    "fts_raw": { "type": "keyword" },
     "is_customer_domain": { "type": "boolean" },
     "moderation_enabled": { "type": "boolean" },
-    "routing_approval_enabled": { "type": "boolean" },
     "unmigrated_nbe_enabled": { "type": "boolean" },
+    "routing_approval_enabled": { "type": "boolean" },
     "locked_down": { "type": "boolean" },
     "api_locked_down": { "type": "boolean" },
     "organization": {
-      "type": "string",
+      "type": "text",
       "fields": {
-        "analyzed": { "type": "string", "analyzer": "snowball_en" },
-        "raw": { "type": "string", "index": "not_analyzed" }
+        "analyzed": { "type": "text", "analyzer": "snowball_en" },
+        "raw": { "type": "keyword" }
       },
       "copy_to": [ "fts_analyzed", "fts_raw" ]
     },
     "site_title": {
-      "type": "string",
+      "type": "text",
       "fields": {
-        "analyzed": { "type": "string", "analyzer": "snowball_en" },
-        "raw": { "type": "string", "index": "not_analyzed" }
+        "analyzed": { "type": "text", "analyzer": "snowball_en" },
+        "raw": { "type": "keyword" }
       },
       "copy_to": [ "fts_analyzed", "fts_raw" ]
     }

@@ -87,12 +87,9 @@ case class Document(
     pageViews: Option[PageViews], // with Some for log variants
     datatype: String,
     viewtype: String,
-    isModerationApproved: Option[Boolean],
     isDefaultView: Boolean,
     isPublic: Boolean,
     isPublished: Boolean,
-    popularity: BigDecimal,
-    updateFreq: BigDecimal,
     indexedMetadata: IndexedMetadata,
     resource: Resource,
     socrataId: SocrataId,

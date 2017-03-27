@@ -39,7 +39,7 @@ class DomainCountService(domainClient: BaseDomainClient, coreClient: CoreClient)
     pattern.matches(json).right.map(buckets)
   }
 
-  private def format(counts: Seq[JValue]): SearchResults[Count] =
+ private def format(counts: Seq[JValue]): SearchResults[Count] =
     SearchResults(counts.map { c => Count(c.dyn.key.!, c.dyn.documents.filtered.doc_count.!) }, counts.size)
 
   def doAggregate(

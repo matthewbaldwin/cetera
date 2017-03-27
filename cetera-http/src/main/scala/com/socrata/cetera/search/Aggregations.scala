@@ -1,8 +1,9 @@
 package com.socrata.cetera.search
 
-import org.elasticsearch.index.query.FilterBuilder
-import org.elasticsearch.search.aggregations.bucket.terms.Terms
-import org.elasticsearch.search.aggregations.{AbstractAggregationBuilder, AggregationBuilders}
+import org.elasticsearch.index.query.QueryBuilder
+import org.elasticsearch.search.aggregations.bucket.nested.NestedAggregationBuilder
+import org.elasticsearch.search.aggregations.bucket.terms.{Terms, TermsAggregationBuilder}
+import org.elasticsearch.search.aggregations.{AggregationBuilder, AggregationBuilders}
 
 import com.socrata.cetera.esDocumentType
 import com.socrata.cetera.types._
@@ -10,26 +11,23 @@ import com.socrata.cetera.types._
 object DocumentAggregations {
   // The 'terms' used in the AggregationBuilders below need to be accounted for in the CountService val 'pattern'.
 
-  private val aggSize = 0 // agg count unlimited
-
-  val domainCategories =
+  def domainCategories(aggSize: Int): TermsAggregationBuilder =
     AggregationBuilders
       .terms("domain_categories")
       .field(DomainCategoryFieldType.rawFieldName)
       .order(Terms.Order.count(false)) // count desc
       .size(aggSize)
 
-  val domainTags =
+  def domainTags(aggSize: Int): TermsAggregationBuilder =
     AggregationBuilders
       .terms("domain_tags")
       .field(DomainTagsFieldType.rawFieldName)
       .order(Terms.Order.count(false)) // count desc
       .size(aggSize)
 
-  val categories =
+  def categories(aggSize: Int): NestedAggregationBuilder =
     AggregationBuilders
-      .nested("annotations")
-      .path(CategoriesFieldType.fieldName)
+      .nested("annotations", CategoriesFieldType.fieldName)
       .subAggregation(
         AggregationBuilders
           .terms("names")
@@ -37,10 +35,9 @@ object DocumentAggregations {
           .size(aggSize)
       )
 
-  val tags =
+  def tags(aggSize: Int): NestedAggregationBuilder =
     AggregationBuilders
-      .nested("annotations")
-      .path(TagsFieldType.fieldName)
+      .nested("annotations", TagsFieldType.fieldName)
       .subAggregation(
         AggregationBuilders
           .terms("names")
@@ -48,65 +45,68 @@ object DocumentAggregations {
           .size(aggSize)
       )
 
-  val owners =
+  def owners(aggSize: Int): TermsAggregationBuilder =
     AggregationBuilders
       .terms("owners")
       .field(OwnerIdFieldType.rawFieldName)
       .order(Terms.Order.count(false)) // count desc
       .size(aggSize)
 
-  val attributions =
+  def attributions(aggSize: Int): TermsAggregationBuilder =
     AggregationBuilders
       .terms("attributions")
       .field(AttributionFieldType.rawFieldName)
       .order(Terms.Order.count(false)) // count desc
       .size(aggSize)
 
-  val provenance =
+  def provenance(aggSize: Int): TermsAggregationBuilder =
     AggregationBuilders
       .terms("provenance")
       .field(ProvenanceFieldType.rawFieldName)
       .order(Terms.Order.count(false))
       .size(aggSize)
 
-  val license =
+  def license(aggSize: Int): TermsAggregationBuilder =
     AggregationBuilders
       .terms("license")
       .field(LicenseFieldType.rawFieldName)
       .order(Terms.Order.count(false))
       .size(aggSize)
 
-  def chooseAggregation(field: DocumentFieldType with Countable with Rawable): AbstractAggregationBuilder =
+  def chooseAggregation(
+      field: DocumentFieldType with Countable with Rawable,
+      aggSize: Int)
+    : AggregationBuilder =
     field match {
-      case DomainCategoryFieldType => domainCategories
-      case DomainTagsFieldType => domainTags
+      case DomainCategoryFieldType => domainCategories(aggSize)
+      case DomainTagsFieldType => domainTags(aggSize)
 
-      case CategoriesFieldType => categories
-      case TagsFieldType => tags
+      case CategoriesFieldType => categories(aggSize)
+      case TagsFieldType => tags(aggSize)
 
-      case OwnerIdFieldType => owners
-      case AttributionFieldType => attributions
-      case ProvenanceFieldType => provenance
-      case LicenseFieldType => license
+      // TODO: remove these unused aggregations
+      case OwnerIdFieldType => owners(aggSize)
+      case AttributionFieldType => attributions(aggSize)
+      case ProvenanceFieldType => provenance(aggSize)
+      case LicenseFieldType => license(aggSize)
     }
 }
 
 object DomainAggregations {
-  private val aggSize = 0 // agg count unlimited
-
-  def domains(filter: FilterBuilder): AbstractAggregationBuilder =
+  def domains(
+      docQuery: QueryBuilder,
+      aggSize: Int)
+    : TermsAggregationBuilder =
     AggregationBuilders
       .terms("domains") // "domains" is an agg of terms on field "domain_cname.raw"
       .field("domain_cname.raw")
       .size(aggSize)
       .subAggregation(
         AggregationBuilders
-          .children("documents") // "documents" is an agg of children of type esDocumentType
-          .childType(esDocumentType)
+          .children("documents", esDocumentType) // "documents" is an agg of children of type esDocumentType
           .subAggregation(
             AggregationBuilders
-              .filter("filtered") // "visible" is an agg of documents matching the following filter
-              .filter(filter)
+              .filter("filtered", docQuery) // "filtered" is an aggregation of documents that match this filter
           )
-      )
+    )
 }

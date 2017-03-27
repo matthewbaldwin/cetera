@@ -15,10 +15,9 @@ case class ValidatedUserQueryParameters(
     searchParamSet: UserSearchParamSet,
     pagingParamSet: PagingParamSet)
 
-// NOTE: this is really a validation error, not a parse error
-sealed trait ParseError { def message: String }
+sealed trait ValidationError { def message: String }
 
-case class DatatypeError(override val message: String) extends ParseError
+case class DatatypeError(override val message: String) extends ValidationError
 
 // Parses and validates
 object QueryParametersParser { // scalastyle:ignore number.of.methods
@@ -44,10 +43,9 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
   }
 
   // for sort order
-  private val allowedSortOrders = Sorts.paramSortMap.keySet
   case class SortOrderString(value: String)
   implicit val sortOrderStringParamConverter = ParamConverter.filtered { (a: String) =>
-    if (allowedSortOrders.contains(a)) Some(SortOrderString(a)) else None
+    if (Sorts.mapSortParam(a).isDefined) Some(SortOrderString(a)) else None
   }
 
   // If both are specified, prefer the advanced query over the search query

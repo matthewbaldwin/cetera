@@ -222,7 +222,6 @@ class SearchServiceSpecForAnonymousUsers
     docFrom8.isPublic should be(true)
     docFrom8.isPublished should be(true)
     docFrom8.isApprovedByParentDomain should be(true)
-    docFrom8.isModerationApproved.get should be(true)
   }
 
   test("if a search context has routing & approval, only datasets approved by that domain too should show up") {

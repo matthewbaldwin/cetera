@@ -64,14 +64,17 @@ class CountService(
     val now = Timings.now()
 
     val (authorizedUser, setCookies) = coreClient.optionallyAuthenticateUser(extendedHost, authParams, requestId)
-    val searchParams = QueryParametersParser(queryParameters).searchParamSet
+    val ValidatedQueryParameters(searchParams, _, pagingParams, _) =
+      QueryParametersParser(queryParameters)
+
     val (domainSet, domainSearchTime) = domainClient.findSearchableDomains(
       searchParams.searchContext, extendedHost, searchParams.domains,
       excludeLockedDomains = true, authorizedUser, requestId
     )
     val authedUser = authorizedUser.map(u => u.copy(authenticatingDomain = domainSet.extendedHost))
 
-    val search = documentClient.buildCountRequest(field, domainSet, searchParams, authedUser, requireAuth = false)
+    val search = documentClient.buildCountRequest(
+      field, domainSet, searchParams, pagingParams, authedUser, requireAuth = false)
     logger.info(LogHelper.formatEsRequest(search))
 
     val res = search.execute.actionGet

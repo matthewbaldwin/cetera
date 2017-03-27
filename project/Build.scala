@@ -3,6 +3,8 @@ import sbt.Keys._
 import sbt._
 import sbtbuildinfo.BuildInfoKeys.buildInfoPackage
 import sbtbuildinfo.BuildInfoPlugin
+import sbtassembly.AssemblyKeys._
+import sbtassembly.MergeStrategy
 
 object CeteraBuild extends Build {
   val Name = "come.socrata.cetera"
@@ -32,6 +34,8 @@ object CeteraBuild extends Build {
   )
     .aggregate(ceteraHttp)
 
+  val dependenciesSnippet = SettingKey[xml.NodeSeq]("dependencies-snippet")
+
   lazy val ceteraHttp = Project(
     "cetera-http",
     file("./cetera-http/"),
@@ -40,19 +44,21 @@ object CeteraBuild extends Build {
       fullClasspath in Runtime <+= baseDirectory map { d => Attributed.blank(d.getParentFile / "configs") },
       fullClasspath in Test <+= baseDirectory map { d => Attributed.blank(d.getParentFile / "configs") },
       buildInfoPackage := "com.socrata.cetera",
-      libraryDependencies ++= Deps.http
+      libraryDependencies ++= Deps.http,
+      dependenciesSnippet := <xml:group/>,
+      ivyXML <<= dependenciesSnippet { snippet =>
+        <dependencies>
+          {snippet.toList}
+        <exclude org="commons-logging" module="commons-logging-api"/>
+        <exclude org="commons-logging" module="commons-logging"/>
+        </dependencies>
+      },
+      assemblyMergeStrategy in assembly := {
+        case "META-INF/io.netty.versions.properties" => MergeStrategy.last
+        case other => MergeStrategy.defaultMergeStrategy(other)
+      }
     )
-  )
-    .disablePlugins(JmhPlugin)
-    .enablePlugins(BuildInfoPlugin)
-
-  lazy val perf = Project(
-    "cetera-perf",
-    file("./cetera-perf"),
-    settings = commonSettings ++ Seq(
-      libraryDependencies ++= Deps.perf
-    )
-  ).enablePlugins(JmhPlugin).dependsOn(ceteraHttp % "compile;test->test")
+  ).disablePlugins(JmhPlugin).enablePlugins(BuildInfoPlugin)
 }
 
 object Deps {
@@ -67,17 +73,17 @@ object Deps {
   )
 
   lazy val http = common ++ logging ++ rojoma ++ socrata ++ testing
-  lazy val perf = common ++ rojoma
 
   lazy val common = Seq(
     "com.typesafe" % "config" % "1.0.2",
     "org.apache.lucene" % "lucene-expressions" % "4.10.3" % "test",
     "org.codehaus.groovy" % "groovy-all" % "2.3.5" % "test",
-    "org.elasticsearch" % "elasticsearch" % "1.7.2",
+    "org.elasticsearch.client" % "transport" % "5.2.2",
     "org.mock-server" % "mockserver-maven-plugin" % "3.10.1" % "test"
   )
 
-  // airbrake-java includes log4j
+  // NOTE: w/ the upgrade to ES 5, we had to introduce the log4j dependencies in order for tests to run
+  // TODO: figure out if we can explicitly configure the logger at test time and remove these deps
   lazy val logging = Seq(
     "org.slf4j" % "slf4j-log4j12" % "1.7.10",
     "io.airbrake" % "airbrake-java" % "2.2.8" exclude("commons-logging", "commons-logging")
@@ -97,6 +103,8 @@ object Deps {
 
   lazy val testing = Seq(
     "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
-    "org.springframework" % "spring-test" % "3.2.10.RELEASE" % "test"
+    "org.springframework" % "spring-test" % "3.2.10.RELEASE" % "test",
+    "org.apache.logging.log4j" % "log4j-api" % "2.7",
+    "org.apache.logging.log4j" % "log4j-core" % "2.7"
   )
 }

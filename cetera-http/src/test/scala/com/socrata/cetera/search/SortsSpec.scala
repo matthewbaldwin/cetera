@@ -1,6 +1,8 @@
 package com.socrata.cetera.search
 
-import org.scalatest.{BeforeAndAfterAll, ShouldMatchers, WordSpec}
+import com.rojoma.json.v3.io.JsonReader
+import org.scalatest.{ShouldMatchers, WordSpec}
+import scala.language.existentials
 
 import com.socrata.cetera.handlers.SearchParamSet
 import com.socrata.cetera.types.{AdvancedQuery, Domain, SimpleQuery}
@@ -9,45 +11,33 @@ import com.socrata.cetera.types.{AdvancedQuery, Domain, SimpleQuery}
 // JSON-parseable output. So, we test the output of the toString method as a
 // proxy for equality.
 
-class SortsSpec extends WordSpec with ShouldMatchers with BeforeAndAfterAll {
+class SortsSpec extends WordSpec with ShouldMatchers {
   "sortScoreDesc" should {
     "sort by score descending" in {
-      val expectedAsString = s"""
-        |"_score"{ }""".stripMargin
+      val expectedJson = JsonReader.fromString(s"""{"_score": {"order": "desc"}}""")
+      val actualJson = JsonReader.fromString(Sorts.sortScoreDesc.toString)
 
-      val actual = Sorts.sortScoreDesc
-
-      actual.toString should be (expectedAsString)
+      actualJson should be (expectedJson)
     }
   }
 
   "sortFieldAsc" should {
     "sort by a given field ascending" in {
       val field = "field.in.our.documents"
-      val expectedAsString = s"""
-        |"${field}"{
-        |  "order" : "asc",
-        |  "missing" : "_last"
-        |}""".stripMargin
+      val expectedJson = JsonReader.fromString(s"""{"${field}": {"order": "asc"}}""")
+      val actualJson = JsonReader.fromString(Sorts.sortFieldAsc(field).toString)
 
-      val actual = Sorts.sortFieldAsc(field)
-
-      actual.toString should be(expectedAsString)
+      actualJson should be(expectedJson)
     }
   }
 
   "sortFieldDesc" should {
     "sort by a given field descending" in {
       val field = "another_field.another_field_total"
-      val expectedAsString = s"""
-        |"${field}"{
-        |  "order" : "desc",
-        |  "missing" : "_last"
-        |}""".stripMargin
+      val expectedJson = JsonReader.fromString(s"""{"${field}": {"order" : "desc"}}""")
+      val actualJson = JsonReader.fromString(Sorts.sortFieldDesc(field).toString)
 
-      val actual = Sorts.sortFieldDesc(field)
-
-      actual.toString should be(expectedAsString)
+      actualJson should be(expectedJson)
     }
   }
 
@@ -57,28 +47,35 @@ class SortsSpec extends WordSpec with ShouldMatchers with BeforeAndAfterAll {
       val rawFieldName = "this_looks_like.things.raw"
       val classifications = Set("one kind of thing", "another kind of thing")
 
-      // Using toString as proxy since toString does not give JSON parsable string
-      val expectedAsString = s"""
-         |"${fieldName}"{
-         |  "order" : "desc",
-         |  "missing" : "_last",
-         |  "mode" : "avg",
-         |  "nested_filter" : {
-         |    "terms" : {
-         |      "${rawFieldName}" : [ "${classifications.head}", "${classifications.last}" ]
-         |    }
-         |  }
-         |}""".stripMargin
+      val expectedJson = JsonReader.fromString(s"""
+      {
+          "${fieldName}": {
+              "order": "desc",
+              "mode": "avg",
+              "nested_filter": {
+                  "terms": {
+                      "${rawFieldName}": [
+                          "${classifications.head}",
+                          "${classifications.last}"
+                      ],
+                      "boost": 1.0
+                  }
+              }
+          }
+      }
+      """)
 
-      val actual = Sorts.buildAverageScoreSort(fieldName, rawFieldName, classifications)
+      val actualJson = JsonReader.fromString(
+        Sorts.buildAverageScoreSort(fieldName, rawFieldName, classifications).toString
+      )
 
-      actual.toString should be (expectedAsString)
+      actualJson should be (expectedJson)
     }
   }
 
   "chooseSort" should {
-    val cats = Set[String]("comestibles", "potables")
-    val tags = Set[String]("tasty", "sweet", "taters", "precious")
+    val cats = Set("comestibles", "potables")
+    val tags = Set("tasty", "sweet", "taters", "precious")
 
     "order by query score descending when given an advanced query" in {
       val expected = Sorts.sortScoreDesc
@@ -103,44 +100,50 @@ class SortsSpec extends WordSpec with ShouldMatchers with BeforeAndAfterAll {
     }
 
     "order by average category score descending when no query but ODN categories present" in {
-      val expectedAsString = s"""
-        |"animl_annotations.categories.score"{
-        |  "order" : "desc",
-        |  "missing" : "_last",
-        |  "mode" : "avg",
-        |  "nested_filter" : {
-        |    "terms" : {
-        |      "animl_annotations.categories.name.raw" : [ "${cats.head}", "${cats.last}" ]
-        |    }
-        |  }
-        |}""".stripMargin
+      val expectedJson = JsonReader.fromString(s"""
+      {
+          "animl_annotations.categories.score": {
+              "order" : "desc",
+              "mode" : "avg",
+              "nested_filter" : {
+                  "terms" : {
+                      "animl_annotations.categories.name.raw" : [ "${cats.head}", "${cats.last}" ],
+                      "boost": 1.0
+                  }
+              }
+          }
+      }
+      """)
 
       val searchParams = SearchParamSet(tags = Some(tags), categories = Some(cats))
-      val actual = Sorts.chooseSort(None, searchParams)
+      val actualJson = JsonReader.fromString(Sorts.chooseSort(None, searchParams).toString)
 
-      actual.toString should be(expectedAsString)
+      actualJson should be(expectedJson)
     }
 
     "order by average tag score desc when no query or categories but ODN tags present" in {
-      val tagsJson = "[ \"" + tags.mkString("\", \"") + "\" ]"
+      val tagsStr = "[ \"" + tags.mkString("\", \"") + "\" ]"
 
-      val expectedAsString = s"""
-        |"animl_annotations.tags.score"{
-        |  "order" : "desc",
-        |  "missing" : "_last",
-        |  "mode" : "avg",
-        |  "nested_filter" : {
-        |    "terms" : {
-        |      "animl_annotations.tags.name.raw" : ${tagsJson}
-        |    }
-        |  }
-        |}""".stripMargin
+      val expectedJson = JsonReader.fromString(s"""
+      {
+          "animl_annotations.tags.score": {
+              "order" : "desc",
+              "mode" : "avg",
+              "nested_filter" : {
+                  "terms" : {
+                      "animl_annotations.tags.name.raw" : ${tagsStr},
+                      "boost": 1.0
+                  }
+              }
+          }
+      }
+      """)
 
 
       val searchParams = SearchParamSet(tags = Some(tags))
-      val actual = Sorts.chooseSort(None, searchParams)
+      val actualJson = JsonReader.fromString(Sorts.chooseSort(None, searchParams).toString)
 
-      actual.toString should be(expectedAsString)
+      actualJson should be(expectedJson)
     }
 
     "order by score descending for default null query" in {
@@ -149,45 +152,6 @@ class SortsSpec extends WordSpec with ShouldMatchers with BeforeAndAfterAll {
       val actual = Sorts.chooseSort(None, searchParams)
 
       actual should be (expected)
-    }
-  }
-
-  "Sorts.paramSortMap" should {
-    val orderAsc = "\"order\" : \"asc\""
-    val orderDesc = "\"order\" : \"desc\""
-
-    def testSortOrder(keys: Iterable[String], order: String): Unit = {
-      keys.foreach { key =>
-        Sorts.paramSortMap.get(key) match {
-          case Some(sort) => sort.toString should include (order)
-          case None => fail(s"missing sort order key: ${key}")
-        }
-      }
-    }
-
-    "explicit ascending sorts are all ascending" in {
-      val ascendingSortKeys = Sorts.paramSortMap.keys.filter { k => k.endsWith("ASC") }
-      testSortOrder(ascendingSortKeys, orderAsc)
-    }
-
-    "explicit descending sorts are all descending" in {
-      val descendingSortKeys = Sorts.paramSortMap.keys.filter { k => k.endsWith("DESC") }
-      testSortOrder(descendingSortKeys,  orderDesc)
-    }
-
-    "default ascending sorts are all ascending" in {
-      val defaultAscendingSortKeys = Seq[String]("name")
-      testSortOrder(defaultAscendingSortKeys, orderAsc)
-    }
-
-    "default descending sorts are all descending" in {
-      val defaultDescendingSortKeys = Seq[String]("createdAt",
-        "updatedAt",
-        "page_views_last_week",
-        "page_views_last_month",
-        "page_views_total")
-
-      testSortOrder(defaultDescendingSortKeys, orderDesc)
     }
   }
 }

@@ -1,103 +1,164 @@
 package com.socrata.cetera.search
 
-import com.rojoma.json.v3.interpolation._
 import com.rojoma.json.v3.io.JsonReader
+import com.rojoma.json.v3.interpolation._
 import org.elasticsearch.index.query.QueryBuilders
 import org.scalatest.{ShouldMatchers, WordSpec}
 
 import com.socrata.cetera.types.{Datatype, DatalensDatatype, DatasetDatatype, FilterDatatype}
 
 class BoostsSpec extends WordSpec with ShouldMatchers {
-  "applyDatatypeBoosts" should {
-    "add datatype boosts to the query" in {
-      val query = QueryBuilders.functionScoreQuery(QueryBuilders.matchAllQuery)
+  "datatypeBoosts" should {
+    "return an empty List of FilterFunctions given an empty Map of datatype boosts" in {
+      Boosts.datatypeBoostFunctions(Map.empty[Datatype, Float]) shouldBe empty
+    }
+
+    "return a non-empty List of FilterFunctions given a non-empty Map of datatype boosts" in {
       val datatypeBoosts = Map[Datatype, Float](
         DatasetDatatype -> 1.23f,
         DatalensDatatype -> 2.34f,
         FilterDatatype -> 0.98f
       )
-      Boosts.applyDatatypeBoosts(query, datatypeBoosts)
 
-      val expectedJson = j"""{
-        "function_score": {
-          "functions": [
-            {
-              "filter": { "term": { "datatype" : "dataset" } },
-              "weight": 1.23
-            },
-            {
-              "filter": { "term": { "datatype" : "datalens" } },
-              "weight": 2.34
-            },
-            {
-              "filter": { "term": { "datatype" : "filter" } },
-              "weight": 0.98
-            }
-          ],
-          "query": {
-            "match_all": {}
-          }
-        }
-      }"""
-
-      val actualJson = JsonReader.fromString(query.toString)
-      actualJson should be (expectedJson)
+      Boosts.datatypeBoostFunctions(datatypeBoosts).length shouldEqual(3)
     }
 
-    "do nothing to the query if given no datatype boosts" in {
-      val query = QueryBuilders.functionScoreQuery(QueryBuilders.matchAllQuery)
-      val datatypeBoosts = Map.empty[Datatype, Float]
+    "add datatype boosts to the query" in {      
+      val datatypeBoosts = Map[Datatype, Float](
+        DatasetDatatype -> 1.23f,
+        DatalensDatatype -> 2.34f,
+        FilterDatatype -> 0.98f
+      )
 
-      val beforeJson = JsonReader.fromString(query.toString)
-      Boosts.applyDatatypeBoosts(query, datatypeBoosts)
-      val afterJson = JsonReader.fromString(query.toString)
+      val boostFunctions = Boosts.datatypeBoostFunctions(datatypeBoosts)
+      val query = QueryBuilders.functionScoreQuery(QueryBuilders.matchAllQuery, boostFunctions.toArray)
+      val actual = JsonReader.fromString(query.toString)
 
-      afterJson should be(beforeJson)
+      val expected = j"""
+      {
+          "function_score": {
+              "functions": [
+                  {
+                      "filter": {
+                          "term": {"datatype": {"value": "dataset", "boost": 1.0}}
+                      },
+                      "weight": 1.23
+                  },
+                  {
+                      "filter": {
+                          "term": {"datatype": {"value": "datalens", "boost": 1.0}}
+                      },
+                      "weight": 2.34
+                  },
+                  {
+                      "filter": {
+                          "term": {"datatype": {"value": "filter", "boost": 1.0}}
+                      },
+                      "weight": 0.98
+                  }
+              ],
+              "score_mode": "multiply",
+              "max_boost": 3.4028235E+38,
+              "boost": 1.0,
+              "query": {"match_all": {"boost": 1.0}}
+          }
+      }
+      """
+
+      actual should be (expected)
+    }
+
+    "do nothing to the query if given no datatype boosts" in {      
+      val boostFunctions = Boosts.datatypeBoostFunctions(Map.empty[Datatype, Float])
+      val query = QueryBuilders.functionScoreQuery(QueryBuilders.matchAllQuery, boostFunctions.toArray)
+      val actual = JsonReader.fromString(query.toString)
+
+      val expected = j"""
+      {
+          "function_score": {
+              "functions": [],
+              "score_mode": "multiply",
+              "max_boost": 3.4028235E+38,
+              "boost": 1.0,
+              "query": {"match_all": {"boost": 1.0}}
+          }
+      }      
+      """
+
+      actual should be (expected)
     }
   }
 
   "boostDomains" should {
-    "add domain cname boosts to the query" in {
-      val query = QueryBuilders.functionScoreQuery(QueryBuilders.matchAllQuery)
+    "return an empty List of FilterFunctions given an empty Map of domain boosts" in {
+      Boosts.domainBoostFunctions(Map.empty[Int, Float]) shouldBe empty
+    }
+
+    "return a non-empty List of FilterFunctions given a non-empty Map of domain boosts" in {
       val domainBoosts = Map[Int, Float](
         0 -> 1.23f,
         7 -> 4.56f
       )
 
-      Boosts.applyDomainBoosts(query, domainBoosts)
+      Boosts.domainBoostFunctions(domainBoosts).length shouldEqual(2)
+    }
 
-      val expectedJson = j"""{
-        "function_score": {
-          "functions": [
-            {
-              "filter": { "term": { "socrata_id.domain_id": 0 } },
-              "weight": 1.23
-            },
-            {
-              "filter": { "term": { "socrata_id.domain_id": 7 } },
-              "weight": 4.56
-            }
-          ],
-          "query": {
-            "match_all": {}
+    "add domain cname boosts to the query" in {
+      val domainBoosts = Map[Int, Float](
+        0 -> 1.23f,
+        7 -> 4.56f
+      )
+
+      val boostFunctions = Boosts.domainBoostFunctions(domainBoosts)
+      val query = QueryBuilders.functionScoreQuery(QueryBuilders.matchAllQuery, boostFunctions.toArray)
+      val actual = JsonReader.fromString(query.toString)
+
+      val expected = j"""
+      {
+          "function_score": {
+              "functions": [
+                  {
+                      "filter": {
+                          "term": {"socrata_id.domain_id": {"value": 0, "boost": 1.0}}
+                      },
+                      "weight": 1.23
+                  },
+                  {
+                      "filter": {
+                          "term": {"socrata_id.domain_id": {"value": 7, "boost": 1.0}}
+                      },
+                      "weight": 4.56
+                  }
+              ],
+              "score_mode": "multiply",
+              "max_boost": 3.4028235E+38,
+              "boost": 1.0,
+              "query": {"match_all": {"boost": 1.0}}
           }
-        }
-      }"""
+      }
+      """
 
-      val actualJson = JsonReader.fromString(query.toString)
-
-      actualJson should be (expectedJson)
+      actual should be (expected)
     }
 
     "do nothing to the query if given no domain boosts" in {
-      val query = QueryBuilders.functionScoreQuery(QueryBuilders.matchAllQuery)
-      val domainBoosts = Map.empty[Int, Float]
+      val boostFunctions = Boosts.domainBoostFunctions(Map.empty[Int, Float])
+      val query = QueryBuilders.functionScoreQuery(QueryBuilders.matchAllQuery, boostFunctions.toArray)
+      val actual = JsonReader.fromString(query.toString)
 
-      val beforeJson = JsonReader.fromString(query.toString)
-      Boosts.applyDomainBoosts(query, domainBoosts)
-      val afterJson = JsonReader.fromString(query.toString)
+      val expected = j"""
+      {
+          "function_score": {
+              "functions": [],
+              "score_mode": "multiply",
+              "max_boost": 3.4028235E+38,
+              "boost": 1.0,
+              "query": {"match_all": {"boost": 1.0}}
+          }
+      }
+      """
 
-      afterJson should be(beforeJson)
+      actual should be(expected)
     }
   }
 }

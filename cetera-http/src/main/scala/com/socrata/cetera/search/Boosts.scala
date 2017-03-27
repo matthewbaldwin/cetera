@@ -1,46 +1,43 @@
 package com.socrata.cetera.search
 
-import org.elasticsearch.index.query.functionscore.{FunctionScoreQueryBuilder, ScoreFunctionBuilders}
-import org.elasticsearch.index.query.{BoolQueryBuilder, FilterBuilders, QueryBuilders}
+import scala.collection.JavaConverters._
+
+import org.elasticsearch.script.{Script, ScriptType}
+import org.elasticsearch.index.query.functionscore._
+import FunctionScoreQueryBuilder.FilterFunctionBuilder
+import org.elasticsearch.index.query.QueryBuilders.termQuery
 import com.socrata.cetera.types.{
-  Datatype, Datatypes, DatatypeFieldType, ScriptScoreFunction, SocrataIdDomainIdFieldType}
+  Datatype, DatatypeFieldType, ScriptScoreFunction, SocrataIdDomainIdFieldType}
 
 object Boosts {
-  def applyDatatypeBoosts(
-      query: FunctionScoreQueryBuilder,
+  def datatypeBoostFunctions(
       datatypeBoosts: Map[Datatype, Float])
-    : Unit = {
-
-    datatypeBoosts.foreach {
+    : List[FilterFunctionBuilder] =
+    datatypeBoosts.map {
       case (datatype, boost) =>
-        query.add(
-          FilterBuilders.termFilter(DatatypeFieldType.fieldName, datatype.singular),
+        new FilterFunctionBuilder(
+          termQuery(DatatypeFieldType.fieldName, datatype.singular),
           ScoreFunctionBuilders.weightFactorFunction(boost)
         )
-    }
-  }
+    }.toList
 
-  def applyScoreFunctions(
-      query: FunctionScoreQueryBuilder,
+  def scriptScoreFunctions(
       scriptScoreFunctions: Set[ScriptScoreFunction])
-    : Unit = {
+    : List[FilterFunctionBuilder] =
+    scriptScoreFunctions.map { fn =>
+      val script = new Script(
+        ScriptType.INLINE, "expression", fn.script, Map.empty[String, Object].asJava)
+      new FilterFunctionBuilder(ScoreFunctionBuilders.scriptFunction(script))
+    }.toList
 
-    scriptScoreFunctions.foreach { fn =>
-      query.add(ScoreFunctionBuilders.scriptFunction(fn.script, "expression"))
-    }
-  }
-
-  def applyDomainBoosts(
-      query: FunctionScoreQueryBuilder,
+  def domainBoostFunctions(
       domainIdBoosts: Map[Int, Float])
-    : Unit = {
-
-    domainIdBoosts.foreach {
+    : List[FilterFunctionBuilder] =
+    domainIdBoosts.map {
       case (domainId, weight) =>
-        query.add(
-          FilterBuilders.termFilter(SocrataIdDomainIdFieldType.fieldName, domainId),
+        new FilterFunctionBuilder(
+          termQuery(SocrataIdDomainIdFieldType.fieldName, domainId),
           ScoreFunctionBuilders.weightFactorFunction(weight)
         )
-    }
-  }
+    }.toList
 }

@@ -3,6 +3,8 @@ package com.socrata.cetera
 import java.io.File
 import scala.io.Source
 
+import org.elasticsearch.action.support.WriteRequest.RefreshPolicy
+
 import com.rojoma.json.v3.interpolation._
 import com.rojoma.json.v3.ast.{JString, JValue}
 import com.rojoma.json.v3.io.CompactJsonWriter
@@ -77,7 +79,7 @@ trait TestESData extends TestESDomains with TestESUsers {
       client.client.prepareIndex(testSuiteName, esDomainType)
         .setSource(JsonUtil.renderJson[Domain](d))
         .setId(d.domainId.toString)
-        .setRefresh(true)
+        .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
         .execute.actionGet
     }
 
@@ -86,7 +88,7 @@ trait TestESData extends TestESDomains with TestESUsers {
       client.client.prepareIndex(testSuiteName, esUserType)
         .setSource(JsonUtil.renderJson[EsUser](u))
         .setId(u.id)
-        .setRefresh(true)
+        .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
         .execute.actionGet
     }
 
@@ -96,7 +98,7 @@ trait TestESData extends TestESDomains with TestESUsers {
         .setId(d.socrataId.datasetId)
         .setParent(d.socrataId.domainId.toString)
         .setSource(JsonUtil.renderJson(d))
-        .setRefresh(true)
+        .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
         .execute.actionGet
     }
   }
