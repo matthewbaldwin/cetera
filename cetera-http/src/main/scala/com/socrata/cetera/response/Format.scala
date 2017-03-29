@@ -77,7 +77,7 @@ object Format {
     }
 
     val previewImageUrl = previewImageId.map(id => JString(s"https://$cname/views/$datasetId/files/$id"))
-    if (previewImageId.isEmpty) logger.info(s"Missing previewImageId field for document $datasetId")
+    if (previewImageId.isEmpty) logger.debug(s"Missing previewImageId field for document $datasetId")
 
     Map(
       "permalink" -> JString(s"https://$cnameWithLocale/$perma/$datasetId"),
