@@ -12,3 +12,4 @@ COPY cetera.conf.j2 /etc/
 COPY ship.d /etc/ship.d
 
 EXPOSE 5704
+EXPOSE 5705

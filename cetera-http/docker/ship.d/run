@@ -27,6 +27,13 @@ CMD="/usr/bin/java \
   -XX:+UseGCLogFileRotation \
   -XX:NumberOfGCLogFiles=3 \
   -XX:GCLogFileSize=50M \
+  -XX:+ExitOnOutOfMemoryError \
+  -XX:MaxMetaspaceSize=${JAVA_MAX_METASPACE} \
+  -Dcom.sun.management.jmxremote.port=${JMX_PORT} \
+  -Dcom.sun.management.jmxremote.rmi.port=${JMX_PORT} \
+  -Dcom.sun.management.jmxremote.ssl=false \
+  -Dcom.sun.management.jmxremote.authenticate=false \
+  -Djava.rmi.server.hostname=${ARK_HOST:-localhost} \
   -jar ${CETERA_ROOT}/${CETERA_ARTIFACT}
 "
 
