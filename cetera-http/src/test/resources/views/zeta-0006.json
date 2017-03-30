@@ -30,7 +30,6 @@
   },
   "datatype": "dataset",
   "viewtype": "",
-  "popularity": 0.0,
   "indexed_metadata": {
     "name": "",
     "description": "",
@@ -51,7 +50,6 @@
   "is_public": true,
   "is_published": false,
   "is_default_view": true,
-  "is_moderation_approved": null,
   "moderation_status": null,
   "approving_domain_ids": [
   ],
@@ -70,12 +68,7 @@
   "customer_category": "Unpublished",
   "customer_tags": [
   ],
-  "update_freq": 0,
   "owner_id": "cook-mons",
-  "owner": {
-    "id": "cook-mons",
-    "screen_name": "Cookie monster"
-  },
   "shared_to": [
     "Little John"
   ],

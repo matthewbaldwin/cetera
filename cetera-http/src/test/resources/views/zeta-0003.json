@@ -31,7 +31,6 @@
   },
   "datatype": "dataset",
   "viewtype": "",
-  "popularity": 0.0,
   "indexed_metadata": {
     "name": "",
     "description": "",
@@ -47,7 +46,6 @@
   "is_public": false,
   "is_published": true,
   "is_default_view": true,
-  "is_moderation_approved": null,
   "moderation_status": null,
   "approving_domain_ids": [
   ],
@@ -67,12 +65,7 @@
   "customer_category": "Private",
   "customer_tags": [
   ],
-  "update_freq": 0,
   "owner_id": "robin-hood",
-  "owner": {
-    "id": "robin-hood",
-    "screen_name": "Robin Hood"
-  },
   "shared_to": [
     "Little John"
   ],

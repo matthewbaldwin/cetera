@@ -6,7 +6,6 @@
   "shared_to": [
     "ti9x-irmy"
   ],
-  "popularity": 0.0,
   "socrata_id": {
     "parent_dataset_id": "7v22-4z3a",
     "dataset_id": "94sr-dmsy",
@@ -15,7 +14,6 @@
     "domain_id": 0
   },
   "indexed_at": "2016-06-03T19:13:22.238Z",
-  "update_freq": 1.0,
   "viewtype": "pie",
   "indexed_metadata": {
     "columns_name": [

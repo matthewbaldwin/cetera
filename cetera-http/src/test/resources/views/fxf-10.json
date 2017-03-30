@@ -44,7 +44,6 @@
   },
   "datatype": "story",
   "viewtype": "",
-  "popularity": 1.0,
   "indexed_metadata": {
     "name": "Three",
     "description": "Bird is the third word",
@@ -65,7 +64,6 @@
   "is_public": true,
   "is_published": true,
   "is_default_view": true,
-  "is_moderation_approved": false,
   "moderation_status": "",
   "approving_domain_ids": [
     2, 3
@@ -87,12 +85,7 @@
     "1-one",
     "2-two"
   ],
-  "update_freq": 3,
   "owner_id": "robin-hood",
-  "owner": {
-    "id": "robin-hood",
-    "screen_name": "Robin Hood"
-  },
   "shared_to": [],
   "attribution": null,
   "preview_image_id": null,

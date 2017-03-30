@@ -30,7 +30,6 @@
   },
   "datatype": "filter",
   "viewtype": "",
-  "popularity": 0.0,
   "indexed_metadata": {
     "name": "",
     "description": "",
@@ -46,7 +45,6 @@
   "is_public": true,
   "is_published": true,
   "is_default_view": false,
-  "is_moderation_approved": null,
   "moderation_status": null,
   "approving_domain_ids": [
     2, 3
@@ -66,12 +64,7 @@
   "customer_category": "Fun",
   "customer_tags": [
   ],
-  "update_freq": 0,
   "owner_id": "john-clan",
-  "owner": {
-    "id": "john-clan",
-    "screen_name": "John McClane"
-  },
   "shared_to": [],
   "attribution": null,
   "preview_image_id": null,

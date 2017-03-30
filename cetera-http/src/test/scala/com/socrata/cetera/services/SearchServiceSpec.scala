@@ -382,8 +382,6 @@ class SearchServiceSpec extends FunSuiteLike
   ignore("es client - script score functions") {}
   ignore("es client - query with no filters, maybe?") {}
   ignore("es client - sort field asc/desc") {}
-  ignore("popularity") {}
-  ignore("update frequency") {}
   ignore("domain cname unexpected json value") {}
   ignore("query parameter parser - errors") {}
 }

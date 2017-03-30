@@ -30,7 +30,6 @@
   },
   "datatype": "datalens_chart",
   "viewtype": "",
-  "popularity": 0.0,
   "indexed_metadata": {
     "name": "",
     "description": "",
@@ -51,7 +50,6 @@
   "is_public": true,
   "is_published": true,
   "is_default_view": false,
-  "is_moderation_approved": null,
   "moderation_status": "pending",
   "approving_domain_ids": [
   ],
@@ -71,12 +69,7 @@
   "customer_category": "Standalone",
   "customer_tags": [
   ],
-  "update_freq": 0,
   "owner_id": "lil-john",
-  "owner": {
-    "id": "lil-john",
-    "screen_name": "Little John"
-  },
   "shared_to": [
     "cook-mons", "maid-marian"
   ],

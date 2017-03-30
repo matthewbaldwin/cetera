@@ -30,7 +30,6 @@
   },
   "datatype": "href",
   "viewtype": "",
-  "popularity": 0.0,
   "indexed_metadata": {
     "name": "",
     "description": "",
@@ -51,7 +50,6 @@
   "is_public": true,
   "is_published": true,
   "is_default_view": false,
-  "is_moderation_approved": true,
   "moderation_status": "approved",
   "approving_domain_ids": [
     3
@@ -71,12 +69,7 @@
   "customer_category": "Fun",
   "customer_tags": [
   ],
-  "update_freq": 0,
   "owner_id": "prince-john",
-  "owner": {
-    "id": "prince-john",
-    "screen_name": "Phony King of England"
-  },
   "shared_to": [],
   "attribution": "nottingham",
   "preview_image_id": null,

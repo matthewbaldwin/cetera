@@ -30,7 +30,6 @@
   },
   "datatype": "chart",
   "viewtype": "",
-  "popularity": 0.0,
   "indexed_metadata": {
     "name": "",
     "description": "",
@@ -46,7 +45,6 @@
   "is_public": true,
   "is_published": true,
   "is_default_view": false,
-  "is_moderation_approved": false,
   "moderation_status": "pending",
   "approving_domain_ids": [
     3
@@ -68,12 +66,7 @@
     "fake",
     "king"
   ],
-  "update_freq": 0,
   "owner_id": "prince-john",
-  "owner": {
-    "id": "prince-john",
-    "screen_name": "Phony King of England"
-  },
   "shared_to": [ "lil-john" ],
   "attribution": null,
   "preview_image_id": null,

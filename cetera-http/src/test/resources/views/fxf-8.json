@@ -44,7 +44,6 @@
   },
   "datatype": "href",
   "viewtype": "",
-  "popularity": 0.1,
   "indexed_metadata": {
     "name": "One",
     "description": "We're number one",
@@ -78,7 +77,6 @@
   "is_public": true,
   "is_published": true,
   "is_default_view": true,
-  "is_moderation_approved": null,
   "moderation_status": null,
   "approving_domain_ids": [
   ],
@@ -99,12 +97,7 @@
   "customer_tags": [
     "1-one"
   ],
-  "update_freq": 1,
   "owner_id": "robin-hood",
-  "owner": {
-    "id": "robin-hood",
-    "screen_name": "Robin Hood"
-  },
   "shared_to": [],
   "attribution": null,
   "preview_image_id": null,

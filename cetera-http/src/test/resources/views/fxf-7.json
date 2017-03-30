@@ -44,7 +44,6 @@
   },
   "datatype": "map",
   "viewtype": "",
-  "popularity": 42.0,
   "indexed_metadata": {
     "name": "Four",
     "description": "May the fourth be with you",
@@ -60,7 +59,6 @@
   "is_public": true,
   "is_published": true,
   "is_default_view": false,
-  "is_moderation_approved": null,
   "moderation_status": "pending",
   "approving_domain_ids": [
   ],
@@ -82,12 +80,7 @@
     "1-one",
     "2-two"
   ],
-  "update_freq": 4,
   "owner_id": "prince-john",
-  "owner": {
-    "id": "prince-john",
-    "screen_name": "Phony King of England"
-  },
   "shared_to": [],
   "attribution": null,
   "preview_image_id": null,

@@ -44,7 +44,6 @@
   },
   "datatype": "pulse",
   "viewtype": "",
-  "popularity": 0.42,
   "indexed_metadata": {
     "name": "Two",
     "description": "Second the best",
@@ -70,7 +69,6 @@
   "is_public": true,
   "is_published": true,
   "is_default_view": false,
-  "is_moderation_approved": null,
   "moderation_status": "pending",
   "approving_domain_ids": [
   ],
@@ -93,12 +91,7 @@
     "3-three",
     "4-four"
   ],
-  "update_freq": 2,
   "owner_id": "maid-marian",
-  "owner": {
-    "id": "maid-marian",
-    "screen_name": "Maid Marian"
-  },
   "shared_to": [
     "friar-tuck"
   ],

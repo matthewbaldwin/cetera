@@ -30,7 +30,6 @@
   },
   "datatype": "datalens",
   "viewtype": "",
-  "popularity": 0.0,
   "indexed_metadata": {
     "name": "",
     "description": "",
@@ -46,7 +45,6 @@
   "is_public": true,
   "is_published": true,
   "is_default_view": false,
-  "is_moderation_approved": true,
   "moderation_status": "approved",
   "approving_domain_ids": [
   ],
@@ -68,12 +66,7 @@
     "fake",
     "king"
   ],
-  "update_freq": 0,
   "owner_id": "prince-john",
-  "owner": {
-    "id": "prince-john",
-    "screen_name": "Prince John"
-  },
   "shared_to": [ "lil-john" ],
   "attribution": null,
   "preview_image_id": null,
