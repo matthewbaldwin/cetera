@@ -66,7 +66,7 @@ class SearchServiceJettySpec extends FunSuiteLike with Matchers with MockFactory
       .returns((DomainSet(), 123L))
 
     mockDocumentClient.expects('buildSearchRequest)(
-      DomainSet(), SearchParamSet(), ScoringParamSet(), PagingParamSet(), authedUser, false)
+      DomainSet(), SearchParamSet(), ScoringParamSet(), PagingParamSet(), authedUser)
       .returns(new SearchRequestBuilder(client.client, SearchAction.INSTANCE))
 
     val servReq = mock[HttpServletRequest]
@@ -97,6 +97,6 @@ class SearchServiceJettySpec extends FunSuiteLike with Matchers with MockFactory
     httpResponse.expects('getHeaders)("Set-Cookie").anyNumberOfTimes.returns(expectedSetCookie.asJava)
     httpResponse.expects('getOutputStream)().returns(new DelegatingServletOutputStream(outStream))
 
-    service.search(false)(httpReq)(httpResponse)
+    service.search(httpReq)(httpResponse)
   }
 }

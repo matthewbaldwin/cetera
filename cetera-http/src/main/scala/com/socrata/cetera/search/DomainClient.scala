@@ -28,8 +28,7 @@ trait BaseDomainClient {
   def buildCountRequest(
       domainSet: DomainSet,
       searchParams: SearchParamSet,
-      user: Option[User],
-      requireAuth: Boolean)
+      user: Option[User])
   : SearchRequestBuilder
 }
 
@@ -203,14 +202,12 @@ class DomainClient(esClient: ElasticSearchClient, coreClient: CoreClient, indexA
   def buildCountRequest(
       domainSet: DomainSet,
       searchParams: SearchParamSet,
-      user: Option[User],
-      requireAuth: Boolean)
+      user: Option[User])
     : SearchRequestBuilder = {
     val domainQuery = idQuery(domainSet.domains.map(_.domainId))
     // NOTE: this limits the selection set based on facet constraints, but pays no attention to the
     // 'q' parameter
-    val docQuery = DocumentQuery(forDomainSearch = true).compositeQuery(
-      domainSet, searchParams, user, requireAuth)
+    val docQuery = DocumentQuery(forDomainSearch = true).compositeQuery(domainSet, searchParams, user)
 
     esClient.client.prepareSearch(indexAliasName)
       .setTypes(esDomainType)

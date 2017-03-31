@@ -25,7 +25,7 @@ class SearchServiceSpecForAdminsAndTheLike
     httpClient.close()
   }
 
-  test("searching across all domains when auth is required with an administrator/publisher/designer/viewer" +
+  test("searching across all domains with an administrator/publisher/designer/viewer" +
     "a) everything from their domain" +
     "b) anonymously visible views from unlocked domains" +
     "c) views they own/share") {
@@ -40,22 +40,22 @@ class SearchServiceSpecForAdminsAndTheLike
     val host = raDisabledDomain.domainCname
     val adminBody = authedUserBodyFromRole("administrator")
     prepareAuthenticatedUser(cookie, host, adminBody)
-    val adminRes = service.doSearch(allDomainsParams, requireAuth = true, AuthParams(cookie = Some(cookie)), Some(host), None)
+    val adminRes = service.doSearch(allDomainsParams, AuthParams(cookie = Some(cookie)), Some(host), None)
     fxfs(adminRes._2) should contain theSameElementsAs expectedFxfs
 
     val publisherBody = authedUserBodyFromRole("publisher")
     prepareAuthenticatedUser(cookie, host, publisherBody)
-    val publisherRes = service.doSearch(allDomainsParams, requireAuth = true, AuthParams(cookie = Some(cookie)), Some(host), None)
+    val publisherRes = service.doSearch(allDomainsParams, AuthParams(cookie = Some(cookie)), Some(host), None)
     fxfs(publisherRes._2) should contain theSameElementsAs expectedFxfs
 
     val designerBody = authedUserBodyFromRole("designer")
     prepareAuthenticatedUser(cookie, host, designerBody)
-    val designerRes = service.doSearch(allDomainsParams, requireAuth = true, AuthParams(cookie = Some(cookie)), Some(host), None)
+    val designerRes = service.doSearch(allDomainsParams, AuthParams(cookie = Some(cookie)), Some(host), None)
     fxfs(designerRes._2) should contain theSameElementsAs expectedFxfs
 
     val viewerBody = authedUserBodyFromRole("viewer")
     prepareAuthenticatedUser(cookie, host, viewerBody)
-    val viewerRes = service.doSearch(allDomainsParams, requireAuth = true, AuthParams(cookie = Some(cookie)), Some(host), None)
+    val viewerRes = service.doSearch(allDomainsParams, AuthParams(cookie = Some(cookie)), Some(host), None)
     fxfs(viewerRes._2) should contain theSameElementsAs expectedFxfs
   }
 
@@ -69,17 +69,17 @@ class SearchServiceSpecForAdminsAndTheLike
 
     val adminBody = authedUserBodyFromRole("administrator")
     prepareAuthenticatedUser(cookie, lockedDomain, adminBody)
-    val adminRes = service.doSearch(params, false, AuthParams(cookie = Some(cookie)), Some(lockedDomain), None)._2
+    val adminRes = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(lockedDomain), None)._2
     fxfs(adminRes) should contain theSameElementsAs expectedFxfs
 
     val publisherBody = authedUserBodyFromRole("publisher")
     prepareAuthenticatedUser(cookie, lockedDomain, publisherBody)
-    val publisherRes = service.doSearch(params, false, AuthParams(cookie = Some(cookie)), Some(lockedDomain), None)._2
+    val publisherRes = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(lockedDomain), None)._2
     fxfs(publisherRes) should contain theSameElementsAs expectedFxfs
 
     val viewerBody = authedUserBodyFromRole("viewer")
     prepareAuthenticatedUser(cookie, lockedDomain, viewerBody)
-    val viewerRes = service.doSearch(params, false, AuthParams(cookie = Some(cookie)), Some(lockedDomain), None)._2
+    val viewerRes = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(lockedDomain), None)._2
     fxfs(viewerRes) should contain theSameElementsAs expectedFxfs
   }
 
@@ -92,7 +92,7 @@ class SearchServiceSpecForAdminsAndTheLike
 
     val designerBody = authedUserBodyFromRole("designer")
     prepareAuthenticatedUser(cookie, lockedDomain, designerBody)
-    val res = service.doSearch(params, false, AuthParams(cookie = Some(cookie)), Some(lockedDomain), None)._2
+    val res = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(lockedDomain), None)._2
     fxfs(res) should be('empty)
   }
 
@@ -109,7 +109,7 @@ class SearchServiceSpecForAdminsAndTheLike
     val anonymouslyViewable = anonymouslyViewableDocIds.toSet
     val expectedFxfs = ownedByRobin & (onDomain0 ++ anonymouslyViewable)
 
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie = Some(cookie)), Some(authenticatingDomain), None)
+    val res = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(authenticatingDomain), None)
 
     // confirm that robin has documents on other domains that are being excluded
     expectedFxfs.size < ownedByRobin.size should be(true)
@@ -124,7 +124,7 @@ class SearchServiceSpecForAdminsAndTheLike
 
     val (_, res, _, _) = service.doSearch(Map(
       Params.ids -> hiddenDoc.socrataId.datasetId
-    ).mapValues(Seq(_)), true, AuthParams(cookie = Some(cookie)), Some(host), None)
+    ).mapValues(Seq(_)), AuthParams(cookie = Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res)
     actualFxfs(0) should be(hiddenDoc.socrataId.datasetId)
   }
@@ -142,11 +142,11 @@ class SearchServiceSpecForAdminsAndTheLike
 
     val params = Map("search_context" -> Seq(context), "domains" -> Seq(doms))
     val actualApprovedFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("approved")),
-      requireAuth = true, AuthParams(cookie=Some(cookie)), Some(context), None)._2)
+      AuthParams(cookie=Some(cookie)), Some(context), None)._2)
     val actualRejectedFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("rejected")),
-      requireAuth = true, AuthParams(cookie=Some(cookie)), Some(context), None)._2)
+      AuthParams(cookie=Some(cookie)), Some(context), None)._2)
     val actualPendingFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("pending")),
-      requireAuth = true, AuthParams(cookie=Some(cookie)), Some(context), None)._2)
+      AuthParams(cookie=Some(cookie)), Some(context), None)._2)
 
     actualApprovedFxfs should contain theSameElementsAs expectedApprovedFxfs
     actualRejectedFxfs should contain theSameElementsAs expectedRejectedFxfs
@@ -389,13 +389,13 @@ class SearchServiceSpecForAdminsAndTheLike
   test("searching with the 'q' param finds all items from the authenticating domain where q matches the private metadata") {
     val host = domains(0).domainCname
     val privateValue = "Pumas Inc."
-    val expectedFxfs = fxfs(anonymouslyViewableDocs.filter(d =>
+    val expectedFxfs = fxfs(docs.filter(d =>
       d.privateCustomerMetadataFlattened.exists(m => m.value == privateValue &&
       d.socrataId.domainId == 0)))
     val userBody = authedUserBodyFromRole("publisher")
     prepareAuthenticatedUser(cookie, host, userBody)
     val params = allDomainsParams ++ Map("q" -> privateValue, "min_should_match" -> "100%").mapValues(Seq(_))
-    val res = service.doSearch(params, requireAuth = false, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
     actualFxfs should contain theSameElementsAs expectedFxfs
 
@@ -409,13 +409,13 @@ class SearchServiceSpecForAdminsAndTheLike
     val host = domains(0).domainCname
     val privateKey = "Secret domain 0 cat organization"
     val privateValue = "Pumas Inc."
-    val expectedFxfs = fxfs(anonymouslyViewableDocs.filter(d =>
+    val expectedFxfs = fxfs(docs.filter(d =>
       d.privateCustomerMetadataFlattened.exists(m => m.value == privateValue &&
       d.socrataId.domainId == 0)))
     val userBody = authedUserBodyFromRole("publisher")
     prepareAuthenticatedUser(cookie, host, userBody)
     val params = allDomainsParams ++ Map(privateKey -> Seq(privateValue))
-    val res = service.doSearch(params, requireAuth = false, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
     actualFxfs should contain theSameElementsAs expectedFxfs
 

@@ -139,7 +139,7 @@ trait TestESData extends TestESDomains with TestESUsers {
     val authedUserBody = j"""{"id" : "who-am-i", "flags" : [ "admin" ]}"""
     val adminCookie = "admin=super"
     prepareAuthenticatedUser(adminCookie, host, authedUserBody)
-    service.doSearch(allDomainsParams, requireAuth = true, AuthParams(cookie=Some(adminCookie)), Some(host), None)._2.results
+    service.doSearch(allDomainsParams, AuthParams(cookie=Some(adminCookie)), Some(host), None)._2.results
   }
 
   def fxfs(searchResult: SearchResult): String =

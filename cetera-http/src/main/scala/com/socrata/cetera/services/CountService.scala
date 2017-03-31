@@ -73,8 +73,7 @@ class CountService(
     )
     val authedUser = authorizedUser.map(u => u.copy(authenticatingDomain = domainSet.extendedHost))
 
-    val search = documentClient.buildCountRequest(
-      field, domainSet, searchParams, pagingParams, authedUser, requireAuth = false)
+    val search = documentClient.buildCountRequest(field, domainSet, searchParams, pagingParams, authedUser)
     logger.info(LogHelper.formatEsRequest(search))
 
     val res = search.execute.actionGet

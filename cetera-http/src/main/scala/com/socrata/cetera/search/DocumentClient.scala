@@ -3,17 +3,15 @@ package com.socrata.cetera.search
 import scala.language.existentials
 
 import org.elasticsearch.action.search.SearchRequestBuilder
-import org.elasticsearch.index.query.QueryBuilders
 import org.elasticsearch.search.aggregations.AggregationBuilders
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder
 import org.elasticsearch.search.fetch.subphase.highlight.SearchContextHighlight.FieldOptions
 
 import com.socrata.cetera.auth.User
+import com.socrata.cetera.errors.MissingRequiredParameterError
 import com.socrata.cetera.esDocumentType
 import com.socrata.cetera.handlers.{PagingParamSet, ScoringParamSet, SearchParamSet}
-import com.socrata.cetera.errors.MissingRequiredParameterError
 import com.socrata.cetera.search.DocumentAggregations.chooseAggregation
-
 import com.socrata.cetera.types._
 
 trait BaseDocumentClient {
@@ -22,8 +20,7 @@ trait BaseDocumentClient {
       searchParams: SearchParamSet,
       scoringParams: ScoringParamSet,
       pagingParams: PagingParamSet,
-      user: Option[User],
-      requireAuth: Boolean)
+      user: Option[User])
     : SearchRequestBuilder
 
   def buildAutocompleteSearchRequest(
@@ -31,8 +28,7 @@ trait BaseDocumentClient {
       searchParams: SearchParamSet,
       scoringParams: ScoringParamSet,
       pagingParams: PagingParamSet,
-      user: Option[User],
-      requireAuth: Boolean)
+      user: Option[User])
     : SearchRequestBuilder
 
   def buildCountRequest(
@@ -40,16 +36,14 @@ trait BaseDocumentClient {
       domainSet: DomainSet,
       searchParams: SearchParamSet,
       pagingParams: PagingParamSet,
-      user: Option[User],
-      requireAuth: Boolean)
+      user: Option[User])
     : SearchRequestBuilder
 
   def buildFacetRequest(
       domainSet: DomainSet,
       searchParams: SearchParamSet,
       pagingParams: PagingParamSet,
-      user: Option[User],
-      requireAuth: Boolean)
+      user: Option[User])
     : SearchRequestBuilder
 }
 
@@ -83,8 +77,7 @@ class DocumentClient(
       domainSet: DomainSet,
       searchParams: SearchParamSet,
       scoringParams: ScoringParamSet,
-      user: Option[User],
-      requireAuth: Boolean)
+      user: Option[User])
     : SearchRequestBuilder = {
 
     // Construct basic match query
@@ -93,7 +86,7 @@ class DocumentClient(
 
     // Wrap basic match query in filtered query for filtering
     val filteredQuery = DocumentQuery().compositeFilteredQuery(
-      domainSet, searchParams, matchQuery, user, requireAuth)
+      domainSet, searchParams, matchQuery, user)
 
     // Wrap filtered query in function score query for boosting
     val query = DocumentQuery().scoringQuery(
@@ -112,8 +105,7 @@ class DocumentClient(
       searchParams: SearchParamSet,
       scoringParams: ScoringParamSet,
       pagingParams: PagingParamSet,
-      user: Option[User],
-      requireAuth: Boolean)
+      user: Option[User])
     : SearchRequestBuilder = {
     // Construct basic match query against title autocomplete field
     val matchQuery = searchParams.searchQuery match {
@@ -122,7 +114,7 @@ class DocumentClient(
     }
 
     val filteredQuery = DocumentQuery().compositeFilteredQuery(
-      domainSet, searchParams, matchQuery, user, requireAuth)
+      domainSet, searchParams, matchQuery, user)
 
     // Wrap filtered query in function score query for boosting
     val query = DocumentQuery().scoringQuery(
@@ -152,11 +144,10 @@ class DocumentClient(
       searchParams: SearchParamSet,
       scoringParams: ScoringParamSet,
       pagingParams: PagingParamSet,
-      user: Option[User],
-      requireAuth: Boolean)
+      user: Option[User])
     : SearchRequestBuilder = {
 
-    val baseRequest = buildBaseRequest(domainSet, searchParams, scoringParams, user, requireAuth)
+    val baseRequest = buildBaseRequest(domainSet, searchParams, scoringParams, user)
 
     // WARN: Sort will totally blow away score if score isn't part of the sort
     // "Relevance" without a query can mean different things, so chooseSort decides
@@ -178,13 +169,12 @@ class DocumentClient(
       domainSet: DomainSet,
       searchParams: SearchParamSet,
       pagingParams: PagingParamSet,
-      user: Option[User],
-      requireAuth: Boolean)
+      user: Option[User])
     : SearchRequestBuilder = {
 
     val aggregation = chooseAggregation(field, pagingParams.limit)
 
-    val baseRequest = buildBaseRequest(domainSet, searchParams, ScoringParamSet(), user, requireAuth)
+    val baseRequest = buildBaseRequest(domainSet, searchParams, ScoringParamSet(), user)
 
     baseRequest
       .addAggregation(aggregation)
@@ -195,8 +185,7 @@ class DocumentClient(
       domainSet: DomainSet,
       searchParams: SearchParamSet,
       pagingParams: PagingParamSet,
-      user: Option[User],
-      requireAuth: Boolean)
+      user: Option[User])
     : SearchRequestBuilder = {
     val datatypeAgg = AggregationBuilders
       .terms("datatypes")
@@ -222,7 +211,7 @@ class DocumentClient(
           .field(DomainMetadataFieldType.Value.rawFieldName)
           .size(pagingParams.limit)))
 
-    val baseRequest = buildBaseRequest(domainSet, searchParams, ScoringParamSet(), user, requireAuth)
+    val baseRequest = buildBaseRequest(domainSet, searchParams, ScoringParamSet(), user)
 
     baseRequest
       .addAggregation(datatypeAgg)

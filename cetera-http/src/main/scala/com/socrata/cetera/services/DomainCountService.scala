@@ -42,36 +42,36 @@ class DomainCountService(domainClient: BaseDomainClient, coreClient: CoreClient)
  private def format(counts: Seq[JValue]): SearchResults[Count] =
     SearchResults(counts.map { c => Count(c.dyn.key.!, c.dyn.documents.filtered.doc_count.!) }, counts.size)
 
-  def doAggregate(
-      queryParameters: MultiQueryParams,
-      authParams: AuthParams,
-      extendedHost: Option[String],
-      requestId: Option[String])
-    : (StatusResponse, SearchResults[Count], InternalTimings, Seq[String]) = {
+ def doAggregate(
+     queryParameters: MultiQueryParams,
+     authParams: AuthParams,
+     extendedHost: Option[String],
+     requestId: Option[String])
+   : (StatusResponse, SearchResults[Count], InternalTimings, Seq[String]) = {
 
-    val now = Timings.now()
-    val (authorizedUser, setCookies) = coreClient.optionallyAuthenticateUser(extendedHost, authParams, requestId)
-    val searchParams = QueryParametersParser(queryParameters).searchParamSet
-    val (domainSet, domainSearchTime) = domainClient.findSearchableDomains(
-      searchParams.searchContext, extendedHost, searchParams.domains,
-      excludeLockedDomains = true, authorizedUser, requestId
-    )
-    val authedUser = authorizedUser.map(u => u.copy(authenticatingDomain = domainSet.extendedHost))
+   val now = Timings.now()
+   val (authorizedUser, setCookies) = coreClient.optionallyAuthenticateUser(extendedHost, authParams, requestId)
+   val searchParams = QueryParametersParser(queryParameters).searchParamSet
+   val (domainSet, domainSearchTime) = domainClient.findSearchableDomains(
+     searchParams.searchContext, extendedHost, searchParams.domains,
+     excludeLockedDomains = true, authorizedUser, requestId
+   )
+   val authedUser = authorizedUser.map(u => u.copy(authenticatingDomain = domainSet.extendedHost))
 
-    val search = domainClient.buildCountRequest(domainSet, searchParams, authedUser, false)
-    logger.info(LogHelper.formatEsRequest(search))
-    val res = search.execute.actionGet
-    val timings = InternalTimings(Timings.elapsedInMillis(now), Seq(domainSearchTime, res.getTookInMillis))
-    val json = JsonReader.fromString(res.toString)
-    val counts = extract(json) match {
-      case Right(extracted) => extracted
-      case Left(error) =>
-        logger.error(error.english)
-        throw new JsonDecodeException(error)
-    }
-    val formattedResults: SearchResults[Count] = format(counts).copy(timings = Some(timings))
-    (OK, formattedResults, timings, setCookies)
-  }
+   val search = domainClient.buildCountRequest(domainSet, searchParams, authedUser)
+   logger.info(LogHelper.formatEsRequest(search))
+   val res = search.execute.actionGet
+   val timings = InternalTimings(Timings.elapsedInMillis(now), Seq(domainSearchTime, res.getTookInMillis))
+   val json = JsonReader.fromString(res.toString)
+   val counts = extract(json) match {
+     case Right(extracted) => extracted
+     case Left(error) =>
+       logger.error(error.english)
+       throw new JsonDecodeException(error)
+   }
+   val formattedResults: SearchResults[Count] = format(counts).copy(timings = Some(timings))
+   (OK, formattedResults, timings, setCookies)
+ }
 
   // $COVERAGE-OFF$ jetty wiring
   def aggregate()(req: HttpRequest): HttpResponse = {

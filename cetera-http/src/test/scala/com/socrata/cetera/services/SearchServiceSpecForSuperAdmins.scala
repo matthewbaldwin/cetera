@@ -24,12 +24,12 @@ class SearchServiceSpecForSuperAdmins
     httpClient.close()
   }
 
-  test("searching across all domains when auth is required with a super admin shows everything from every domain") {
+  test("searching across all domains with a super admin shows everything from every domain") {
     val expectedFxfs = fxfs(docs)
 
     val host = "annabelle.island.net"
     prepareAuthenticatedUser(cookie, host, superAdminBody)
-    val res = service.doSearch(allDomainsParams, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val res = service.doSearch(allDomainsParams, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
 
     actualFxfs should contain theSameElementsAs expectedFxfs
@@ -43,7 +43,7 @@ class SearchServiceSpecForSuperAdmins
     ).mapValues(Seq(_))
     val expectedFxfs = fxfs(docs.filter(d => d.socrataId.domainId == 8))
     prepareAuthenticatedUser(cookie, lockedDomain, superAdminBody)
-    val adminRes = service.doSearch(params, false, AuthParams(cookie = Some(cookie)), Some(lockedDomain), None)._2
+    val adminRes = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(lockedDomain), None)._2
     fxfs(adminRes) should contain theSameElementsAs expectedFxfs
   }
 
@@ -53,7 +53,7 @@ class SearchServiceSpecForSuperAdmins
     val host = "annabelle.island.net"
     prepareAuthenticatedUser(cookie, host, superAdminBody)
     val params = allDomainsParams ++ Map("public" -> Seq("true"))
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
 
     actualFxfs should contain theSameElementsAs expectedFxfs
@@ -65,7 +65,7 @@ class SearchServiceSpecForSuperAdmins
     val host = "annabelle.island.net"
     prepareAuthenticatedUser(cookie, host, superAdminBody)
     val params = allDomainsParams ++ Map("public" -> Seq("false"))
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
 
     actualFxfs should contain theSameElementsAs expectedFxfs
@@ -77,7 +77,7 @@ class SearchServiceSpecForSuperAdmins
     val host = "annabelle.island.net"
     prepareAuthenticatedUser(cookie, host, superAdminBody)
     val params = allDomainsParams ++ Map("published" -> Seq("true"))
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
 
     actualFxfs should contain theSameElementsAs expectedFxfs
@@ -89,7 +89,7 @@ class SearchServiceSpecForSuperAdmins
     val host = "annabelle.island.net"
     prepareAuthenticatedUser(cookie, host, superAdminBody)
     val params = allDomainsParams ++ Map("published" -> Seq("false"))
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
 
     actualFxfs should contain theSameElementsAs expectedFxfs
@@ -101,7 +101,7 @@ class SearchServiceSpecForSuperAdmins
     val host = "annabelle.island.net"
     prepareAuthenticatedUser(cookie, host, superAdminBody)
     val params = allDomainsParams ++ Map("derived" -> Seq("true"))
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
 
     actualFxfs should contain theSameElementsAs expectedFxfs
@@ -113,7 +113,7 @@ class SearchServiceSpecForSuperAdmins
     val host = "annabelle.island.net"
     prepareAuthenticatedUser(cookie, host, superAdminBody)
     val params = allDomainsParams ++ Map("derived" -> Seq("false"))
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
 
     actualFxfs should contain theSameElementsAs expectedFxfs
@@ -125,7 +125,7 @@ class SearchServiceSpecForSuperAdmins
     val host = "annabelle.island.net"
     prepareAuthenticatedUser(cookie, host, superAdminBody)
     val params = allDomainsParams ++ Map("explicitly_hidden" -> Seq("true"))
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
 
     actualFxfs should contain theSameElementsAs expectedFxfs
@@ -137,7 +137,7 @@ class SearchServiceSpecForSuperAdmins
     val host = "annabelle.island.net"
     prepareAuthenticatedUser(cookie, host, superAdminBody)
     val params = allDomainsParams ++ Map("explicitly_hidden" -> Seq("false"))
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
 
     actualFxfs should contain theSameElementsAs expectedFxfs
@@ -150,7 +150,7 @@ class SearchServiceSpecForSuperAdmins
     val host = "annabelle.island.net"
     prepareAuthenticatedUser(cookie, host, superAdminBody)
     val params = allDomainsParams ++ Map("approval_status" -> Seq("approved"))
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -162,7 +162,7 @@ class SearchServiceSpecForSuperAdmins
 
     prepareAuthenticatedUser(cookie, basicDomain, superAdminBody)
     val params = allDomainsParams ++ Map("approval_status" -> Seq("approved"), "search_context" -> Seq(basicDomain))
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(basicDomain), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(basicDomain), None)
     val actualFxfs = fxfs(res._2)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -178,7 +178,7 @@ class SearchServiceSpecForSuperAdmins
     val host = domains(1).domainCname
     prepareAuthenticatedUser(cookie, host, superAdminBody)
     val params = allDomainsParams ++ Map("approval_status" -> Seq("approved"), "search_context" -> Seq(host))
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -191,7 +191,7 @@ class SearchServiceSpecForSuperAdmins
 
     prepareAuthenticatedUser(cookie, host.domainCname, superAdminBody)
     val params = allDomainsParams ++ Map("approval_status" -> Seq("approved"), "search_context" -> Seq(host.domainCname))
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(host.domainCname), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host.domainCname), None)
     val actualFxfs = fxfs(res._2)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -207,7 +207,7 @@ class SearchServiceSpecForSuperAdmins
 
     prepareAuthenticatedUser(cookie, host.domainCname, superAdminBody)
     val params = allDomainsParams ++ Map("approval_status" -> Seq("approved"), "search_context" -> Seq(host.domainCname))
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(host.domainCname), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host.domainCname), None)
     val actualFxfs = fxfs(res._2)
     actualFxfs should contain theSameElementsAs expectedFxfs
 
@@ -225,7 +225,7 @@ class SearchServiceSpecForSuperAdmins
     val host = "annabelle.island.net"
     prepareAuthenticatedUser(cookie, host, superAdminBody)
     val params = allDomainsParams ++ Map("approval_status" -> Seq("pending"))
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -238,7 +238,7 @@ class SearchServiceSpecForSuperAdmins
 
     prepareAuthenticatedUser(cookie, basicDomain, superAdminBody)
     val params = allDomainsParams ++ Map("approval_status" -> Seq("pending"), "search_context" -> Seq(basicDomain))
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(basicDomain), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(basicDomain), None)
     val actualFxfs = fxfs(res._2)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -253,7 +253,7 @@ class SearchServiceSpecForSuperAdmins
     val host = domains(1).domainCname
     prepareAuthenticatedUser(cookie, host, superAdminBody)
     val params = allDomainsParams ++ Map("approval_status" -> Seq("pending"), "search_context" -> Seq(host))
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -266,7 +266,7 @@ class SearchServiceSpecForSuperAdmins
 
     prepareAuthenticatedUser(cookie, host.domainCname, superAdminBody)
     val params = allDomainsParams ++ Map("approval_status" -> Seq("pending"), "search_context" -> Seq(host.domainCname))
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(host.domainCname), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host.domainCname), None)
     val actualFxfs = fxfs(res._2)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -282,7 +282,7 @@ class SearchServiceSpecForSuperAdmins
 
     prepareAuthenticatedUser(cookie, host.domainCname, superAdminBody)
     val params = allDomainsParams ++ Map("approval_status" -> Seq("pending"), "search_context" -> Seq(host.domainCname))
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(host.domainCname), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host.domainCname), None)
     val actualFxfs = fxfs(res._2)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -297,7 +297,7 @@ class SearchServiceSpecForSuperAdmins
     val host = "annabelle.island.net"
     prepareAuthenticatedUser(cookie, host, superAdminBody)
     val params = allDomainsParams ++ Map("approval_status" -> Seq("rejected"))
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -312,7 +312,7 @@ class SearchServiceSpecForSuperAdmins
 
     prepareAuthenticatedUser(cookie, basicDomain, superAdminBody)
     val params = allDomainsParams ++ Map("approval_status" -> Seq("rejected"), "search_context" -> Seq(basicDomain))
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(basicDomain), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(basicDomain), None)
     val actualFxfs = fxfs(res._2)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -328,7 +328,7 @@ class SearchServiceSpecForSuperAdmins
     val host = domains(1).domainCname
     prepareAuthenticatedUser(cookie, host, superAdminBody)
     val params = allDomainsParams ++ Map("approval_status" -> Seq("rejected"), "search_context" -> Seq(host))
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -340,7 +340,7 @@ class SearchServiceSpecForSuperAdmins
 
     prepareAuthenticatedUser(cookie, host.domainCname, superAdminBody)
     val params = allDomainsParams ++ Map("approval_status" -> Seq("rejected"), "search_context" -> Seq(host.domainCname))
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(host.domainCname), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host.domainCname), None)
     val actualFxfs = fxfs(res._2)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -356,7 +356,7 @@ class SearchServiceSpecForSuperAdmins
 
     prepareAuthenticatedUser(cookie, host.domainCname, superAdminBody)
     val params = allDomainsParams ++ Map("approval_status" -> Seq("rejected"), "search_context" -> Seq(host.domainCname))
-    val res = service.doSearch(params, requireAuth = true, AuthParams(cookie=Some(cookie)), Some(host.domainCname), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host.domainCname), None)
     val actualFxfs = fxfs(res._2)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -374,11 +374,11 @@ class SearchServiceSpecForSuperAdmins
 
     val params = Map("search_context" -> Seq(context), "domains" -> Seq(context))
     val actualApprovedFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("approved")),
-      requireAuth = true, AuthParams(cookie=Some(cookie)), Some(context), None)._2)
+      AuthParams(cookie=Some(cookie)), Some(context), None)._2)
     val actualRejectedFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("rejected")),
-      requireAuth = true, AuthParams(cookie=Some(cookie)), Some(context), None)._2)
+      AuthParams(cookie=Some(cookie)), Some(context), None)._2)
     val actualPendingFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("pending")),
-      requireAuth = true, AuthParams(cookie=Some(cookie)), Some(context), None)._2)
+      AuthParams(cookie=Some(cookie)), Some(context), None)._2)
 
     actualApprovedFxfs should contain theSameElementsAs expectedApprovedFxfs
     actualRejectedFxfs should contain theSameElementsAs expectedRejectedFxfs
@@ -388,10 +388,10 @@ class SearchServiceSpecForSuperAdmins
   test("searching with the 'q' param finds all items where q matches the private metadata") {
     val host = domains(0).domainCname
     val privateValue = "Cheetah Corp."
-    val expectedFxfs = fxfs(anonymouslyViewableDocs.filter(d => d.privateCustomerMetadataFlattened.exists(m => m.value == privateValue)))
+    val expectedFxfs = fxfs(docs.filter(d => d.privateCustomerMetadataFlattened.exists(m => m.value == privateValue)))
     prepareAuthenticatedUser(cookie, host, superAdminBody)
     val params = allDomainsParams ++ Map("q" -> Seq(privateValue))
-    val res = service.doSearch(params, requireAuth = false, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -400,11 +400,21 @@ class SearchServiceSpecForSuperAdmins
     val host = domains(0).domainCname
     val privateKey = "Secret domain 0 cat organization"
     val privateValue = "Pumas Inc."
-    val expectedFxfs = fxfs(anonymouslyViewableDocs.filter(d =>
+    val expectedFxfs = fxfs(docs.filter(d =>
       d.privateCustomerMetadataFlattened.exists(m => m.value == privateValue && m.key == privateKey)))
     prepareAuthenticatedUser(cookie, host, superAdminBody)
     val params = allDomainsParams ++ Map(privateKey -> Seq(privateValue))
-    val res = service.doSearch(params, requireAuth = false, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val actualFxfs = fxfs(res._2)
+    actualFxfs should contain theSameElementsAs expectedFxfs
+  }
+
+  test("searching with the 'shared_to' param works for super admins even if they are looking for data shared to others") {
+    val host = domains(3).domainCname
+    val expectedFxfs = fxfs(docs.filter(d => d.sharedTo.contains("lil-john")))
+    prepareAuthenticatedUser(cookie, host, superAdminBody)
+    val params = allDomainsParams ++ Map("shared_to" -> Seq("lil-john"))
+    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }

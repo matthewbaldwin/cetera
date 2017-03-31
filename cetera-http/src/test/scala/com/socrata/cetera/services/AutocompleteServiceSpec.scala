@@ -31,14 +31,14 @@ class AutocompleteServiceSpec
     intercept[MissingRequiredParameterError] {
       val basicDomain = domains(0).domainCname
       val params = Map("search_context" -> basicDomain, "domains" -> basicDomain).mapValues(Seq(_))
-      autocompleteService.doSearch(params, requireAuth = false, AuthParams(), None, None)._2
+      autocompleteService.doSearch(params, AuthParams(), None, None)._2
     }
   }
 
   test("an autocomplete search with mulitple terms works as expected") {
     val params = Map("q" -> "Multiword Title").mapValues(Seq(_))
     val SearchResults(actualCompletions, _, _) = autocompleteService.doSearch(
-      params, requireAuth = false, AuthParams(), None, None)._2
+      params, AuthParams(), None, None)._2
     val expectedCompletions = List(CompletionResult("A Multiword Title", "A <span class=highlight>Multiword</span> <span class=highlight>Title</span>"))
     actualCompletions should contain theSameElementsAs expectedCompletions
   }
@@ -48,7 +48,7 @@ class AutocompleteServiceSpec
     val params = Map("search_context" -> basicDomain, "domains" -> basicDomain, "q" -> "o")
       .mapValues(Seq(_))
     val SearchResults(actualCompletions, _, _) = autocompleteService.doSearch(
-      params, requireAuth = false, AuthParams(), None, None)._2
+      params, AuthParams(), None, None)._2
     val expectedCompletions = List(CompletionResult("One", "<span class=highlight>O</span>ne"))
     actualCompletions should contain theSameElementsAs expectedCompletions
   }

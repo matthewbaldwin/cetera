@@ -51,19 +51,19 @@ class DatatypeBoostSpec extends FunSuiteLike with Matchers with TestESData with 
   }
 
   test("simple query - increases score when datatype matches") {
-    val (_, results, _, _) = service.doSearch(constructQueryParams(SimpleQuery("one")), false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(constructQueryParams(SimpleQuery("one")), AuthParams(), None, None)
     val (boostedScore, otherScore) = extractBoostedAndAnyOtherScore(results)
     boostedScore should be > otherScore
   }
 
   test("no query - increases score when datatype matches") {
-    val (_, results, _, _) = service.doSearch(constructQueryParams(NoQuery), false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(constructQueryParams(NoQuery), AuthParams(), None, None)
     val (boostedScore, otherScore) = extractBoostedAndAnyOtherScore(results)
     boostedScore should be > otherScore
   }
 
   test("advanced query - increases score when datatype matches") {
-    val (_, results, _, _) = service.doSearch(constructQueryParams(AdvancedQuery("one OR two OR three OR four")), false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(constructQueryParams(AdvancedQuery("one OR two OR three OR four")), AuthParams(), None, None)
     val (boostedScore, otherScore) = extractBoostedAndAnyOtherScore(results)
     boostedScore should be > otherScore
   }

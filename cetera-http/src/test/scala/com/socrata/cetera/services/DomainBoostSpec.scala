@@ -26,7 +26,7 @@ class DomainBoostSpec extends FunSuiteLike with Matchers with TestESData with Be
         Params.showScore -> "true",
         Params.searchContext -> domain,
         Params.domains -> activeDomainCnames.mkString(","),
-        s"""boostDomains[${domain}]""" -> "2").mapValues(Seq(_)), false, AuthParams(), None, None)
+        s"""boostDomains[${domain}]""" -> "2").mapValues(Seq(_)), AuthParams(), None, None)
       results.results.head.metadata.domain should be(domain)
     }
   }
@@ -37,7 +37,7 @@ class DomainBoostSpec extends FunSuiteLike with Matchers with TestESData with Be
         Params.showScore -> "true",
         Params.searchContext -> domain,
         Params.domains -> activeDomainCnames.mkString(","),
-        s"""boostDomains[${domain}]""" -> "0.5").mapValues(Seq(_)), false, AuthParams(), None, None)
+        s"""boostDomains[${domain}]""" -> "0.5").mapValues(Seq(_)), AuthParams(), None, None)
       results.results.head.metadata.domain shouldNot be(JString(domain))
     }
   }
@@ -47,7 +47,7 @@ class DomainBoostSpec extends FunSuiteLike with Matchers with TestESData with Be
       val (_, results, _, _) = service.doSearch(
         Map(s"""boostDomains[${domain}]""" -> "2.34",
             "boostDomains[]" -> "3.45", // if I were custom metadata, I would not match any documents
-            Params.searchContext -> domain).mapValues(Seq(_)), false, AuthParams(), None, None
+            Params.searchContext -> domain).mapValues(Seq(_)), AuthParams(), None, None
       )
       results.results.size should be > 0
     }
@@ -59,7 +59,7 @@ class DomainBoostSpec extends FunSuiteLike with Matchers with TestESData with Be
       val (_, results, _, _) = service.doSearch(
         Map(s"""boostDomains[${domain}]""" -> "2.34",
             "boostDomains" -> "3.45", // interpreted as custom metadata field which doesn't match any documents
-            Params.searchContext -> domain).mapValues(Seq(_)), false, AuthParams(), None, None
+            Params.searchContext -> domain).mapValues(Seq(_)), AuthParams(), None, None
       )
 
       results.results should contain theSameElementsAs List.empty

@@ -26,7 +26,6 @@ class AutocompleteService(
 
   def doSearch(
       queryParameters: MultiQueryParams,
-      requireAuth: Boolean,
       authParams: AuthParams,
       extendedHost: Option[String],
       requestId: Option[String])
@@ -36,9 +35,6 @@ class AutocompleteService(
     val (authorizedUser, setCookies) = coreClient.optionallyAuthenticateUser(extendedHost, authParams, requestId)
     val ValidatedQueryParameters(searchParams, scoringParams, pagingParams, _) = QueryParametersParser(queryParameters)
 
-    // remove auth stuff since we're ignoring it
-    val authedUserId = authorizedUser.map(_.id)
-
     val (domains, domainSearchTime) = domainClient.findSearchableDomains(
       searchParams.searchContext, extendedHost, searchParams.domains,
       excludeLockedDomains = true, authorizedUser, requestId
@@ -46,7 +42,7 @@ class AutocompleteService(
 
     val authedUser = authorizedUser.map(u => u.copy(authenticatingDomain = domains.extendedHost))
     val req = documentClient.buildAutocompleteSearchRequest(
-      domains, searchParams, scoringParams, pagingParams, authedUser, requireAuth)
+      domains, searchParams, scoringParams, pagingParams, authedUser)
 
     logger.info(LogHelper.formatEsRequest(req))
 
@@ -69,7 +65,7 @@ class AutocompleteService(
     (OK, formattedResults.copy(timings = Some(timings)), timings, setCookies)
   }
 
-  def search(requireAuth: Boolean)(req: HttpRequest): HttpResponse = {
+  def search(req: HttpRequest): HttpResponse = {
     logger.debug(LogHelper.formatHttpRequestVerbose(req))
 
     val authParams = AuthParams.fromHttpRequest(req)
@@ -78,7 +74,7 @@ class AutocompleteService(
 
     try {
       val (status, formattedResults, timings, setCookies) =
-        doSearch(req.multiQueryParams, requireAuth, authParams, extendedHost, requestId)
+        doSearch(req.multiQueryParams, authParams, extendedHost, requestId)
 
       logger.info(LogHelper.formatRequest(req, timings))
       Http.decorate(Json(formattedResults, pretty = true), status, setCookies)
@@ -101,8 +97,8 @@ class AutocompleteService(
   }
 
   // $COVERAGE-OFF$ jetty wiring
-  case class Service(requireAuth: Boolean) extends SimpleResource {
-    override def get: HttpService = search(requireAuth)
+  case object Service extends SimpleResource {
+    override def get: HttpService = search
   }
 
   // $COVERAGE-ON$

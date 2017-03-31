@@ -215,7 +215,7 @@ class SearchServiceSpec extends FunSuiteLike
       "search_context" -> "opendata-demo.socrata.com",
       "q" -> query
     ).mapValues(Seq(_))
-    service.doSearch(params, false, AuthParams(), None, None)._2.results
+    service.doSearch(params, AuthParams(), None, None)._2.results
     val metricsFile = balboaDir.listFiles()(0)
     wasSearchQueryLogged(metricsFile.getAbsolutePath, query) should be(true)
   }
@@ -227,7 +227,7 @@ class SearchServiceSpec extends FunSuiteLike
       "search_context" -> "opendata-demo.socrata.com",
       "q_internal" -> query
     ).mapValues(Seq(_))
-    service.doSearch(params, false, AuthParams(), None, None)._2.results
+    service.doSearch(params, AuthParams(), None, None)._2.results
     val metricsFile = balboaDir.listFiles()(0)
     wasSearchQueryLogged(metricsFile.getAbsolutePath, query) should be(true)
   }
@@ -238,39 +238,9 @@ class SearchServiceSpec extends FunSuiteLike
       "domains" -> "opendata-demo.socrata.com,petercetera.net",
       "q" -> query
     ).mapValues(Seq(_))
-    service.doSearch(params, false, AuthParams(), None, None)._2.results
+    service.doSearch(params, AuthParams(), None, None)._2.results
     val metricsFile = balboaDir.listFiles()(0)
     wasSearchQueryLogged(metricsFile.getAbsolutePath, query) should be(false)
-  }
-
-  test("searching when auth is required without an extended host throws an UnauthorizedError") {
-    val host = domains(0).domainCname
-    val userBody = authedUserBodyFromRole("")
-    prepareAuthenticatedUser(cookie, host, userBody)
-
-    intercept[UnauthorizedError] {
-      service.doSearch(allDomainsParams, requireAuth = true, AuthParams(cookie = Some(cookie)), None, None)
-    }
-  }
-
-  test("searching when auth is required without any authParams throws an UnauthorizedError") {
-    val host = domains(0).domainCname
-    val userBody = authedUserBodyFromRole("")
-    prepareAuthenticatedUser(cookie, host, userBody)
-
-    intercept[UnauthorizedError] {
-      service.doSearch(allDomainsParams, requireAuth = true, AuthParams(), Some(host), None)
-    }
-  }
-
-  test("searching when auth is required without authenticating at all throws an UnauthorizedError") {
-    val host = domains(0).domainCname
-    val userBody = authedUserBodyFromRole("")
-    prepareAuthenticatedUser(cookie, host, userBody)
-
-    intercept[UnauthorizedError] {
-      service.doSearch(allDomainsParams, requireAuth = true, AuthParams(), None, None)
-    }
   }
 
   test("when requested, include post-calculated anonymous visibility field") {
@@ -294,7 +264,7 @@ class SearchServiceSpec extends FunSuiteLike
 
     prepareAuthenticatedUser(cookie, host, authedUserBody)
     val params = Map("domains" -> host, "search_context" -> host, "show_visibility" -> "true").mapValues(Seq(_))
-    val res = service.doSearch(params, true, AuthParams(cookie = Some(cookie)), Some(host), None)._2
+    val res = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(host), None)._2
     fxfsVisibility(res) should contain theSameElementsAs expectedVis
   }
 
@@ -320,7 +290,7 @@ class SearchServiceSpec extends FunSuiteLike
 
     prepareAuthenticatedUser(cookie, host, authedUserBody)
     val params = Map("domains" -> host, "search_context" -> host, "show_visibility" -> "true").mapValues(Seq(_))
-    val res = service.doSearch(params, true, AuthParams(cookie = Some(cookie)), Some(host), None)._2
+    val res = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(host), None)._2
     fxfsVisibility(res) should contain theSameElementsAs expectedVis
   }
 
@@ -336,14 +306,14 @@ class SearchServiceSpec extends FunSuiteLike
     prepareAuthenticatedUser(cookie, host, authedUserBody)
     intercept[UnauthorizedError] {
       val params =  Map("shared_to" -> Seq("Different Person"))
-      service.doSearch(params, true, AuthParams(cookie=Some(cookie)), Some(host), None)
+      service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     }
   }
 
   test("searching for apis should not throw an error, but simply return no results") {
     val host = "petercetera.net"
     val params = Map("only" -> "apis").mapValues(Seq(_))
-    val res = service.doSearch(params, false, AuthParams(), None, None)._2.results
+    val res = service.doSearch(params, AuthParams(), None, None)._2.results
     res should be('empty)
   }
 
@@ -354,7 +324,7 @@ class SearchServiceSpec extends FunSuiteLike
 
     val host = domain.domainCname
     val params = Map("only" -> "links", "domains" -> host, "search_context" -> host).mapValues(Seq(_))
-    val res = service.doSearch(params, false, AuthParams(), None, None)
+    val res = service.doSearch(params, AuthParams(), None, None)
     val actualFxfs = fxfs(res._2)
 
     actualFxfs should contain theSameElementsAs(expectedFxfs)
@@ -367,7 +337,7 @@ class SearchServiceSpec extends FunSuiteLike
 
     val host = domain.domainCname
     val params = Map("only" -> "federated_hrefs", "domains" -> host, "search_context" -> host).mapValues(Seq(_))
-    val res = service.doSearch(params, false, AuthParams(), None, None)
+    val res = service.doSearch(params, AuthParams(), None, None)
     val actualFxfs = fxfs(res._2)
 
     actualFxfs should contain theSameElementsAs(expectedFxfs)
@@ -411,7 +381,7 @@ class SearchServiceSpecWithBrokenES extends FunSuiteLike with Matchers with Mock
 
     val response = new MockHttpServletResponse()
 
-    service.search(false)(httpReq)(response)
+    service.search(httpReq)(response)
     response.getStatus should be (SC_INTERNAL_SERVER_ERROR)
     response.getHeader("Access-Control-Allow-Origin") should be ("*")
     response.getContentAsString should be (expectedResults)

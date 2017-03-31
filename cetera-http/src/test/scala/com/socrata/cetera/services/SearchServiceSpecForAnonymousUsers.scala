@@ -43,7 +43,7 @@ class SearchServiceSpecForAnonymousUsers
       d.isPublic && d.isPublished && !d.isHiddenFromCatalog && approvedFxfs.contains(d.socrataId.datasetId)))
 
     val params = Map("search_context" -> basicDomain, "domains" -> basicDomain).mapValues(Seq(_))
-    val actualFxfs = fxfs(service.doSearch(params, requireAuth = false, AuthParams(), None, None)._2)
+    val actualFxfs = fxfs(service.doSearch(params, AuthParams(), None, None)._2)
     expectedFxfs shouldNot be('empty)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -57,7 +57,7 @@ class SearchServiceSpecForAnonymousUsers
       d.isPublic && d.isPublished && !d.isHiddenFromCatalog && approvedFxfs.contains(d.socrataId.datasetId)))
 
     val params = Map("search_context" -> moderatedDomain, "domains" -> moderatedDomain).mapValues(Seq(_))
-    val actualFxfs = fxfs(service.doSearch(params, requireAuth = false, AuthParams(), None, None)._2)
+    val actualFxfs = fxfs(service.doSearch(params, AuthParams(), None, None)._2)
     expectedFxfs shouldNot be('empty)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -71,7 +71,7 @@ class SearchServiceSpecForAnonymousUsers
       d.isPublic && d.isPublished && !d.isHiddenFromCatalog && approvedFxfs.contains(d.socrataId.datasetId)))
 
     val params = Map("search_context" -> raEnabledDomain, "domains" -> raEnabledDomain).mapValues(Seq(_))
-    val actualFxfs = fxfs(service.doSearch(params, requireAuth = false, AuthParams(), None, None)._2)
+    val actualFxfs = fxfs(service.doSearch(params, AuthParams(), None, None)._2)
     expectedFxfs shouldNot be('empty)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -85,13 +85,13 @@ class SearchServiceSpecForAnonymousUsers
       d.isPublic && d.isPublished && !d.isHiddenFromCatalog && approvedFxfs.contains(d.socrataId.datasetId)))
 
     val params = Map("search_context" -> raAndVmEnabledDomain, "domains" -> raAndVmEnabledDomain).mapValues(Seq(_))
-    val actualFxfs = fxfs(service.doSearch(params, requireAuth = false, AuthParams(), None, None)._2)
+    val actualFxfs = fxfs(service.doSearch(params, AuthParams(), None, None)._2)
     expectedFxfs shouldNot be('empty)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
 
   test("searching across all domains when auth is not required returns anonymously viewable views on unlocked domains") {
-    val res = service.doSearch(allDomainsParams, requireAuth = false, AuthParams(), None, None)
+    val res = service.doSearch(allDomainsParams, AuthParams(), None, None)
     fxfs(res._2) should contain theSameElementsAs anonymouslyViewableDocIds
   }
 
@@ -101,12 +101,12 @@ class SearchServiceSpecForAnonymousUsers
       "search_context" -> "bad-domain.com"
     ).mapValues(Seq(_))
     intercept[DomainNotFoundError] {
-      service.doSearch(params, false, AuthParams(), None, None)
+      service.doSearch(params, AuthParams(), None, None)
     }
   }
 
   test("search response contains pretty and perma links") {
-    service.doSearch(Map.empty, false, AuthParams(), None, None)._2.results.foreach { r =>
+    service.doSearch(Map.empty, AuthParams(), None, None)._2.results.foreach { r =>
       val dsid = r.resource.dyn.id.!.asInstanceOf[JString].string
 
       val perma = "(d|stories/s|view)"
@@ -127,7 +127,7 @@ class SearchServiceSpecForAnonymousUsers
     //   * rejected and pending views don't show up regardless of domain setting
     //   * that the ES type returned includes only documents (i.e. no domains)
     //   * that non-customer domains don't show up
-    val (_, res, _, _) = service.doSearch(Map.empty, false, AuthParams(), None, None)
+    val (_, res, _, _) = service.doSearch(Map.empty, AuthParams(), None, None)
     val actualFxfs = fxfs(res)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -138,7 +138,7 @@ class SearchServiceSpecForAnonymousUsers
       s"${Params.boostDomains}[annabelle.island.net]" -> "0.0",
       Params.showScore -> "true"
     )
-    val (_, res, _, _) = service.doSearch(params.mapValues(Seq(_)), false, AuthParams(), None, None)
+    val (_, res, _, _) = service.doSearch(params.mapValues(Seq(_)), AuthParams(), None, None)
     val metadata = res.results.map(_.metadata)
     val annabelleRes = metadata.filter(_.domain == "annabelle.island.net")
     annabelleRes.foreach { r =>
@@ -152,7 +152,7 @@ class SearchServiceSpecForAnonymousUsers
       Params.domains -> "petercetera.net",
       Params.searchContext -> "petercetera.net",
       Params.q -> "private"
-    ).mapValues(Seq(_)), false, AuthParams(), None, None)
+    ).mapValues(Seq(_)), AuthParams(), None, None)
     val actualFxfs = fxfs(res)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -163,7 +163,7 @@ class SearchServiceSpecForAnonymousUsers
       Params.domains -> "petercetera.net",
       Params.searchContext -> "petercetera.net",
       Params.q -> "unpublished"
-    ).mapValues(Seq(_)), false, AuthParams(), None, None)
+    ).mapValues(Seq(_)), AuthParams(), None, None)
     val actualFxfs = fxfs(res)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -172,7 +172,7 @@ class SearchServiceSpecForAnonymousUsers
     val hiddenDoc = docs(4)
     val (_, res, _, _) = service.doSearch(Map(
       Params.ids -> hiddenDoc.socrataId.datasetId
-    ).mapValues(Seq(_)), false, AuthParams(), None, None)
+    ).mapValues(Seq(_)), AuthParams(), None, None)
     val actualFxfs = fxfs(res)
     // ensure the hidden doc didn't come back
     actualFxfs should be('empty)
@@ -189,7 +189,7 @@ class SearchServiceSpecForAnonymousUsers
     ).mapValues(Seq(_))
     // of those fxfs, only show: fxf-1 is approved and fxf-8 is a default view
     val expectedFxfs = Set("fxf-1", "fxf-8", "zeta-0007")
-    val res = service.doSearch(params, false, AuthParams(), None, None)._2
+    val res = service.doSearch(params, AuthParams(), None, None)._2
     val actualFxfs = fxfs(res)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -200,7 +200,7 @@ class SearchServiceSpecForAnonymousUsers
     val domain2Docs = docs.filter(d => d.socrataId.domainId == 2)
     // the filters below to find expected 4x4s are only correct because of the limited set of data on domain 2
     val expectedFxfs = domain2Docs.filter(d => d.isApprovedByParentDomain && !d.isHiddenFromCatalog).map(_.socrataId.datasetId)
-    val res = service.doSearch(params, false, AuthParams(), None, None)._2
+    val res = service.doSearch(params, AuthParams(), None, None)._2
     val actualFxfs = fxfs(res)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -211,7 +211,7 @@ class SearchServiceSpecForAnonymousUsers
       "domains" -> lockedDomain,
       "search_context" -> lockedDomain
     ).mapValues(Seq(_))
-    val res = service.doSearch(params, false, AuthParams(), None, None)._2
+    val res = service.doSearch(params, AuthParams(), None, None)._2
     val actualFxfs = fxfs(res)
     // ensure nothing comes back
     actualFxfs should be('empty)
@@ -235,7 +235,7 @@ class SearchServiceSpecForAnonymousUsers
     val expectedFxfs = domain2Or3Docs.filter(d =>
       d.isApprovedByParentDomain && d.isPublic && (d.isDefaultView || d.isVmApproved)
         && d.isRaApproved(3)).map(_.socrataId.datasetId)
-    val res = service.doSearch(params, false, AuthParams(), None, None)._2
+    val res = service.doSearch(params, AuthParams(), None, None)._2
     val actualFxfs = fxfs(res)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -243,7 +243,7 @@ class SearchServiceSpecForAnonymousUsers
   test("if a user is provided, only anonymously viewabled datasets owned by that user should show up") {
     val params = Map("for_user" -> "robin-hood").mapValues(Seq(_))
     val expectedFxfs = anonymouslyViewableDocs.filter(d => d.ownerId == "robin-hood").map(_.socrataId.datasetId)
-    val res = service.doSearch(params, false, AuthParams(), None, None)._2
+    val res = service.doSearch(params, AuthParams(), None, None)._2
     val actualFxfs = fxfs(res)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -252,7 +252,7 @@ class SearchServiceSpecForAnonymousUsers
   ignore("if a user's name is queried, datasets with a matching owner:screen_name should show up") {
     val params = Map("q" -> "John").mapValues(Seq(_))
     val expectedFxfs = Set("zeta-0002", "zeta-0005")
-    val res = service.doSearch(params, false, AuthParams(), None, None)._2
+    val res = service.doSearch(params, AuthParams(), None, None)._2
     val actualFxfs = fxfs(res)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -260,7 +260,7 @@ class SearchServiceSpecForAnonymousUsers
   test("if a parent dataset is provided, response should only include anonymously viewable views derived from that dataset") {
     val params = Map(Params.derivedFrom -> "fxf-0").mapValues(Seq(_))
     val expectedFxfs = anonymouslyViewableDocs.filter(d => d.socrataId.parentDatasetId.getOrElse(Set.empty).contains("fxf-0")).map(_.socrataId.datasetId)
-    val res = service.doSearch(params, false, AuthParams(), None, None)._2
+    val res = service.doSearch(params, AuthParams(), None, None)._2
     val actualFxfs = fxfs(res)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -273,9 +273,9 @@ class SearchServiceSpecForAnonymousUsers
     val paramsLowerCase = paramsTitleCase.mapValues(_.map(_.toLowerCase))
     val paramsUpperCase = paramsTitleCase.mapValues(_.map(_.toUpperCase))
 
-    val (_, resultsTitleCase, _, _) = service.doSearch(paramsTitleCase, false, AuthParams(), None, None)
-    val (_, resultsLowerCase, _, _) = service.doSearch(paramsLowerCase, false, AuthParams(), None, None)
-    val (_, resultsUpperCase, _, _) = service.doSearch(paramsUpperCase, false, AuthParams(), None, None)
+    val (_, resultsTitleCase, _, _) = service.doSearch(paramsTitleCase, AuthParams(), None, None)
+    val (_, resultsLowerCase, _, _) = service.doSearch(paramsLowerCase, AuthParams(), None, None)
+    val (_, resultsUpperCase, _, _) = service.doSearch(paramsUpperCase, AuthParams(), None, None)
 
     resultsTitleCase.results should contain theSameElementsAs resultsLowerCase.results
     resultsTitleCase.results should contain theSameElementsAs resultsUpperCase.results
@@ -290,9 +290,9 @@ class SearchServiceSpecForAnonymousUsers
     val paramsLowerCase = paramsTitleCase.mapValues(_.map(_.toLowerCase))
     val paramsUpperCase = paramsTitleCase.mapValues(_.map(_.toUpperCase))
 
-    val (_, resultsTitleCase, _, _) = service.doSearch(paramsTitleCase, false, AuthParams(), None, None)
-    val (_, resultsLowerCase, _, _) = service.doSearch(paramsLowerCase, false, AuthParams(), None, None)
-    val (_, resultsUpperCase, _, _) = service.doSearch(paramsUpperCase, false, AuthParams(), None, None)
+    val (_, resultsTitleCase, _, _) = service.doSearch(paramsTitleCase, AuthParams(), None, None)
+    val (_, resultsLowerCase, _, _) = service.doSearch(paramsLowerCase, AuthParams(), None, None)
+    val (_, resultsUpperCase, _, _) = service.doSearch(paramsUpperCase, AuthParams(), None, None)
 
     resultsTitleCase.results should contain theSameElementsAs resultsLowerCase.results
     resultsTitleCase.results should contain theSameElementsAs resultsUpperCase.results
@@ -306,9 +306,9 @@ class SearchServiceSpecForAnonymousUsers
     val paramsLowerCase = paramsTitleCase.mapValues(_.map(_.toLowerCase))
     val paramsUpperCase = paramsTitleCase.mapValues(_.map(_.toUpperCase))
 
-    val (_, resultsTitleCase, _, _) = service.doSearch(paramsTitleCase, false, AuthParams(), None, None)
-    val (_, resultsLowerCase, _, _) = service.doSearch(paramsLowerCase, false, AuthParams(), None, None)
-    val (_, resultsUpperCase, _, _) = service.doSearch(paramsUpperCase, false, AuthParams(), None, None)
+    val (_, resultsTitleCase, _, _) = service.doSearch(paramsTitleCase, AuthParams(), None, None)
+    val (_, resultsLowerCase, _, _) = service.doSearch(paramsLowerCase, AuthParams(), None, None)
+    val (_, resultsUpperCase, _, _) = service.doSearch(paramsUpperCase, AuthParams(), None, None)
 
     resultsTitleCase.results should contain theSameElementsAs resultsLowerCase.results
     resultsTitleCase.results should contain theSameElementsAs resultsUpperCase.results
@@ -323,9 +323,9 @@ class SearchServiceSpecForAnonymousUsers
     val paramsLowerCase = paramsTitleCase.mapValues(_.map(_.toLowerCase))
     val paramsUpperCase = paramsTitleCase.mapValues(_.map(_.toUpperCase))
 
-    val (_, resultsTitleCase, _, _) = service.doSearch(paramsTitleCase, false, AuthParams(), None, None)
-    val (_, resultsLowerCase, _, _) = service.doSearch(paramsLowerCase, false, AuthParams(), None, None)
-    val (_, resultsUpperCase, _, _) = service.doSearch(paramsUpperCase, false, AuthParams(), None, None)
+    val (_, resultsTitleCase, _, _) = service.doSearch(paramsTitleCase, AuthParams(), None, None)
+    val (_, resultsLowerCase, _, _) = service.doSearch(paramsLowerCase, AuthParams(), None, None)
+    val (_, resultsUpperCase, _, _) = service.doSearch(paramsUpperCase, AuthParams(), None, None)
 
     resultsTitleCase.results should contain theSameElementsAs resultsLowerCase.results
     resultsTitleCase.results should contain theSameElementsAs resultsUpperCase.results
@@ -339,7 +339,7 @@ class SearchServiceSpecForAnonymousUsers
     ).mapValues(Seq(_))
 
     val expectedFxfs = Set("fxf-0", "fxf-8")
-    val res = service.doSearch(params, false, AuthParams(), None, None)._2
+    val res = service.doSearch(params, AuthParams(), None, None)._2
 
     val actualFxfs = fxfs(res)
     actualFxfs should contain theSameElementsAs expectedFxfs
@@ -354,7 +354,7 @@ class SearchServiceSpecForAnonymousUsers
     ).mapValues(Seq(_))
 
     val expectedFxfs = Set("fxf-0", "fxf-8")
-    val res = service.doSearch(params, false, AuthParams(), None, None)._2
+    val res = service.doSearch(params, AuthParams(), None, None)._2
 
     val actualFxfs = fxfs(res)
     actualFxfs should contain theSameElementsAs expectedFxfs
@@ -369,7 +369,7 @@ class SearchServiceSpecForAnonymousUsers
     ).mapValues(Seq(_))
 
     val expectedFxfs = Set.empty
-    val res = service.doSearch(params, false, AuthParams(), None, None)._2
+    val res = service.doSearch(params, AuthParams(), None, None)._2
 
     val actualFxfs = fxfs(res)
     actualFxfs should contain theSameElementsAs expectedFxfs
@@ -377,7 +377,7 @@ class SearchServiceSpecForAnonymousUsers
 
   test("sorting by name works") {
     val params = Map("order" -> Seq("name"))
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     val expected = results.results.map(_.resource.dyn("name").!.asInstanceOf[JString].string).sorted.head
     val firstResult = results.results.head.resource.dyn("name").? match {
       case Right(n) => n should be(JString(expected))
@@ -387,7 +387,7 @@ class SearchServiceSpecForAnonymousUsers
 
   test("sorting by name DESC works") {
     val params = Map("order" -> Seq("name DESC"))
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     val expected = results.results.map(_.resource.dyn("name").!.asInstanceOf[JString].string).sorted.last
     val firstResult = results.results.head.resource.dyn("name").? match {
       case Right(n) => n should be(JString(expected))
@@ -397,7 +397,7 @@ class SearchServiceSpecForAnonymousUsers
 
   test("filtering by attribution works") {
     val params = Map("attribution" -> Seq("The Merry Men"))
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     val expectedFxfs = Set("zeta-0007")
     val actualFxfs = fxfs(results)
     actualFxfs should contain theSameElementsAs expectedFxfs
@@ -405,7 +405,7 @@ class SearchServiceSpecForAnonymousUsers
 
   test("filtering by attribution is case sensitive") {
     val params = Map("attribution" -> Seq("the merry men"))
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     val expectedFxfs = Set.empty
     val actualFxfs = fxfs(results)
     actualFxfs should contain theSameElementsAs expectedFxfs
@@ -413,7 +413,7 @@ class SearchServiceSpecForAnonymousUsers
 
   test("searching for attribution via keyword searches should include individual term matches regardless of case") {
     val params = Map("q" -> Seq("merry men"))
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     val expectedFxfs = Set("zeta-0007")
     val actualFxfs = fxfs(results)
     actualFxfs should contain theSameElementsAs expectedFxfs
@@ -421,7 +421,7 @@ class SearchServiceSpecForAnonymousUsers
 
   test("attribution is included in the resulting resource") {
     val params = Map("q" -> Seq("merry men"))
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     results.results.headOption.map { case SearchResult(resource, _, _, _, _, _) =>
       resource.dyn.attribution.!.asInstanceOf[JString].string
     } should be(Some("The Merry Men"))
@@ -429,7 +429,7 @@ class SearchServiceSpecForAnonymousUsers
 
   test("filtering by provenance works and the resulting resource has a 'provenance' field") {
     val params = Map("provenance" -> Seq("official"))
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     results.results.headOption.map { case SearchResult(resource, _, _, _, _, _) =>
       resource.dyn.provenance.!.asInstanceOf[JString].string
     } should be(Some("official"))
@@ -437,7 +437,7 @@ class SearchServiceSpecForAnonymousUsers
 
   test("filtering by license works and the resulting metadata has a 'license' field") {
     val params = Map("license" -> Seq("Academic Free License"))
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     results.results.headOption.map { case SearchResult(_, _, metadata, _, _, _) =>
       metadata.license.get
     } should be(Some("Academic Free License"))
@@ -445,7 +445,7 @@ class SearchServiceSpecForAnonymousUsers
 
   test("filtering by license should be exact") {
     val params = Map("license" -> Seq("Free License"))
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     results.results.headOption.map { case SearchResult(_, _, metadata, _, _, _) =>
       metadata.license.get
     } should be(None)
@@ -453,7 +453,7 @@ class SearchServiceSpecForAnonymousUsers
 
   test("filtering by license should be case sensitive") {
     val params = Map("license" -> Seq("academic free license"))
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     results.results.headOption.map { case SearchResult(_, _, metadata, _, _, _) =>
       metadata.license.get
     } should be(None)
@@ -461,22 +461,22 @@ class SearchServiceSpecForAnonymousUsers
 
   test("a query that results in a dataset with a license should return metadata with a 'license' field") {
     val params = Map("q" -> Seq("A dataset with a multiword title"))
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     results.results.headOption.map { case SearchResult(_, _, metadata, _, _, _) =>
       metadata.license.get
     } should be(Some("Academic Free License"))
   }
 
   test("passing a datatype boost should have no effect on the size of the result set") {
-    val (_, results, _, _) = service.doSearch(Map.empty, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(Map.empty, AuthParams(), None, None)
     val params = Map("boostFiles" -> Seq("2.0"))
-    val (_, resultsBoosted, _, _) = service.doSearch(params, false, AuthParams(), None, None)
+    val (_, resultsBoosted, _, _) = service.doSearch(params, AuthParams(), None, None)
     resultsBoosted.resultSetSize should be(results.resultSetSize)
   }
 
   test("giving a datatype a boost of >1 should promote assets of that type to the top") {
     val params = Map("boostStories" -> Seq("10.0"))
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     val resultTypes = results.results.map(_.resource.dyn.`type`.!.asInstanceOf[JString].string)
     val topResultType = resultTypes.headOption
     topResultType should be(Some("story"))
@@ -484,7 +484,7 @@ class SearchServiceSpecForAnonymousUsers
 
   test("giving a datatype a boost of <<1 should demote assets of that type to the bottom") {
     val params = Map("boostStories" -> Seq(".0000001"))
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     val resultTypes = results.results.map(_.resource.dyn.`type`.!.asInstanceOf[JString].string)
     val lastResultType = resultTypes.last
     lastResultType should be("story")
@@ -492,7 +492,7 @@ class SearchServiceSpecForAnonymousUsers
 
   test("preview_image_url should be included in the search result when available") {
     val params = Map("ids" -> Seq("zeta-0007"))
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     val resultPreviewImageUrls = results.results.map(_.previewImageUrl.map(_.asInstanceOf[JString].string))
     val firstPreviewImageUrl = resultPreviewImageUrls.headOption.flatten
     firstPreviewImageUrl should be(Some("https://petercetera.net/views/zeta-0007/files/123456789"))
@@ -500,7 +500,7 @@ class SearchServiceSpecForAnonymousUsers
 
   test("preview_image_url should be None in the search result when not available") {
     val params = Map("ids" -> Seq("fxf-0"))
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     val resultPreviewImageUrls = results.results.map(_.previewImageUrl.map(_.asInstanceOf[JString].string))
     val firstPreviewImageUrl = resultPreviewImageUrls.headOption.flatten
     firstPreviewImageUrl should be(None)
@@ -508,14 +508,14 @@ class SearchServiceSpecForAnonymousUsers
 
   test("no results should come back if asked for a non-existent 4x4") {
     val params = Map("ids" -> Seq("fake-4x4"))
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     val actualFxfs = fxfs(results)
     actualFxfs should be('empty)
   }
 
   test("adding on the set of 'browse' params should not change the set of anonymously viewable results in the ODN scenario") {
-    val (_, results, _, _) = service.doSearch(Map.empty, false, AuthParams(), None, None)
-    val (_, resultsWithRedundantParams, _, _) = service.doSearch(browseParams, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(Map.empty, AuthParams(), None, None)
+    val (_, resultsWithRedundantParams, _, _) = service.doSearch(browseParams, AuthParams(), None, None)
 
     val actualFxfs = fxfs(resultsWithRedundantParams)
     val expectedFxfs = fxfs(results)
@@ -525,8 +525,8 @@ class SearchServiceSpecForAnonymousUsers
   test("adding on the set of 'browse' params should not change the set of anonymously viewable results when the search_context and domains are unmoderated") {
     val unmoderatedDomains = domains.filter(!_.moderationEnabled).map(_.domainCname)
     val params = Map("search_context" -> Seq(domains(0).domainCname), "domains" -> unmoderatedDomains)
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
-    val (_, resultsWithRedundantParams, _, _) = service.doSearch(params ++ browseParams, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
+    val (_, resultsWithRedundantParams, _, _) = service.doSearch(params ++ browseParams, AuthParams(), None, None)
 
     val actualFxfs = fxfs(resultsWithRedundantParams)
     val expectedFxfs = fxfs(results)
@@ -536,8 +536,8 @@ class SearchServiceSpecForAnonymousUsers
   test("adding on the set of 'browse' params should not change the set of anonymously viewable results when the search_context and domains are moderated") {
     val moderatedDomains = domains.filter(_.moderationEnabled).map(_.domainCname)
     val params = Map("search_context" -> Seq(domains(1).domainCname), "domains" -> moderatedDomains)
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
-    val (_, resultsWithRedundantParams, _, _) = service.doSearch(params ++ browseParams, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
+    val (_, resultsWithRedundantParams, _, _) = service.doSearch(params ++ browseParams, AuthParams(), None, None)
 
     val actualFxfs = fxfs(resultsWithRedundantParams)
     val expectedFxfs = fxfs(results)
@@ -547,8 +547,8 @@ class SearchServiceSpecForAnonymousUsers
   test("adding on the set of 'browse' params should not change the set of anonymously viewable results when the search_context is unmoderated, and the domains are moderated") {
     val moderatedDomains = domains.filter(_.moderationEnabled).map(_.domainCname)
     val params = Map("search_context" -> Seq(domains(0).domainCname), "domains" -> moderatedDomains)
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
-    val (_, resultsWithRedundantParams, _, _) = service.doSearch(params ++ browseParams, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
+    val (_, resultsWithRedundantParams, _, _) = service.doSearch(params ++ browseParams, AuthParams(), None, None)
 
     val actualFxfs = fxfs(resultsWithRedundantParams)
     val expectedFxfs = fxfs(results)
@@ -558,8 +558,8 @@ class SearchServiceSpecForAnonymousUsers
   test("adding on the set of 'browse' params should not change the set of anonymously viewable results when the search_context is moderated, and the domains are unmoderated") {
     val unmoderatedDomains = domains.filter(!_.moderationEnabled).map(_.domainCname)
     val params = Map("search_context" -> Seq(domains(1).domainCname), "domains" -> unmoderatedDomains)
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
-    val (_, resultsWithRedundantParams, _, _) = service.doSearch(params ++ browseParams, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
+    val (_, resultsWithRedundantParams, _, _) = service.doSearch(params ++ browseParams, AuthParams(), None, None)
 
     val actualFxfs = fxfs(resultsWithRedundantParams)
     val expectedFxfs = fxfs(results)
@@ -568,35 +568,35 @@ class SearchServiceSpecForAnonymousUsers
 
   test("adding on a public=false param should empty out the set of anonymously viewable results") {
     val params = Map("public" -> "false").mapValues(Seq(_))
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     val actualFxfs = fxfs(results)
     actualFxfs should be('empty)
   }
 
   test("adding on a published=false param should empty out the set of anonymously viewable results") {
     val params = Map("published" -> "false").mapValues(Seq(_))
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     val actualFxfs = fxfs(results)
     actualFxfs should be('empty)
   }
 
   test("adding on an approval_status=pending param should empty out the set of anonymously viewable results") {
     val params = Map("approval_status" -> "pending").mapValues(Seq(_))
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     val actualFxfs = fxfs(results)
     actualFxfs should be('empty)
   }
 
   test("adding on an approval_status=rejected param should empty out the set of anonymously viewable results") {
     val params = Map("approval_status" -> "pending").mapValues(Seq(_))
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     val actualFxfs = fxfs(results)
     actualFxfs should be('empty)
   }
 
   test("adding on a explicitly_hidden=true param should empty out the set of anonymously viewable results") {
     val params = Map("explicitly_hidden" -> "true").mapValues(Seq(_))
-    val (_, results, _, _) = service.doSearch(params, false, AuthParams(), None, None)
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     val actualFxfs = fxfs(results)
     actualFxfs should be('empty)
   }
@@ -604,7 +604,7 @@ class SearchServiceSpecForAnonymousUsers
   test("searching with the 'q' param finds no items where q matches the private metadata") {
     val privateValue = "Cheetah Corp."
     val params = allDomainsParams ++ Map("q" -> privateValue).mapValues(Seq(_))
-    val res = service.doSearch(params, requireAuth = false, AuthParams(), None, None)
+    val res = service.doSearch(params, AuthParams(), None, None)
     val actualFxfs = fxfs(res._2)
     actualFxfs should be('empty)
 
@@ -617,7 +617,7 @@ class SearchServiceSpecForAnonymousUsers
     val privateKey = "Secret domain 0 cat organization"
     val privateValue = "Cheetah Corp."
     val params = allDomainsParams ++ Map(privateKey -> Seq(privateValue))
-    val res = service.doSearch(params, requireAuth = false, AuthParams(), None, None)
+    val res = service.doSearch(params, AuthParams(), None, None)
     val actualFxfs = fxfs(res._2)
     actualFxfs should be('empty)
 

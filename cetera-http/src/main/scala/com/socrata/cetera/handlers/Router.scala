@@ -13,8 +13,8 @@ import com.socrata.cetera.types._
 // Now the router knows about our ES field names
 class Router(
     versionResource: => HttpService,
-    catalogResource: Boolean => HttpService,
-    autocompleteResource: Boolean => HttpService,
+    catalogResource: => HttpService,
+    autocompleteResource: => HttpService,
     facetResource: String => HttpService,
     domainCountResource: => HttpService,
     countResource: DocumentFieldType with Countable with Rawable => HttpService,
@@ -25,8 +25,8 @@ class Router(
     Route("/version", versionResource),
 
     // general document search
-    Route("/catalog", catalogResource(false)),
-    Route("/catalog/v1", catalogResource(false)),
+    Route("/catalog", catalogResource),
+    Route("/catalog/v1", catalogResource),
 
     // general user search
     Route("/catalog/users", userSearchResource),
@@ -57,22 +57,12 @@ class Router(
     Route("/catalog/v1/domain_tags", countResource(DomainTagsFieldType)),
 
     // catalog autocomplete
-    Route("/catalog/autocomplete", autocompleteResource(false)),
-    Route("/catalog/v1/autocomplete", autocompleteResource(false)),
+    Route("/catalog/autocomplete", autocompleteResource),
+    Route("/catalog/v1/autocomplete", autocompleteResource),
 
-    //
-    // Internal endpoints
-    //
-
-    // internal catalog search
-    // Note: this route can very easily be folded into the /catalog route when we are ready
-    // to support /browse showing more than public/published/approved when users are signed in.
-    Route("/internal_catalog", catalogResource(true)),
-    Route("/internal_catalog/v1", catalogResource(true)),
-
-    //  Routes we should deprecate
-    Route("/personal_catalog", catalogResource(true)),  // TODO deprecate
-    Route("/personal_catalog/v1", catalogResource(true))  // TODO deprecate
+    // TODO: remove when this is no longer used in cetera-ruby
+    Route("/internal_catalog", catalogResource),
+    Route("/internal_catalog/v1", catalogResource)
   )
 
   def route(req: HttpRequest): HttpResponse =

@@ -40,7 +40,6 @@ class SearchService(
 
   def doSearch(
       queryParameters: MultiQueryParams,
-      requireAuth: Boolean,
       authParams: AuthParams,
       extendedHost: Option[String],
       requestId: Option[String])
@@ -50,7 +49,7 @@ class SearchService(
     val (authorizedUser, setCookies) = coreClient.optionallyAuthenticateUser(extendedHost, authParams, requestId)
     val ValidatedQueryParameters(searchParams, scoringParams, pagingParams, formatParams) =
       QueryParametersParser(queryParameters)
-    val authedUserId = authorizedUser.map(_.id)
+
     val (domains, domainSearchTime) = domainClient.findSearchableDomains(
       searchParams.searchContext, extendedHost, searchParams.domains,
       excludeLockedDomains = true, authorizedUser, requestId
@@ -60,10 +59,9 @@ class SearchService(
     val req = documentClient.buildSearchRequest(
       domainSet,
       searchParams, scoringParams, pagingParams,
-      authedUser, requireAuth
+      authedUser
     )
     logger.info(LogHelper.formatEsRequest(req))
-
     val res = req.execute.actionGet
     val formattedResults = Format.formatDocumentResponse(res, authedUser, domainSet, formatParams)
     val timings = InternalTimings(Timings.elapsedInMillis(now), Seq(domainSearchTime, res.getTookInMillis))
@@ -72,7 +70,7 @@ class SearchService(
     (OK, formattedResults.copy(timings = Some(timings)), timings, setCookies)
   }
 
-  def search(requireAuth: Boolean)(req: HttpRequest): HttpResponse = {
+  def search(req: HttpRequest): HttpResponse = {
     logger.debug(LogHelper.formatHttpRequestVerbose(req))
 
     val authParams = AuthParams.fromHttpRequest(req)
@@ -81,7 +79,7 @@ class SearchService(
 
     try {
       val (status, formattedResults, timings, setCookies) =
-        doSearch(req.multiQueryParams, requireAuth, authParams, extendedHost, requestId)
+        doSearch(req.multiQueryParams, authParams, extendedHost, requestId)
 
       logger.info(LogHelper.formatRequest(req, timings))
       Http.decorate(Json(formattedResults, pretty = true), status, setCookies)
@@ -104,8 +102,8 @@ class SearchService(
   }
 
   // $COVERAGE-OFF$ jetty wiring
-  case class Service(requireAuth: Boolean) extends SimpleResource {
-    override def get: HttpService = search(requireAuth)
+  case object Service extends SimpleResource {
+    override def get: HttpService = search
   }
 
   // $COVERAGE-ON$

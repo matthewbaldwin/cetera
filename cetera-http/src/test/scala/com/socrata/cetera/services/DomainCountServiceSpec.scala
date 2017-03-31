@@ -2,8 +2,7 @@ package com.socrata.cetera.services
 
 import javax.servlet.http.HttpServletRequest
 
-import com.rojoma.json.v3.ast.{JArray, JNumber, JValue}
-import com.rojoma.json.v3.io.JsonReader
+import com.rojoma.json.v3.ast.{JNumber, JValue}
 import com.socrata.http.server.HttpRequest
 import com.socrata.http.server.HttpRequest.AugmentedHttpServletRequest
 import org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
@@ -35,10 +34,24 @@ class DomainCountServiceSpec extends WordSpec with ShouldMatchers with BeforeAnd
   }
 
   def haveMatchingDocAndDomSearchCounts(params: Map[String, String]): Unit = {
-    val paramKeys = params.keySet.mkString(",")
-    s"have matching docSearch counts and domSearch counts" in {
+    val paramVals = params.values.mkString(",")
+    s"have matching docSearch counts and domSearch counts with the values $paramVals" in {
       val (_, domRes, _, _) = domainCountService.doAggregate(params.mapValues(Seq(_)), AuthParams(), None, None)
-      val docSearch = service.doSearch(params.mapValues(Seq(_)), requireAuth = false, AuthParams(), None, None)
+      val docSearch = service.doSearch(params.mapValues(Seq(_)), AuthParams(), None, None)
+      val docSearchCount = docSearch._2.resultSetSize
+      val domSearchCount = domRes.results.foldLeft(0)((sum, count) => sum + countToInt(count))
+      domSearchCount should be(docSearchCount)
+      domSearchCount should not be(0)
+    }
+  }
+
+  def haveMatchingDocAndDomSearchCountsWhenAuthed(params: Map[String, String], host: String): Unit = {
+    val paramVals = params.values.mkString(",")
+    s"have matching docSearch counts and domSearch counts with the values $paramVals" in {
+      prepareAuthenticatedUser(cookie, host, superAdminBody)
+      val (_, domRes, _, _) = domainCountService.doAggregate(params.mapValues(Seq(_)), AuthParams(cookie=Some(cookie)), Some(host), None)
+      prepareAuthenticatedUser(cookie, host, superAdminBody)
+      val docSearch = service.doSearch(params.mapValues(Seq(_)), AuthParams(cookie=Some(cookie)), Some(host), None)
       val docSearchCount = docSearch._2.resultSetSize
       val domSearchCount = domRes.results.foldLeft(0)((sum, count) => sum + countToInt(count))
       domSearchCount should be(docSearchCount)
@@ -47,7 +60,7 @@ class DomainCountServiceSpec extends WordSpec with ShouldMatchers with BeforeAnd
   }
 
   "counting documents by domains when no params are passed - and thus hitting up customer domains" should {
-    "have the correct counts" in {      
+    "have the correct counts" in {
       val expectedResults = List(
         Count(domains(0).domainCname, docCountsByDomain.getOrElse(0, 0)),
         Count(domains(2).domainCname, docCountsByDomain.getOrElse(2, 0)),
@@ -142,8 +155,6 @@ class DomainCountServiceSpec extends WordSpec with ShouldMatchers with BeforeAnd
   // from domainCount search. The params that are excluded here include:
   //   the search_context: since that is tested in greater detail above
   //   the q param: since that isn't supported at all and we expect counts to differ
-  //   the sharedTo param: since that requires auth
-  //   the params that influence visibility, like public or published, since currently the domainCountService doesn't use auth.
   // ------------------------------------------------------------------------------------------------
   "counting documents by domains with the domains param" should {
     haveMatchingDocAndDomSearchCounts(Map(Params.domains -> domains(0).domainCname))
@@ -183,6 +194,7 @@ class DomainCountServiceSpec extends WordSpec with ShouldMatchers with BeforeAnd
 
   "counting documents by domains with the provenance param" should {
     haveMatchingDocAndDomSearchCounts(Map(Params.provenance -> "community"))
+    haveMatchingDocAndDomSearchCounts(Map(Params.provenance -> "official"))
   }
 
   "counting documents by domains with the parentDatasetId param" should {
@@ -195,6 +207,31 @@ class DomainCountServiceSpec extends WordSpec with ShouldMatchers with BeforeAnd
 
   "counting documents by domains with the license param" should {
     haveMatchingDocAndDomSearchCounts(Map(Params.license -> "Academic Free License"))
+  }
+
+  "counting documents by domains with the sharedTo param" should {
+    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.sharedTo -> "lil-john"), domains(0).domainCname)
+  }
+
+  "counting documents by domains with the public param" should {
+    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.public -> "false"), domains(0).domainCname)
+    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.public -> "true"), domains(0).domainCname)
+  }
+
+  "counting documents by domains with the published param" should {
+    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.published -> "false"), domains(0).domainCname)
+    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.published -> "true"), domains(0).domainCname)
+  }
+
+  "counting documents by domains with the approvalStatus param" should {
+    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.approvalStatus -> "pending"), domains(0).domainCname)
+    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.approvalStatus -> "rejected"), domains(0).domainCname)
+    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.approvalStatus -> "approved"), domains(0).domainCname)
+  }
+
+  "counting documents by domains with the explicitlyHidden param" should {
+    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.explicitlyHidden -> "false"), domains(0).domainCname)
+    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.explicitlyHidden -> "true"), domains(0).domainCname)
   }
   // ------------------------------------------------------------------------------------------------
 

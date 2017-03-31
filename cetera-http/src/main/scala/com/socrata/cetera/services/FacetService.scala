@@ -52,8 +52,7 @@ class FacetService(
       case None => // domain exists but user isn't authorized to see it
         throw UnauthorizedError(authedUser, s"search for facets on $cname")
       case Some(d) => // domain exists and is viewable by user
-        val request = documentClient.buildFacetRequest(
-          domainSet, searchParams, pagingParams, authedUser, requireAuth = false)
+        val request = documentClient.buildFacetRequest(domainSet, searchParams, pagingParams, authedUser)
         logger.info(LogHelper.formatEsRequest(request))
         val res = request.execute().actionGet()
 

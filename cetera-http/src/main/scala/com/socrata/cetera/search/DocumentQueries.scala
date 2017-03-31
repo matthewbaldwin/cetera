@@ -351,7 +351,7 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
     val ownerQuery = searchParams.user.map(userQuery(_))
     val sharingQuery = (user, searchParams.sharedTo) match {
       case (_, None) => None
-      case (Some(u), Some(uid)) if (u.id == uid) => Some(sharedToQuery(uid))
+      case (Some(u), Some(uid)) if (u.id == uid || u.isSuperAdmin) => Some(sharedToQuery(uid))
       case (_, _) => throw UnauthorizedError(user, "search another user's shared files")
     }
     val attrQuery = searchParams.attribution.map(attributionQuery(_))
@@ -406,17 +406,13 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
   }
 
   // this will limit results to only those the user is allowed to see
-  def authQuery(
-      user: Option[User],
-      domainSet: DomainSet,
-      requireAuth: Boolean)
-    : Option[BoolQueryBuilder] = {
-    (requireAuth, user) match {
+  def authQuery(user: Option[User], domainSet: DomainSet): Option[BoolQueryBuilder] =
+    user match {
       // if user is super admin, no vis query needed
-      case (true, Some(u)) if (u.isSuperAdmin) => None
+      case Some(u) if (u.isSuperAdmin) => None
       // if the user can view everything, they can only view everything on *their* domain
       // plus, of course, things they own/share and public/published/approved views from other domains
-      case (true, Some(u)) if (u.authenticatingDomain.exists(d => u.canViewAllViews(d.domainId))) => {
+      case Some(u) if (u.authenticatingDomain.exists(d => u.canViewAllViews(d.domainId))) => {
         val personQuery = ownedOrSharedQuery(u)
         // re: includeContextApproval = false, in order for admins/etc to see views they've rejected from other domains,
         // we must allow them access to views that are approved on the parent domain, but not on the context.
@@ -429,27 +425,23 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
       }
       // if the user isn't a superadmin nor can they view everything, they may only see
       // things they own/share and public/published/approved views
-      case (true, Some(u)) => {
+      case Some(u) => {
         val personQuery = ownedOrSharedQuery(u)
         val anonQuery = anonymousQuery(domainSet)
         Some(boolQuery().should(personQuery).should(anonQuery))
       }
-      // if the user is hitting the internal endpoint without auth, we throw
-      case (true, None) => throw UnauthorizedError(user, "search the internal catalog")
-      // if auth isn't required, the user can only see public/published/approved views
-      case (false, _) => Some(anonymousQuery(domainSet))
+      // if the user is anonymous, they can only view anonymously-viewable views
+      case None => Some(anonymousQuery(domainSet))
     }
-  }
 
   // TODO: rename this; most queries are composites and thus this isn't very descriptive
   def compositeQuery(
       domainSet: DomainSet,
       searchParams: SearchParamSet,
-      user: Option[User],
-      requireAuth: Boolean)
+      user: Option[User])
     : BoolQueryBuilder = {
     val domainQueries = Some(domainSetQuery(domainSet))
-    val authQueries = authQuery(user, domainSet, requireAuth)
+    val authQueries = authQuery(user, domainSet)
     val searchQueries = searchParamsQuery(searchParams, user, domainSet)
 
     val allQueries = List(domainQueries, authQueries, searchQueries).flatten
@@ -558,8 +550,7 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
       domainSet: DomainSet,
       searchParams: SearchParamSet,
       query: QueryBuilder,
-      user: Option[User],
-      requireAuth: Boolean)
+      user: Option[User])
     : BoolQueryBuilder = {
 
     val categoriesAndTagsQuery = applyClassificationQuery(query, searchParams, domainSet.searchContext.isDefined)
@@ -568,7 +559,7 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
     // whether a document is considered part of the selection set, but they do not affect the
     // relevance score of the document.
     boolQuery()
-      .filter(compositeQuery(domainSet, searchParams, user, requireAuth))
+      .filter(compositeQuery(domainSet, searchParams, user))
       .must(categoriesAndTagsQuery)
   }
 
