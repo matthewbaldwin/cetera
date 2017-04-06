@@ -45,6 +45,22 @@ class CoreConfig(config: Config, root: String) extends ConfigClass(config, root)
   val connectionTimeoutMs = optionally(getInt("connectionTimeoutMs")).getOrElse(defaultTimeoutMs)
 }
 
+/** Example configuration for age-decay
+  *
+  *      age-decay = {
+  *        decay-type = gauss
+  *        scale = 365d
+  *        decay = 0.5
+  *        offset = 14d
+  *      }
+  */
+class AgeDecayConfig(config: Config, root: String) extends ConfigClass(config, root) {
+  val decayType = getString("decay-type")
+  val scale = getString("scale")
+  val decay = getString("decay").toDouble
+  val offset = getString("offset")
+}
+
 class ElasticSearchConfig(config: Config, root: String) extends ConfigClass(config,root) {
   protected def getBoostMap(config: Config, key: String): Float =
     config.getNumber(key).floatValue
@@ -60,5 +76,6 @@ class ElasticSearchConfig(config: Config, root: String) extends ConfigClass(conf
   val titleBoost = optionally[Float](config.getDouble(path("title-boost")).toFloat)
   val minShouldMatch = optionally[String](getString("min-should-match"))
   val functionScoreScripts = getStringList("function-score-scripts")
+  val ageDecay = optionally[AgeDecayConfig](getConfig("age-decay", new AgeDecayConfig(_, _)))
 }
 // $COVERAGE-ON$

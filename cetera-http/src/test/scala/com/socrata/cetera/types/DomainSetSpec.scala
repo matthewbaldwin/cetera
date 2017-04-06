@@ -106,7 +106,7 @@ class DomainSetSpec extends WordSpec with ShouldMatchers with TestESDomains {
     "return only the ids of domains which have moderation turned off" in {
       val domainSet = DomainSet(domains.toSet, Some(domains(1)))
       val actualNotMod = domainSet.moderationDisabledIds
-      val expectedNotMod = Set(0, 2, 4, 5)
+      val expectedNotMod = Set(0, 2, 4, 5, 9)
 
       actualNotMod should be(expectedNotMod)
     }
@@ -116,7 +116,7 @@ class DomainSetSpec extends WordSpec with ShouldMatchers with TestESDomains {
     "return only the ids of domains which have not enabled routing & approval" in {
       val domainSet = DomainSet(domains.toSet, Some(domains(1)))
       val actualRA = domainSet.raDisabledIds
-      val expectedRA = Set(0, 1, 5, 7)
+      val expectedRA = Set(0, 1, 5, 7, 9)
 
       actualRA should be(expectedRA)
     }

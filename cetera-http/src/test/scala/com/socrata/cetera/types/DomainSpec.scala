@@ -2,7 +2,7 @@ package com.socrata.cetera.types
 
 import org.scalatest._
 
-import com.socrata.cetera.{TestESClient, TestESData}
+import com.socrata.cetera.TestESData
 
 class DomainSpec extends WordSpec with ShouldMatchers with TestESData with BeforeAndAfterAll {
 
@@ -141,6 +141,20 @@ class DomainSpec extends WordSpec with ShouldMatchers with TestESData with Befor
       dom.moderationEnabled should be(true)
       dom.routingApprovalEnabled should be(true)
       dom.isLocked should be(true)
+    }
+  }
+
+  "domain 9" should {
+    "have the expected state" in {
+      val dom = domains(9)
+      dom.domainId should be(9)
+      dom.domainCname should be("robert.demo.socrata.com")
+      dom.siteTitle.get should be("Robert's Demo Site")
+      dom.organization.get should be("Awesometown USA")
+      dom.isCustomerDomain should be(true)
+      dom.moderationEnabled should be(false)
+      dom.routingApprovalEnabled should be(false)
+      dom.isLocked should be(false)
     }
   }
 }

@@ -1,5 +1,6 @@
 package com.socrata.cetera.handlers
 
+import org.joda.time.{DateTime, DateTimeZone, Interval}
 import org.scalatest.{FunSuiteLike, Matchers}
 
 import com.socrata.cetera.types._
@@ -112,18 +113,18 @@ class QueryParametersParserSpec extends FunSuiteLike with Matchers {
   }
 
   test("no datatype boost params results in empty datatype boosts map") {
-    val params = QueryParametersParser(Map("query" -> "crime").mapValues(Seq(_))).scoringParamset
+    val params = QueryParametersParser(Map("query" -> "crime").mapValues(Seq(_))).scoringParamSet
     params.datatypeBoosts should have size 0
   }
 
   test("malformed datatype boost params result in empty datatype boosts map") {
-    val params = QueryParametersParser(Map("query" -> "crime", "boostsDatasets" -> "5.0").mapValues(Seq(_))).scoringParamset
+    val params = QueryParametersParser(Map("query" -> "crime", "boostsDatasets" -> "5.0").mapValues(Seq(_))).scoringParamSet
     params.datatypeBoosts should have size 0
   }
 
   test("well-formed datatype boost params validate") {
     val params = QueryParametersParser(Map("query" -> "crime", "boostDatasets" -> "5.0", "boostMaps" -> "2.0")
-      .mapValues(Seq(_))).scoringParamset
+      .mapValues(Seq(_))).scoringParamSet
     params.datatypeBoosts should have size 2
   }
 
@@ -232,7 +233,6 @@ class QueryParametersParserSpec extends FunSuiteLike with Matchers {
       "tags",
       "q",
       "q_internal",
-      "function_score",
       "min_should_match",
       "for_user",
       "shared_to"
@@ -342,7 +342,7 @@ class QueryParametersParserSpec extends FunSuiteLike with Matchers {
       "boostDomains[data.seattle.gov]" -> Seq("4.56")
     )
 
-    QueryParametersParser(domainBoosts).scoringParamset.domainBoosts should be(
+    QueryParametersParser(domainBoosts).scoringParamSet.domainBoosts should be(
       Map("example.com" -> 1.23f, "data.seattle.gov" -> 4.56f)
     )
   }
@@ -353,7 +353,7 @@ class QueryParametersParserSpec extends FunSuiteLike with Matchers {
       "boostDomains[data.seattle.gov]" -> Seq("4.56")
     )
 
-    QueryParametersParser(domainBoosts).scoringParamset.domainBoosts should be(Map("data.seattle.gov" -> 4.56f))
+    QueryParametersParser(domainBoosts).scoringParamSet.domainBoosts should be(Map("data.seattle.gov" -> 4.56f))
   }
 
   test("domain boosts missing fields do not explode the params parser") {
@@ -364,7 +364,7 @@ class QueryParametersParserSpec extends FunSuiteLike with Matchers {
       "boostDomains[]" -> Seq()
     )
 
-    QueryParametersParser(domainBoosts).scoringParamset.domainBoosts should be(Map("data.seattle.gov" -> 4.56f))
+    QueryParametersParser(domainBoosts).scoringParamSet.domainBoosts should be(Map("data.seattle.gov" -> 4.56f))
   }
 
   test("domain boost degenerate cases do not explode the params parser") {
@@ -372,7 +372,7 @@ class QueryParametersParserSpec extends FunSuiteLike with Matchers {
       "boostDomains[boostDomains[example.com]]" -> Seq("1.23")
     )
 
-    QueryParametersParser(domainBoosts).scoringParamset.domainBoosts should be(Map("boostDomains[example.com]" -> 1.23f))
+    QueryParametersParser(domainBoosts).scoringParamSet.domainBoosts should be(Map("boostDomains[example.com]" -> 1.23f))
   }
 
   test("domain boost params are not interpreted as custom metadata fields") {
@@ -381,7 +381,7 @@ class QueryParametersParserSpec extends FunSuiteLike with Matchers {
       Params.boostDomains + "[example.com]" -> Seq("1.23")
     )
 
-    QueryParametersParser(params).scoringParamset.domainBoosts should be(Map("example.com" -> 1.23f))
+    QueryParametersParser(params).scoringParamSet.domainBoosts should be(Map("example.com" -> 1.23f))
   }
 
   // just documenting current if not-quite-ideal behavior
@@ -391,7 +391,7 @@ class QueryParametersParserSpec extends FunSuiteLike with Matchers {
       Params.boostDomains + "example.com" -> Seq("1.23"),
       Params.boostDomains -> Seq("1.23")
     )
-    QueryParametersParser(params).scoringParamset.domainBoosts should be(Map.empty[String, Float])
+    QueryParametersParser(params).scoringParamSet.domainBoosts should be(Map.empty[String, Float])
   }
 
   test("sort order can be parsed") {
@@ -408,7 +408,40 @@ class QueryParametersParserSpec extends FunSuiteLike with Matchers {
     val limit = Map("limit" -> Seq("100"))
     QueryParametersParser(limit).pagingParamSet.limit should be(100)
   }
- }
+
+  test("specifying an age_decay parameter with an invalid decay type value raises an exception") {
+    intercept[Exception] {
+      QueryParametersParser(Map("age_decay" -> Seq("derp,182d,0.5,14d"))).scoringParamSet.ageDecay
+    }
+  }
+
+  test("specifying an age_decay parameter with an invalid decay value raises an exception") {
+    intercept[Exception] {
+      QueryParametersParser(Map("age_decay" -> Seq("gauss,182d,foo,14d"))).scoringParamSet.ageDecay
+    }
+  }
+
+  test("specifying an age_decay parameter with an invalid origin value raises an exception") {
+    intercept[Exception] {
+      QueryParametersParser(Map("age_decay" -> Seq("gauss,182d,0.5,14d,bar"))).scoringParamSet.ageDecay
+    }
+  }
+
+  test("specifying an age_decay with no origin specified uses today as the origin") {
+    val now = new DateTime(DateTimeZone.UTC)
+    val today = new Interval(now.withTimeAtStartOfDay(), now.plusDays(1).withTimeAtStartOfDay())
+    QueryParametersParser(Map("age_decay" -> Seq("gauss,182d,0.5,14d"))).scoringParamSet.ageDecay should matchPattern {
+      case Some(AgeDecayParamSet(_, _, _, _, origin)) if today.contains(origin) =>
+    }
+  }
+
+  test("a fully-specified age_decay parameter works as expected") {
+    val now = new DateTime(DateTimeZone.UTC)
+    QueryParametersParser(Map("age_decay" -> Seq(s"linear,182d,0.5,14d,$now"))).scoringParamSet.ageDecay should matchPattern {
+      case Some(AgeDecayParamSet("linear", "182d", 0.5, "14d", now)) =>
+    }
+  }
+}
 
 class ParamsSpec extends FunSuiteLike with Matchers {
   test("isCatalogKey can recognize string keys") {

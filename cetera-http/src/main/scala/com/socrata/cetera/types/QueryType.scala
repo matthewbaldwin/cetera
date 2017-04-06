@@ -15,14 +15,3 @@ object MinShouldMatch {
       case _ => None
     }
 }
-
-case class ScriptScoreFunction(script: String)
-
-object ScriptScoreFunction {
-  def getScriptFunction(name: String): Option[ScriptScoreFunction] =
-    name match {
-      case "views" => Option(ScriptScoreFunction("""1 + doc["page_views.page_views_total_log"].value"""))
-      case "score" => Option(ScriptScoreFunction("_score"))
-      case _ => None // log this?
-    }
-}

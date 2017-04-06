@@ -343,6 +343,20 @@ class SearchServiceSpec extends FunSuiteLike
     actualFxfs should contain theSameElementsAs(expectedFxfs)
   }
 
+  test("a query that matches two otherwise identical documents, will prefer the more recently updated") {
+    val params = Map(
+      "domains" -> "robert.demo.socrata.com",
+      "show_score" -> "true",
+      "q" -> "latest and greatest",
+      "age_decay" -> "gauss,182d,0.5,14d,2017-04-04"
+    ).mapValues(Seq(_))
+
+    val results = service.doSearch(params, AuthParams(), None, None)._2.results
+    results.map(result =>
+      result.resource.dyn.id.!.cast[JString].get.string
+    ) should contain inOrderOnly ("1234-5678", "1234-5679")
+  }
+
   ignore("es client - min should match") {}
   ignore("es client - slop") {}
   ignore("es client - function score") {}

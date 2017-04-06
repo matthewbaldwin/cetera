@@ -1,5 +1,7 @@
 package com.socrata.cetera.handlers
 
+import org.joda.time.DateTime
+
 import com.socrata.cetera.types._
 
 case class SearchParamSet(
@@ -23,13 +25,21 @@ case class SearchParamSet(
     approvalStatus: Option[ApprovalStatus] = None,
     license: Option[String] = None)
 
+case class AgeDecayParamSet(
+    decayType: String,
+    scale: String,
+    decay: Double,
+    offset: String,
+    origin: DateTime = new DateTime())
+
 case class ScoringParamSet(
     fieldBoosts: Map[CeteraFieldType with Boostable, Float] = Map.empty,
     datatypeBoosts: Map[Datatype, Float] = Map.empty,
     domainBoosts: Map[String, Float] = Map.empty,
     officialBoost: Float = 1.toFloat,
     minShouldMatch: Option[String] = None,
-    slop: Option[Int] = None)
+    slop: Option[Int] = None,
+    ageDecay: Option[AgeDecayParamSet] = None)
 
 case class PagingParamSet(
     offset: Int = PagingParamSet.defaultPageOffset,

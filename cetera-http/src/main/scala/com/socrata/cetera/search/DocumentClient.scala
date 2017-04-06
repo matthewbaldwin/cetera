@@ -10,7 +10,7 @@ import org.elasticsearch.search.fetch.subphase.highlight.SearchContextHighlight.
 import com.socrata.cetera.auth.User
 import com.socrata.cetera.errors.MissingRequiredParameterError
 import com.socrata.cetera.esDocumentType
-import com.socrata.cetera.handlers.{PagingParamSet, ScoringParamSet, SearchParamSet}
+import com.socrata.cetera.handlers.{AgeDecayParamSet, PagingParamSet, SearchParamSet, ScoringParamSet}
 import com.socrata.cetera.search.DocumentAggregations.chooseAggregation
 import com.socrata.cetera.types._
 
@@ -53,7 +53,8 @@ class DocumentClient(
     indexAliasName: String,
     defaultTitleBoost: Option[Float],
     defaultMinShouldMatch: Option[String],
-    scriptScoreFunctions: Set[ScriptScoreFunction])
+    scriptScoreFunctions: Set[ScriptScoreFunction],
+    defaultAgeDecay: Option[AgeDecayParamSet])
   extends BaseDocumentClient {
 
   private def mergeDefaultScoringParams(scoringParams: ScoringParamSet) = {
@@ -63,7 +64,14 @@ class DocumentClient(
       .map(boost => Map(TitleFieldType -> boost) ++ requestedBoosts)
       .getOrElse(requestedBoosts)
     val finalMsm = if (requestedMsm.nonEmpty) requestedMsm else defaultMinShouldMatch
-    scoringParams.copy(fieldBoosts = allBoosts, minShouldMatch = finalMsm)
+
+    // prefer age decay params specified with current request if given
+    val ageDecay = if (scoringParams.ageDecay.isDefined) scoringParams.ageDecay else defaultAgeDecay
+
+    scoringParams.copy(
+      fieldBoosts = allBoosts,
+      minShouldMatch = finalMsm,
+      ageDecay = ageDecay)
   }
 
   // Assumes validation has already been done
@@ -118,7 +126,7 @@ class DocumentClient(
 
     // Wrap filtered query in function score query for boosting
     val query = DocumentQuery().scoringQuery(
-      filteredQuery, domainSet, scriptScoreFunctions, scoringParams)
+      filteredQuery, domainSet, scriptScoreFunctions, mergeDefaultScoringParams(scoringParams))
 
     val highlighterOptions = new FieldOptions()
       .preTags()

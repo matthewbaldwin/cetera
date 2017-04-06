@@ -26,7 +26,7 @@ class CountServiceSpec extends FunSuiteLike with Matchers with BeforeAndAfterAll
   val httpClient = new TestHttpClient()
   val coreClient = new TestCoreClient(httpClient, 8031)
   val domainClient = new DomainClient(esClient, coreClient, testSuiteName)
-  val documentClient = new DocumentClient(esClient, domainClient, testSuiteName, None, None, Set.empty)
+  val documentClient = new DocumentClient(esClient, domainClient, testSuiteName, None, None, Set.empty, None)
   val service = new CountService(documentClient, domainClient, coreClient)
 
   override protected def afterAll(): Unit = {
@@ -146,7 +146,7 @@ class CountServiceSpecWithTestESData extends FunSuiteLike with Matchers with Bef
   }
 
   test("domain categories count request") {
-    val expectedResults = List(Count("Alpha to Omega", 2), Count("Gamma", 1), Count("Pumas", 1), Count("Fun", 4), Count("", 2))
+    val expectedResults = List(Count("Alpha to Omega", 2), Count("Gamma", 1), Count("Pumas", 1), Count("Fun", 4), Count("", 2), Count("Beta", 2))
     val (_, res, _, _) = countService.doAggregate(DomainCategoryFieldType, Map.empty, AuthParams(), None, None)
     res.results should contain theSameElementsAs expectedResults
   }
@@ -158,7 +158,7 @@ class CountServiceSpecWithTestESData extends FunSuiteLike with Matchers with Bef
   }
 
   test("owners count request") {
-    val expectedResults = List(Count("robin-hood", 4), Count("lil-john", 2),  Count("john-clan", 1), Count("prince-john", 3))
+    val expectedResults = List(Count("robin-hood", 4), Count("lil-john", 2),  Count("john-clan", 1), Count("prince-john", 3), Count("honorable.sheriff", 2))
     val (_, res, _, _) = countService.doAggregate(OwnerIdFieldType, Map.empty, AuthParams(), None, None)
     res.results should contain theSameElementsAs expectedResults
   }
@@ -182,7 +182,7 @@ class CountServiceSpecWithBrokenES extends FunSuiteLike with Matchers with MockF
   val httpClient = new TestHttpClient()
   val coreClient = new TestCoreClient(httpClient, 8033)
   val domainClient = new DomainClient(client, coreClient, testSuiteName)
-  val documentClient = new DocumentClient(client, domainClient, testSuiteName, None, None, Set.empty)
+  val documentClient = new DocumentClient(client, domainClient, testSuiteName, None, None, Set.empty, None)
   val service = new CountService(documentClient, domainClient, coreClient)
 
   test("non fatal exceptions throw friendly error string") {

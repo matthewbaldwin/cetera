@@ -1,0 +1,64 @@
+{
+  "created_at": "2016-09-19T10:37:20.933-07:00",
+  "updated_at": "2017-04-04T10:37:20.857-07:00",
+  "socrata_id": {
+    "dataset_id": "1234-5678",
+    "parent_dataset_id": [],
+    "domain_id": 9,
+    "nbe_id": "abcd-efgh",
+    "obe_id": "hgfe-dcba"
+  },
+  "resource": {
+    "description": "A recently updated dataset",
+    "nbe_fxf": "1234-5678",
+    "parent_fxf": null,
+    "updated_at": "2017-04-04T10:37:20.857-07:00",
+    "created_at": "2016-09-19T10:37:20.933-07:00",
+    "type": "dataset",
+    "id": "1234-5678",
+    "columns": [],
+    "name": "My Latest and Greatest Dataset",
+    "attribution": null,
+    "provenance": "community"
+  },
+  "animl_annotations": {
+    "categories": [],
+    "tags": []
+  },
+  "datatype": "chart",
+  "viewtype": "",
+  "indexed_metadata": {
+    "name": "My Latest and Greatest Dataset",
+    "description": "A recently updated dataset",
+    "columns_field_name": [],
+    "columns_description": [],
+    "columns_name": []
+  },
+  "customer_metadata_flattened": [],
+  "private_customer_metadata_flattened": [],
+  "is_public": true,
+  "is_published": true,
+  "is_default_view": true,
+  "moderation_status": "approved",
+  "approving_domain_ids": [],
+  "rejecting_domain_ids": [],
+  "pending_domain_ids": [],
+  "is_approved_by_parent_domain": false,
+  "is_rejected_by_parent_domain": false,
+  "is_pending_on_parent_domain": false,
+  "page_views": {
+    "page_views_total": 2,
+    "page_views_last_month": 2,
+    "page_views_last_week": 2
+  },
+  "customer_category": "Beta",
+  "customer_tags": [],
+  "owner_id": "honorable.sheriff",
+  "shared_to": [],
+  "attribution": null,
+  "preview_image_id": null,
+  "grants": [],
+  "hide_from_catalog": false,
+  "hide_from_data_json": false,
+  "provenance": "community"
+}

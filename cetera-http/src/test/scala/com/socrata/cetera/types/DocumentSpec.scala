@@ -424,5 +424,26 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
     }
   }
 
+  "domain 9 is a customer domain with neither VM & RA that does not federate anywhere" should {
+    "have the expected statuses for 1234-5678" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "1234-5678").get
+      doc.isPublic should be(true)
+      doc.isPublished should be(true)
+      doc.isDatalens should be(false)
+      doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(true)
+      doc.isSharedOrOwned("honorable.sheriff") should be(true)
+    }
+
+    "have the expected statuses for 1234-5679" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "1234-5679").get
+      doc.isPublic should be(true)
+      doc.isPublished should be(true)
+      doc.isDatalens should be(false)
+      doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(true)
+      doc.isSharedOrOwned("honorable.sheriff") should be(true)
+    }
+  }
 }
 

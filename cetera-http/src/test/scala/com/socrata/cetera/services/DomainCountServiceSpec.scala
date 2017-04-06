@@ -65,7 +65,8 @@ class DomainCountServiceSpec extends WordSpec with ShouldMatchers with BeforeAnd
         Count(domains(0).domainCname, docCountsByDomain.getOrElse(0, 0)),
         Count(domains(2).domainCname, docCountsByDomain.getOrElse(2, 0)),
         Count(domains(3).domainCname, docCountsByDomain.getOrElse(3, 0)),
-        Count(domains(4).domainCname, docCountsByDomain.getOrElse(4, 0)))
+        Count(domains(4).domainCname, docCountsByDomain.getOrElse(4, 0)),
+        Count(domains(9).domainCname, docCountsByDomain.getOrElse(9, 0)))
       val (_, res, _, _) = domainCountService.doAggregate(Map.empty, AuthParams(), None, None)
       res.results should contain theSameElementsAs expectedResults
     }
@@ -79,7 +80,8 @@ class DomainCountServiceSpec extends WordSpec with ShouldMatchers with BeforeAnd
         Count(domains(2).domainCname, docCountsByDomain.getOrElse(2, 0)),
         Count(domains(3).domainCname, docCountsByDomain.getOrElse(3, 0)),
         Count(domains(4).domainCname, docCountsByDomain.getOrElse(4, 0)),
-        Count(domains(5).domainCname, docCountsByDomain.getOrElse(5, 0)))
+        Count(domains(5).domainCname, docCountsByDomain.getOrElse(5, 0)),
+        Count(domains(9).domainCname, docCountsByDomain.getOrElse(9, 0)))
       val (_, res, _, _) = domainCountService.doAggregate(allDomainsParams, AuthParams(), None, None)
       res.results should contain theSameElementsAs expectedResults
     }

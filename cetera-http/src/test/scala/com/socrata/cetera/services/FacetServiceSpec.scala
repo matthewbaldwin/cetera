@@ -8,7 +8,6 @@ import com.rojoma.json.v3.io.CompactJsonWriter
 import com.socrata.http.server.HttpRequest
 import com.socrata.http.server.HttpRequest.AugmentedHttpServletRequest
 import org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
-import org.mockserver.integration.ClientAndServer._
 import org.mockserver.matchers.Times
 import org.mockserver.model.HttpRequest.request
 import org.mockserver.model.HttpResponse.response
@@ -250,7 +249,7 @@ class FacetServiceSpecWithBrokenES extends FunSuiteLike with Matchers with MockF
   val httpClient = new TestHttpClient()
   val coreClient = new TestCoreClient(httpClient, 8036)
   val domainClient = new DomainClient(client, coreClient, testSuiteName)
-  val documentClient = new DocumentClient(client, domainClient, testSuiteName, None, None, Set.empty)
+  val documentClient = new DocumentClient(client, domainClient, testSuiteName, None, None, Set.empty, None)
   val service = new FacetService(documentClient, domainClient, coreClient)
 
   test("non fatal exceptions throw friendly error string") {

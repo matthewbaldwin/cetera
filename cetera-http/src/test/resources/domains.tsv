@@ -8,3 +8,4 @@ id	cname	siteTitle	Organization	isCustomerDomain	isDomainModerated	hasRoutingApp
 6	locked.demo.com	Locked Down	org	false	true	true	true	false
 7	api.locked.demo.com	Api Locked Down	org	true	true	false	false	true
 8	double.locked.demo.com	Doubly Locked Down	org	true	true	true	true	true
+9	robert.demo.socrata.com	Robert's Demo Site	Awesometown USA	true	false	false	false	false	false

@@ -5,7 +5,7 @@ import org.elasticsearch.common.lucene.search.function.CombineFunction
 import org.elasticsearch.common.lucene.search.function.FiltersFunctionScoreQuery.{ScoreMode => FnScoreMode}
 import org.elasticsearch.index.query._
 import org.elasticsearch.index.query.QueryBuilders._
-import org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder
+import org.elasticsearch.index.query.functionscore._
 
 import com.socrata.cetera.auth.User
 import com.socrata.cetera.{esDomainType, esDocumentType}
@@ -609,7 +609,11 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
     val dataTypeBoosts = Boosts.datatypeBoostFunctions(scoringParams.datatypeBoosts)
     val domainBoosts = Boosts.domainBoostFunctions(domainSet.domainIdBoosts)
     val officialBoost = Boosts.officialBoostFunction(scoringParams.officialBoost)
-    val allScoringFunctions = scoreFunctions ++ dataTypeBoosts ++ domainBoosts ++ officialBoost
+    val ageDecay = scoringParams.ageDecay.map(Boosts.ageDecayFunction)
+
+    val allScoringFunctions =
+      scoreFunctions ++ dataTypeBoosts ++ domainBoosts ++ officialBoost ++ ageDecay
+
     val fnScoreQuery = functionScoreQuery(query, allScoringFunctions.toArray)
     fnScoreQuery.scoreMode(FnScoreMode.MULTIPLY).boostMode(CombineFunction.REPLACE)
   }

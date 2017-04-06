@@ -1,6 +1,5 @@
 package com.socrata.cetera.search
 
-import com.rojoma.json.v3.interpolation._
 import com.rojoma.json.v3.io.JsonReader
 import org.elasticsearch.index.query.MultiMatchQueryBuilder.Type.{CROSS_FIELDS, PHRASE}
 import org.scalatest.{BeforeAndAfterAll, ShouldMatchers, WordSpec}

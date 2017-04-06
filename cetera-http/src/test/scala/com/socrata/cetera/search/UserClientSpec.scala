@@ -6,7 +6,7 @@ import com.socrata.cetera.auth.User
 import com.socrata.cetera.errors.UnauthorizedError
 import com.socrata.cetera.handlers.{PagingParamSet, UserSearchParamSet}
 import com.socrata.cetera.types.Domain
-import com.socrata.cetera.{TestESClient, TestESData, TestESUsers}
+import com.socrata.cetera.{TestESData, TestESUsers}
 
 class UserClientSpec extends FunSuiteLike with Matchers with TestESData with TestESUsers with BeforeAndAfterAll {
   val userClient = new UserClient(client, testSuiteName)

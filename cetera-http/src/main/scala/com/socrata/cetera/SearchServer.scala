@@ -13,11 +13,10 @@ import org.slf4j.{LoggerFactory, MDC}
 
 import com.socrata.cetera.auth.CoreClient
 import com.socrata.cetera.config.CeteraConfig
-import com.socrata.cetera.handlers.Router
+import com.socrata.cetera.handlers.{AgeDecayParamSet, Router}
 import com.socrata.cetera.metrics.BalboaClient
-import com.socrata.cetera.search.{DocumentClient, DomainClient, ElasticSearchClient, UserClient}
+import com.socrata.cetera.search.{DocumentClient, DomainClient, ElasticSearchClient, UserClient, ScriptScoreFunction}
 import com.socrata.cetera.services._
-import com.socrata.cetera.types.ScriptScoreFunction
 
 // $COVERAGE-OFF$ jetty wiring
 object SearchServer extends App {
@@ -69,7 +68,9 @@ object SearchServer extends App {
       config.elasticSearch.titleBoost,
       config.elasticSearch.minShouldMatch,
       config.elasticSearch.functionScoreScripts.flatMap(fnName =>
-      ScriptScoreFunction.getScriptFunction(fnName)).toSet
+        ScriptScoreFunction(fnName)).toSet,
+      config.elasticSearch.ageDecay.map(config =>
+        AgeDecayParamSet(config.decayType, config.scale, config.decay, config.offset))
     )
     val userClient = new UserClient(esClient, config.elasticSearch.indexAliasName)
 

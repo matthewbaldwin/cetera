@@ -1,13 +1,16 @@
 package com.socrata.cetera.handlers
 
+import org.joda.time.{DateTime, DateTimeZone}
+import org.slf4j.LoggerFactory
+
 import com.socrata.cetera.handlers.util._
-import com.socrata.cetera.search.Sorts
+import com.socrata.cetera.search.{Sorts, Boosts}
 import com.socrata.cetera.types._
 
 // These are validated input parameters but aren't supposed to know anything about ES
 case class ValidatedQueryParameters(
     searchParamSet: SearchParamSet,
-    scoringParamset: ScoringParamSet,
+    scoringParamSet: ScoringParamSet,
     pagingParamSet: PagingParamSet,
     formatParamSet: FormatParamSet)
 
@@ -21,6 +24,8 @@ case class DatatypeError(override val message: String) extends ValidationError
 
 // Parses and validates
 object QueryParametersParser { // scalastyle:ignore number.of.methods
+  val logger = LoggerFactory.getLogger(getClass)
+
   val filterDelimiter = "," // to be deprecated
   val limitLimit = 10000
   val allowedFilterTypes = Datatypes.all.flatMap(d => Seq(d.plural, d.singular)).mkString(filterDelimiter)
@@ -46,6 +51,36 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
   case class SortOrderString(value: String)
   implicit val sortOrderStringParamConverter = ParamConverter.filtered { (a: String) =>
     if (Sorts.mapSortParam(a).isDefined) Some(SortOrderString(a)) else None
+  }
+
+  // for age decay
+  implicit val ageDecayParamConverter = ParamConverter.filtered { (paramString: String) =>
+    def now() = DateTime.now(DateTimeZone.UTC).toString
+
+    val parts = {
+      val paramsSplit = paramString.split(',')
+      paramsSplit.length match {
+        case 4 => Some(paramsSplit :+ now()) // scalastyle:ignore magic.number
+        case 5 => Some(paramsSplit) // scalastyle:ignore magic.number
+        case n: Int =>
+          logger.error(s"Expected 4 or 5 comma-separated parameters to age_decay, got $n")
+          None
+      }
+    }
+
+    try {
+      parts.collect {
+        case Array(decayType, scale, decay, offset, origin) if (Boosts.isValidDecayType(decayType)) =>
+          AgeDecayParamSet(decayType, scale, decay.toDouble, offset, DateTime.parse(origin))
+      }
+    } catch {
+      case _: NumberFormatException =>
+        logger.error(s"Invalid value for decay parameter: ${parts.get(2)}")
+        None
+      case _: IllegalArgumentException =>
+        logger.error(s"Invalid date format for origin parameter: ${parts.last}")
+        None
+    }
   }
 
   // If both are specified, prefer the advanced query over the search query
@@ -123,7 +158,6 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
       None
     }
   }
-
 
   //////////////////
   // PARAM PREPARERS
@@ -268,6 +302,11 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
   def prepareSlop(queryParameters: MultiQueryParams): Option[Int] =
     queryParameters.typedFirst[Int](Params.slop).map(validated)
 
+  // EXAMPLE: age_decay=gauss,365d,0.5,14d
+  // EXAMPLE: age_decay=gauss,182d,0.5,14d,2017-04-05
+  def prepareAgeDecay(queryParameters: MultiQueryParams): Option[AgeDecayParamSet] =
+    queryParameters.typedFirst[AgeDecayParamSet](Params.ageDecay).map(validated)
+
   def prepareShowScore(queryParameters: MultiQueryParams): Boolean =
     prepareBooleanParam(queryParameters, Params.showScore).getOrElse(false)
 
@@ -350,7 +389,8 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
       prepareDomainBoosts(queryParameters),
       prepareOfficialBoost(queryParameters),
       prepareMinShouldMatch(queryParameters),
-      prepareSlop(queryParameters)
+      prepareSlop(queryParameters),
+      prepareAgeDecay(queryParameters)
     )
     val pagingParams = PagingParamSet(
       prepareOffset(queryParameters),
@@ -455,9 +495,9 @@ object Params {
   val boostDomains = boostParamPrefix + "Domains"
 
   val boostOfficial = boostParamPrefix + "Official"
-  val functionScore = "function_score"
   val minShouldMatch = "min_should_match"
   val slop = "slop"
+  val ageDecay = "age_decay"
 
   // result formatting parameters
   val locale = "locale"
@@ -503,9 +543,9 @@ object Params {
     boostDescription,
     boostTitle,
     boostOfficial,
-    functionScore,
     minShouldMatch,
     slop,
+    ageDecay,
     showFeatureValues,
     showScore,
     showVisibility,
