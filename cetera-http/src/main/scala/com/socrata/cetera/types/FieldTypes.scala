@@ -62,7 +62,7 @@ sealed trait NativelyRawable extends Rawable {
   override lazy val rawFieldName: String = fieldName
 }
 
-// For field with a corresponding autocomplete field
+// For fields with a corresponding autocomplete field
 sealed trait Autocompletable extends CeteraFieldType {
   lazy val autocompleteFieldName: String = fieldName + ".autocomplete"
 }
@@ -71,6 +71,11 @@ sealed trait Autocompletable extends CeteraFieldType {
 sealed trait Mapable extends CeteraFieldType {
   val Key: NestedField
   val Value: NestedField
+}
+
+// For fields that we want to search the lowercase versions of
+sealed trait Lowercasable extends CeteraFieldType {
+  lazy val lowercaseFieldName: String = fieldName + ".lowercase"
 }
 
 ///////////////////
@@ -94,28 +99,28 @@ case object DomainCnameFieldType extends DomainFieldType with Countable with Raw
 ////////////////////
 // Categories & Tags
 
-// Categories have a score and a raw field name available
-case object CategoriesFieldType extends DocumentFieldType with Scorable with Rawable {
+// Categories have a score, a raw field name, and a lower-cased field name available
+case object CategoriesFieldType extends DocumentFieldType with Scorable with Rawable with Lowercasable {
   val fieldName: String = "animl_annotations.categories"
 
-  case object Name extends NestedField with Rawable {
+  case object Name extends NestedField with Rawable with Lowercasable {
     protected lazy val path: String = CategoriesFieldType.fieldName
   }
 
-  case object Score extends NestedField with Rawable {
+  case object Score extends NestedField with Rawable with Lowercasable {
     protected lazy val path: String = CategoriesFieldType.fieldName
   }
 }
 
-// Tags have a score and a raw field name available
-case object TagsFieldType extends DocumentFieldType with Scorable with Rawable {
+// Tags have a score, a raw field name, and a lower-cased field name available
+case object TagsFieldType extends DocumentFieldType with Scorable with Rawable with Lowercasable {
   val fieldName: String = "animl_annotations.tags"
 
-  case object Name extends NestedField with Rawable {
+  case object Name extends NestedField with Rawable with Lowercasable {
     protected lazy val path: String = TagsFieldType.fieldName
   }
 
-  case object Score extends NestedField with Rawable {
+  case object Score extends NestedField with Rawable with Lowercasable {
     protected lazy val path: String = TagsFieldType.fieldName
   }
 }
@@ -224,19 +229,17 @@ case object HideFromDataJsonFieldType extends DocumentFieldType {
 /////////////////////////////////////////////////
 // Domain-specific Categories, Tags, and Metadata
 
-// TODO: cetera-etl rename customer_tags to domain_tags
 // Domain tags are customer-defined tags (which surface as topics in the front end).
-case object DomainTagsFieldType extends DocumentFieldType with Countable with Rawable {
+case object DomainTagsFieldType extends DocumentFieldType with Countable with Rawable with Lowercasable {
   val fieldName: String = "customer_tags"
 }
 
 // A domain category is a domain-specific (customer-specified) category (as
 // opposed to a Socrata-specific canonical category).
-case object DomainCategoryFieldType extends DocumentFieldType with Countable with Rawable {
+case object DomainCategoryFieldType extends DocumentFieldType with Countable with Rawable with Lowercasable {
   val fieldName: String = "customer_category"
 }
 
-// TODO: cetera-etl rename customer_metadata_flattened to domain_metadata_flattened
 // domain_metadata_flattened Domain metadata allows customers to define their
 // own facets and call them whatever they like, for example you could define
 // Superheroes and select from a list of them. We support these fields as
@@ -288,7 +291,7 @@ case object DescriptionFieldType extends DocumentFieldType with Boostable {
   val fieldName: String = "indexed_metadata.description"
 }
 
-case object ColumnNameFieldType extends DocumentFieldType with Rawable with Boostable {
+case object ColumnNameFieldType extends DocumentFieldType with Lowercasable with Boostable {
   val fieldName: String = "indexed_metadata.columns_name"
 }
 

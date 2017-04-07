@@ -52,7 +52,7 @@ trait TestESData extends TestESDomains with TestESUsers {
   val docs = {
     // there is no difference in these two types of docs except for the means by which
     // we used to construct them in commit 1442a6b08.
-    val series1DocFiles = (0 to 12).map(i => s"/views/fxf-$i.json")
+    val series1DocFiles = (0 to 13).map(i => s"/views/fxf-$i.json")
     val series2DocFiles = (1 to 9).map(i => s"/views/zeta-000$i.json") ++
       (10 to 14).map(i => s"/views/zeta-00$i.json") ++
       (1 to 2).map(i => s"/views/domain-9-view-$i.json")
@@ -70,7 +70,8 @@ trait TestESData extends TestESDomains with TestESUsers {
   }
 
   val anonymouslyViewableDocIds =
-    List("fxf-0", "fxf-1", "fxf-8", "fxf-10", "fxf-11", "fxf-12", "zeta-0001", "zeta-0002", "zeta-0005", "zeta-0007", "zeta-0012", "1234-5678", "1234-5679")
+    List("fxf-0", "fxf-1", "fxf-8", "fxf-10", "fxf-11", "fxf-12", "fxf-13",
+      "zeta-0001", "zeta-0002", "zeta-0005", "zeta-0007", "zeta-0012", "1234-5678", "1234-5679")
   val anonymouslyViewableDocs = docs.filter(d => anonymouslyViewableDocIds contains(d.socrataId.datasetId))
 
   def bootstrapData(): Unit = {

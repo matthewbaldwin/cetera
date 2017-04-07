@@ -73,7 +73,7 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
     termsQuery(DomainTagsFieldType.rawFieldName, tags.toSeq: _*)
 
   def columnNamesQuery(columnNames: Set[String]): TermsQueryBuilder =
-    termsQuery(ColumnNameFieldType.rawFieldName, columnNames.toSeq: _*)
+    termsQuery(ColumnNameFieldType.lowercaseFieldName, columnNames.toSeq: _*)
   // ------------------------------------------------------------------------------------------
 
   // this query limits documents to those owned/shared to the user
@@ -572,7 +572,7 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
       nestedQuery(
         CategoriesFieldType.fieldName,
         cs.foldLeft(boolQuery().minimumShouldMatch(1)) { (b, q) =>
-          b.should(matchPhraseQuery(CategoriesFieldType.Name.fieldName, q))
+          b.should(matchPhraseQuery(CategoriesFieldType.Name.lowercaseFieldName, q))
         },
         ScoreMode.Avg
       )
@@ -583,7 +583,7 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
       nestedQuery(
         TagsFieldType.fieldName,
         tags.foldLeft(boolQuery().minimumShouldMatch(1)) { (b, q) =>
-          b.should(matchPhraseQuery(TagsFieldType.Name.fieldName, q))
+          b.should(matchPhraseQuery(TagsFieldType.Name.lowercaseFieldName, q))
         },
         ScoreMode.Avg
       )
@@ -592,14 +592,14 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
   def domainCategoriesQuery(categories: Option[Set[String]]): Option[BoolQueryBuilder] =
     categories.map { cs =>
       cs.foldLeft(boolQuery().minimumShouldMatch(1)) { (b, q) =>
-        b.should(matchPhraseQuery(DomainCategoryFieldType.fieldName, q))
+        b.should(matchPhraseQuery(DomainCategoryFieldType.lowercaseFieldName, q))
       }
     }
 
   def domainTagsQuery(tags: Option[Set[String]]): Option[BoolQueryBuilder] =
     tags.map { ts =>
       ts.foldLeft(boolQuery().minimumShouldMatch(1)) { (b, q) =>
-        b.should(matchPhraseQuery(DomainTagsFieldType.fieldName, q))
+        b.should(matchPhraseQuery(DomainTagsFieldType.lowercaseFieldName, q))
       }
     }
 

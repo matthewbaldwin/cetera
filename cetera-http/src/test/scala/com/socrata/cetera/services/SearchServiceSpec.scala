@@ -280,6 +280,7 @@ class SearchServiceSpec extends FunSuiteLike
       "fxf-0" -> true,
       "fxf-4" -> false,
       "fxf-8" -> true,
+      "fxf-13" -> true,
       "zeta-0001" -> true,
       "zeta-0004" -> false,
       "zeta-0006" -> false,

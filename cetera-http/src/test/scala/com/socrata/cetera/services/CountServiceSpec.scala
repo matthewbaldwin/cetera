@@ -134,31 +134,33 @@ class CountServiceSpecWithTestESData extends FunSuiteLike with Matchers with Bef
   }
 
   test("categories count request") {
-    val expectedResults = List(Count("Personal", 5))
+    val expectedResults = List(Count("Personal", 5), Count("It's Personal Buddy",1))
     val (_, res, _, _) = countService.doAggregate(CategoriesFieldType, Map.empty, AuthParams(), None, None)
     res.results should contain theSameElementsAs expectedResults
   }
 
   test("tags count request") {
-    val expectedResults = List(Count("Happy", 5), Count("Accident", 5))
+    val expectedResults = List(Count("Happy", 5), Count("A Very Happy Capitalized Tag Name",1), Count("Accident", 5))
     val (_, res, _, _) = countService.doAggregate(TagsFieldType, Map.empty, AuthParams(), None, None)
     res.results should contain theSameElementsAs expectedResults
   }
 
   test("domain categories count request") {
-    val expectedResults = List(Count("Alpha to Omega", 2), Count("Gamma", 1), Count("Pumas", 1), Count("Fun", 4), Count("", 2), Count("Beta", 2))
+    val expectedResults = List(Count("Alpha to Omega", 2), Count("Alpha", 1), Count("Beta", 2), Count("Gamma", 1),
+      Count("Pumas", 1), Count("Fun", 4), Count("", 2))
     val (_, res, _, _) = countService.doAggregate(DomainCategoryFieldType, Map.empty, AuthParams(), None, None)
     res.results should contain theSameElementsAs expectedResults
   }
 
   test("domain tags count request") {
-    val expectedResults = List(Count("1-one", 5), Count("2-two", 3), Count("facts",1))
+    val expectedResults = List(Count("1-one", 5), Count("2-two", 3), Count("facts",1),
+      Count("1-one is only the very first part of this tag",1))
     val (_, res, _, _) = countService.doAggregate(DomainTagsFieldType, Map.empty, AuthParams(), None, None)
     res.results should contain theSameElementsAs expectedResults
   }
 
   test("owners count request") {
-    val expectedResults = List(Count("robin-hood", 4), Count("lil-john", 2),  Count("john-clan", 1), Count("prince-john", 3), Count("honorable.sheriff", 2))
+    val expectedResults = List(Count("robin-hood", 5), Count("lil-john", 2),  Count("john-clan", 1), Count("prince-john", 3), Count("honorable.sheriff", 2))
     val (_, res, _, _) = countService.doAggregate(OwnerIdFieldType, Map.empty, AuthParams(), None, None)
     res.results should contain theSameElementsAs expectedResults
   }

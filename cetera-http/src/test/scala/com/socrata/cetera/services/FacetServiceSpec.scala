@@ -69,12 +69,14 @@ class FacetServiceSpec
       FacetRes(tags, categories, datatypes, metadata)
     }
 
-    // domain 0 has 2 datasets (zeta-0001 and zeta-0007), a calendar (fxf-0), a href (fxf-8) and a DL (zeta-0012) that are anonymously viewable
+    // domain 0 has 2 datasets (zeta-0001 and zeta-0007), a calendar (fxf-0), two hrefs (fxf-8, fxf-13) and a DL (zeta-0012) that are anonymously viewable
     domainFacets(0).datatypes should contain theSameElementsAs(List(ValueCount("dataset", 2), ValueCount("calendar",1),
-      ValueCount("datalens",1), ValueCount("href",1)))
-    domainFacets(0).categories should contain theSameElementsAs(List(ValueCount("Alpha to Omega",2), ValueCount("Fun",2), ValueCount("Pumas",1)))
-    domainFacets(0).tags should contain theSameElementsAs(List(ValueCount("1-one",2), ValueCount("facts",1)))
-    domainFacets(0).metadata should contain theSameElementsAs(List(ValueCount("8",2), ValueCount("1",2), ValueCount("3",2)))
+      ValueCount("datalens",1), ValueCount("href",2)))
+    domainFacets(0).categories should contain theSameElementsAs(List(ValueCount("Alpha to Omega",2),
+      ValueCount("Fun",2), ValueCount("Pumas",1), ValueCount("Alpha", 1)))
+    domainFacets(0).tags should contain theSameElementsAs(List(ValueCount("1-one",2), ValueCount("facts",1),
+      ValueCount("1-one is only the very first part of this tag",1)))
+    domainFacets(0).metadata should contain theSameElementsAs(List(ValueCount("8",3), ValueCount("1",3), ValueCount("3",3)))
 
     // domain 1 has 1 chart (fxf-1) that is anonymously viewable
     domainFacets(1).datatypes should contain theSameElementsAs(List(ValueCount("chart", 1)))

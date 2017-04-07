@@ -124,7 +124,7 @@ class DomainCountServiceSpec extends WordSpec with ShouldMatchers with BeforeAnd
       val contextId = 1
       val context = domains(contextId).domainCname
       val expectedResults = List(
-        Count("petercetera.net", 2), // the federated domain only has 2 anon-visible default views: fxf-8 and zeta-0007
+        Count("petercetera.net", 3), // the federated domain has 3 anon-visible default views: fxf-8, fxf-13, and zeta-0007
         Count(context, docCountsByDomain.getOrElse(contextId, 0))) // the context's counts should stay the same
       val (_, res, _, _) = domainCountService.doAggregate(Map(
           Params.searchContext -> context,

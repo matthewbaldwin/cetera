@@ -2008,7 +2008,7 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
                       "should": [
                           {
                               "match_phrase": {
-                                  "animl_annotations.categories.name": {
+                                  "animl_annotations.categories.name.lowercase": {
                                       "query": "Fun",
                                       "slop": 0,
                                       "boost": 1.0
@@ -2043,7 +2043,7 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
                       "should": [
                           {
                               "match_phrase": {
-                                  "animl_annotations.categories.name": {
+                                  "animl_annotations.categories.name.lowercase": {
                                       "query": "Fun",
                                       "slop": 0,
                                       "boost": 1.0
@@ -2052,7 +2052,7 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
                           },
                           {
                               "match_phrase": {
-                                  "animl_annotations.categories.name": {
+                                  "animl_annotations.categories.name.lowercase": {
                                       "query": "Times",
                                       "slop": 0,
                                       "boost": 1.0
@@ -2087,7 +2087,7 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
                       "should": [
                           {
                               "match_phrase": {
-                                  "animl_annotations.categories.name": {
+                                  "animl_annotations.categories.name.lowercase": {
                                       "query": "Unemployment Insurance",
                                       "slop": 0,
                                       "boost": 1.0
@@ -2128,7 +2128,7 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
                       "should": [
                           {
                               "match_phrase": {
-                                  "animl_annotations.tags.name": {
+                                  "animl_annotations.tags.name.lowercase": {
                                       "query": "Fun",
                                       "slop": 0,
                                       "boost": 1.0
@@ -2163,7 +2163,7 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
                       "should": [
                           {
                               "match_phrase": {
-                                  "animl_annotations.tags.name": {
+                                  "animl_annotations.tags.name.lowercase": {
                                       "query": "Fun",
                                       "slop": 0,
                                       "boost": 1.0
@@ -2172,7 +2172,7 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
                           },
                           {
                               "match_phrase": {
-                                  "animl_annotations.tags.name": {
+                                  "animl_annotations.tags.name.lowercase": {
                                       "query": "Times",
                                       "slop": 0,
                                       "boost": 1.0
@@ -2211,7 +2211,7 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
               "should": [
                   {
                       "match_phrase": {
-                          "customer_category": {
+                          "customer_category.lowercase": {
                               "query": "Fun",
                               "slop": 0,
                               "boost": 1.0
@@ -2238,7 +2238,7 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
               "should": [
                   {
                       "match_phrase": {
-                          "customer_category": {
+                          "customer_category.lowercase": {
                               "query": "Fun",
                               "slop": 0,
                               "boost": 1.0
@@ -2247,7 +2247,7 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
                   },
                   {
                       "match_phrase": {
-                          "customer_category": {
+                          "customer_category.lowercase": {
                               "query": "Times",
                               "slop": 0,
                               "boost": 1.0
@@ -2282,7 +2282,7 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
               "should": [
                   {
                       "match_phrase": {
-                          "customer_tags": {
+                          "customer_tags.lowercase": {
                               "query": "Fun",
                               "slop": 0,
                               "boost": 1.0
@@ -2309,7 +2309,7 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
               "should": [
                   {
                       "match_phrase": {
-                          "customer_tags": {
+                          "customer_tags.lowercase": {
                               "query": "Fun",
                               "slop": 0,
                               "boost": 1.0
@@ -2318,7 +2318,7 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
                   },
                   {
                       "match_phrase": {
-                          "customer_tags": {
+                          "customer_tags.lowercase": {
                               "query": "Times",
                               "slop": 0,
                               "boost": 1.0

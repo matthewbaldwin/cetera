@@ -13,7 +13,8 @@
               "type": "text",
               "analyzer": "snowball_en",
               "fields": {
-                "raw": { "type": "keyword", "store": true }
+                "raw": { "type": "keyword", "store": true },
+                "lowercase": {"type": "text", "analyzer": "case_insensitive_en" }
               },
               "copy_to": [ "fts_analyzed", "fts_raw" ]
             },
@@ -28,7 +29,8 @@
               "type": "text",
               "analyzer": "snowball_en",
               "fields": {
-                "raw": { "type": "keyword", "store": true }
+                "raw": { "type": "keyword", "store": true },
+                "lowercase": {"type": "text", "analyzer": "case_insensitive_en" }
               },
               "copy_to": [ "fts_analyzed", "fts_raw" ]
             },
@@ -48,7 +50,8 @@
       "type": "text",
       "analyzer": "snowball_en",
       "fields": {
-        "raw": { "type": "keyword" }
+        "raw": { "type": "keyword" },
+        "lowercase": {"type": "text", "analyzer": "case_insensitive_en" }
       },
       "copy_to": [ "fts_analyzed", "fts_raw" ]
     },
@@ -109,7 +112,8 @@
       "type": "text",
       "analyzer": "snowball_en",
       "fields": {
-        "raw": { "type": "keyword" }
+        "raw": { "type": "keyword" },
+        "lowercase": {"type": "text", "analyzer": "case_insensitive_en" }
       },
       "copy_to": [ "fts_analyzed", "fts_raw" ]
     },
@@ -124,7 +128,8 @@
           "type": "text",
           "analyzer": "snowball_en",
           "fields": {
-            "raw": { "type": "keyword" }
+            "raw": { "type": "keyword" },
+            "lowercase": {"type": "text", "analyzer": "case_insensitive_en" }
           },
           "copy_to": [ "fts_analyzed", "fts_raw" ]
         },
@@ -132,7 +137,8 @@
           "type": "text",
           "analyzer": "snowball_en",
           "fields": {
-            "raw": { "type": "keyword" }
+            "raw": { "type": "keyword" },
+            "lowercase": {"type": "text", "analyzer": "case_insensitive_en" }
           },
           "copy_to": [ "fts_analyzed", "fts_raw" ]
         },
@@ -140,7 +146,8 @@
           "type": "text",
           "analyzer": "snowball_en",
           "fields": {
-            "raw": { "type": "text", "analyzer": "case_insensitive_en" }
+            "raw": { "type": "keyword" },
+            "lowercase": {"type": "text", "analyzer": "case_insensitive_en" }
           },
           "copy_to": [ "fts_analyzed", "fts_raw" ]
         },
