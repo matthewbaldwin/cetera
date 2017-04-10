@@ -104,6 +104,13 @@ class SearchService(
   // $COVERAGE-OFF$ jetty wiring
   case object Service extends SimpleResource {
     override def get: HttpService = search
+    override def options: HttpService = { (req: HttpRequest) =>
+      OK ~>
+        Header("Access-Control-Allow-Origin", "https://faceted.domain") ~>
+        Header("Access-Control-Allow-Credentials", "true") ~>
+        Header("Access-Control-Allow-Headers", "X-CSRF-Token, X-App-Token, X-Socrata-Host, Content-Type") ~>
+          Header("Access-Control-Allow-Methods", "GET")
+    }
   }
 
   // $COVERAGE-ON$

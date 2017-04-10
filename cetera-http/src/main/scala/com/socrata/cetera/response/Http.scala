@@ -16,7 +16,11 @@ object Http {
     val debugMessage = StringBuilder.newBuilder
     debugMessage.append(s"sending http response with (partial) headers:\n")
 
-    val baseResponse: HttpResponse = status ~> HeaderAclAllowOriginAll
+    val baseResponse: HttpResponse = status ~>
+        Header("Access-Control-Allow-Origin", "https://faceted.domain") ~>
+        Header("Access-Control-Allow-Credentials", "true") ~>
+        Header("Access-Control-Allow-Headers", "X-CSRF-Token, X-App-Token, X-Socrata-Host, Content-Type") ~>
+          Header("Access-Control-Allow-Methods", "GET")
     debugMessage.append(s"HTTP ${status.statusCode}\n")
     debugMessage.append("Access-Control-Allow-Origin: *\n")
 
