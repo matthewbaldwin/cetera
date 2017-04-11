@@ -2,6 +2,7 @@ package com.socrata.cetera.handlers
 
 import com.socrata.http.server.implicits._
 import com.socrata.http.server.responses.NotFound
+import com.socrata.http.server.routing.LiteralOnlyPathTree
 import com.socrata.http.server.routing.SimpleRouteContext._
 import com.socrata.http.server.{HttpRequest, HttpResponse, HttpService}
 
@@ -65,8 +66,9 @@ class Router(
     Route("/internal_catalog/v1", catalogResource)
   )
 
+  val rerouted = LiteralOnlyPathTree(Map("api" -> routes), None, None).merge(routes)
   def route(req: HttpRequest): HttpResponse =
-    routes(req.requestPath) match {
+    rerouted(req.requestPath) match {
       case Some(s) => s(req)
       case None => NotFound ~> HeaderAclAllowOriginAll ~> jsonError("not found")
     }
