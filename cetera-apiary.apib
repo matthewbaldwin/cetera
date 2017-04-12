@@ -45,7 +45,7 @@ The classification object contains 5 fields:
 
 
 The production API endpoints for the public version of this API are at `https://api.us.socrata.com/api/catalog/v1`
-for domains in North America and 
+for domains in North America and
 `https://api.eu.socrata.com/api/catalog/v1` for all other domains.
 For example, to query for datasets categorized as `Crime`, you could use the following query:
 
@@ -56,9 +56,9 @@ This is assumed and not documented in the API spec below. Please refer to our ma
 [Developer site](https://dev.socrata.com/docs/app-tokens.html) for information on using an app token.*
 
 ## Asset Visiblity
-There are four key factors which control whether or not a Socrata asset can be viewed anonymously by an unauthenticated 
-user on the platform. An asset must meet criteria for all factors which apply to the domain itself 
-(this varies domain-by-domain, as not all domains employ relevant features or modules which utilize these). 
+There are four key factors which control whether or not a Socrata asset can be viewed anonymously by an unauthenticated
+user on the platform. An asset must meet criteria for all factors which apply to the domain itself
+(this varies domain-by-domain, as not all domains employ relevant features or modules which utilize these).
 
 These factors are:
 - Privacy status
@@ -68,8 +68,8 @@ These factors are:
 
 ## Authentication
 
-Authentication is not required to use this API for read-only access to Socrata’s corpus of anonymously-viewable 
-(i.e. “published”, “public”, “approved”, and “not hidden” assets). However, if you wish to search for “private”, 
+Authentication is not required to use this API for read-only access to Socrata’s corpus of anonymously-viewable
+(i.e. “published”, “public”, “approved”, and “not hidden” assets). However, if you wish to search for “private”,
 “unpublished”, “unapproved” or "hidden" data, you must authenticate yourself and ensure that you have adequate permissions
 to view the data in question.
 
@@ -81,9 +81,9 @@ To authenticate, you must:
 When properly authenticated, you will be able to search over:
 - All data that is anonymously-viewable.
 - Any data that you own or that has been shared to you.
-- “Private”, “unpublished”, “unapproved”, and “hidden” assets from the authenticating domain 
-  if and only if the authenticating domain has granted you a 
-  [role](https://support.socrata.com/hc/en-us/articles/202950278-Understanding-user-roles) 
+- “Private”, “unpublished”, “unapproved”, and “hidden” assets from the authenticating domain
+  if and only if the authenticating domain has granted you a
+  [role](https://support.socrata.com/hc/en-us/articles/202950278-Understanding-user-roles)
   which allows you to view such assets.
 
 
@@ -308,12 +308,12 @@ limit the results to those that derive from a particular dataset.
 + Response 200
 
     [Search Endpoint][]
-    
+
 ## Searching for official or community-created views [/catalog/v1{?provenance}]
 While many assets on Socrata are owned by government data publishers and other staff, some visualizations,
-maps, filtered views, and more visible in a data catalog may have been created by a 
-member of the community. These assets are usually denoted with a "Community" badge on 
-the data catalog; this search service accounts for this information in the `provenance` field. 
+maps, filtered views, and more visible in a data catalog may have been created by a
+member of the community. These assets are usually denoted with a "Community" badge on
+the data catalog; this search service accounts for this information in the `provenance` field.
 Filtering by `provenance=official` will limit results to assets owned by roled users on the domain.
 Conversely, filtering by `provenance=community` will limit results to community-owned views.
 
@@ -329,15 +329,32 @@ Conversely, filtering by `provenance=community` will limit results to community-
 
     [Search Endpoint][]
 
+## Boosting official views [/catalog/v1{?boostOfficial}]
+It is possible to adjust the rankings of official views to promote them above community-created content.
+This leverages the `weight` function of [function score queries](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-function-score-query.html#function-weight)
+in Elasticsearch. This weight acts as a multiplier for the relevance score of each official document.
+Thus, a number between 0 and 1 will demote official views, while any number greater than 1 will boost them.
+
++ Parameters
+    + boostOfficial (optional, number, `2.0`) ...
+      Multiplier for the relevance score of official documents.
+      If not specified, no boost will be applied (equivalent to a boost of 1)
+
+### Official boost search API [GET]
+
++ Response 200
+
+    [Search Endpoint][]
+
 ## Searching for private or public data [/catalog/v1{?public}]
 The Privacy status of each asset is the first of four factors which control an asset’s visibility.
 A `public=true` param will limit results to those that are public.
-A `public=false` param will limit results to those that are private, noting that if you fail to authenticate or lack the 
+A `public=false` param will limit results to those that are private, noting that if you fail to authenticate or lack the
 permissions to view private data, no results will be returned.
 
 + Parameters
     + public (optional, boolean, `false`) ... Limit results to assets that are either public (if true) or private (if false).
-    If not specified and no authentication is given, only public assets will be returned. If not specified and 
+    If not specified and no authentication is given, only public assets will be returned. If not specified and
     authentication is given, both public and private data may be returned according to the rules described
     in the Authentication section.
 
@@ -346,20 +363,20 @@ permissions to view private data, no results will be returned.
 + Response 200
 
     [Search Endpoint][]
-    
+
 
 ## Searching for published or unpublished data [/catalog/v1{?published}]
 The Publication status of each asset is the second of four factors which control an asset’s visibility.
 A `published=true` param will limit results to those that are published.
-A `published=false` param will limit results to those that are unpublished, noting that if you fail to authenticate 
+A `published=false` param will limit results to those that are unpublished, noting that if you fail to authenticate
 or lack the permissions to view unpublished data, no results will be returned.
 
 + Parameters
     + published (optional, boolean, `false`) ... Limit results to assets that are published (if true) or unpublished (if false).
-    If not specified and no authentication is given, only published assets will be returned. 
-    If not specified and authentication is given, both published and unpublished data may be returned according to 
+    If not specified and no authentication is given, only published assets will be returned.
+    If not specified and authentication is given, both published and unpublished data may be returned according to
     rules described in the Authentication section.
-    
+
 ### Published or unpublished data search API [GET]
 
 + Response 200
@@ -367,18 +384,18 @@ or lack the permissions to view unpublished data, no results will be returned.
     [Search Endpoint][]
 
 ## Searching for approved or pending or rejected data [/catalog/v1{?approval_status}]
-The Approval status of each asset is the third of four factors which control an asset’s visibility. 
-Some Socrata sites employ an Approval module which routes assets through a series of steps before allowing 
-them to be anonymously-viewable. 
+The Approval status of each asset is the third of four factors which control an asset’s visibility.
+Some Socrata sites employ an Approval module which routes assets through a series of steps before allowing
+them to be anonymously-viewable.
 A `approval_status=approved` param will limit results to those that are approved.
-A `approval_status=pending` param will limit results to those that are pending, noting that if you fail to 
+A `approval_status=pending` param will limit results to those that are pending, noting that if you fail to
 authenticate or lack the permissions to view pending data, no results will be returned.
 A `approval_status=rejected` param will limit results to those that are rejected, noting that if you fail to
 authenticate or lack the permissions to view rejected data, no results will be returned.
 
 + Parameters
-    + approval_status (optional, string, `pending`) ... Limit results to assets with the given 
-    approval status (`approved`, `pending`, `rejected`). If not specified and no authentication is given, 
+    + approval_status (optional, string, `pending`) ... Limit results to assets with the given
+    approval status (`approved`, `pending`, `rejected`). If not specified and no authentication is given,
     only approved assets will be returned. If not specified and authentication is given,
     assets with any status may be returned according to rules described in the Authentication section.
 
@@ -394,22 +411,22 @@ Some Socrata sites selectively and explicitly hide certain assets from their pub
 this parameter accounts for this setting.
 
 A `explicitly_hidden=false` param will limit results to those that are not hidden from the public catalog.
-A `explicitly_hidden=true` param will limit results to those that are hidden from the public catalog, 
+A `explicitly_hidden=true` param will limit results to those that are hidden from the public catalog,
 noting that if you fail to authenticate or lack the permissions to view hidden data, no results will be returned.
 
 + Parameters
     + explicitly_hidden (optional, boolean, `true`) ... Limit results to assets that are hidden (if true) or not hidden (if false).
-    If not specified and no authentication is given, only not hidden assets will be returned. 
-    If not specified and authentication is given, both hidden and unhidden data may be returned 
+    If not specified and no authentication is given, only not hidden assets will be returned.
+    If not specified and authentication is given, both hidden and unhidden data may be returned
     according to rules described in the Authentication section.
-    
+
 ### Hidden or unhidden data search API [GET]
 
 + Response 200
 
     [Search Endpoint][]
 
-    
+
 
 ## Sort order [/catalog/v1{?order}]
 The results of all the above filters can be sorted by a number of fields.
@@ -452,7 +469,7 @@ The search service allows pagination of results.  By default, we will return at 
     [Search Endpoint][]
 
 
-## Complete Search API [/catalog/v1{?domains,search_context,categories,tags,only,attribution,provenance,q,derived_from,public,published,approval_status,explicitly_hidden,offset,limit,order,license,min_should_match}]
+## Complete Search API [/catalog/v1{?domains,search_context,categories,tags,only,attribution,provenance,q,derived_from,public,published,approval_status,explicitly_hidden,offset,limit,order,license,min_should_match,boostOfficial}]
 The full search API is detailed here.
 
 + Parameters
@@ -479,16 +496,16 @@ The full search API is detailed here.
     + q (optional, string, `lottery retailers`) ... A string for full text search
     + derived_from (optional, string, `2vvn-pdyi`) ... Limit results to assets derived from dataset by id.
     + public (optional, boolean, `false`) ... Limit results to assets that are either public (if true) or private (if false).
-      If not specified and no authentication is given, only public assets will be returned. 
+      If not specified and no authentication is given, only public assets will be returned.
       If not specified and authentication is given, both public and private data may be returned according to the rules described above.
     + published (optional, boolean, `false`) ... Limit results to assets that are published (if true) or unpublished (if false).
-      If not specified and no authentication is given, only published assets will be returned. 
+      If not specified and no authentication is given, only published assets will be returned.
       If not specified and authentication is given, both published and unpublished data may be returned according to rules described above    + offset (optional, number, `0`) ... Initial starting point for paging (0 by default)
     + approval_status (optional, string, `pending`) ... Limit results to assets with the given approval status (`approved`, `pending`, `rejected`).
       If not specified and no authentication is given, only approved assets will be returned.
       If not specified and authentication is given, assets with any status may be returned according to rules described above.
     + explicitly_hidden (optional, boolean, `true`) ... Limit results to assets that are hidden (if true) or not hidden (if false).
-      If not specified and no authentication is given, only not hidden assets will be returned. 
+      If not specified and no authentication is given, only not hidden assets will be returned.
       If not specified and authentication is given, both hidden and unhidden data may be returned according to rules described above.
     + limit (optional, number, `1000`) ... Number of results to return (100 default/max)
     + order (optional, string, `name`) ...
@@ -498,6 +515,10 @@ The full search API is detailed here.
       The number or percent of words that must match. See [the Elasticsearch docs](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-minimum-should-match.html) for the format.
     + license (optional, string, `Creative Commons Attribution 3.0 Unported`) ...
       Limits results to assets released under a particular license. Case-sensitive, exact-match.
+    + boostOfficial (optional, number, `2.0`) ...
+      Multiplier for the relevance score of official documents.
+      If not specified, no boost will be applied (equivalent to a boost of 1)
+
 
 ### Search API with all options [GET]
 
