@@ -39,7 +39,15 @@ class AutocompleteServiceSpec
     val params = Map("q" -> "Multiword Title").mapValues(Seq(_))
     val SearchResults(actualCompletions, _, _) = autocompleteService.doSearch(
       params, AuthParams(), None, None)._2
-    val expectedCompletions = List(CompletionResult("A Multiword Title", "A <span class=highlight>Multiword</span> <span class=highlight>Title</span>"))
+    val expectedCompletions = List(CompletionResult("A Multiword Title", "A <span class=highlight>Multiword</span> <span class=highlight>Title</span>", List("Multiword", "Title")))
+    actualCompletions should contain theSameElementsAs expectedCompletions
+  }
+
+  test("an autocomplete search with mulitple copies of the same term works as expected") {
+    val params = Map("q" -> "rammy").mapValues(Seq(_))
+    val SearchResults(actualCompletions, _, _) = autocompleteService.doSearch(
+      params, AuthParams(), None, None)._2
+    val expectedCompletions = List(CompletionResult("rammy is rammy", "<span class=highlight>rammy</span> is <span class=highlight>rammy</span>", List("rammy", "rammy")))
     actualCompletions should contain theSameElementsAs expectedCompletions
   }
 
@@ -49,7 +57,7 @@ class AutocompleteServiceSpec
       .mapValues(Seq(_))
     val SearchResults(actualCompletions, _, _) = autocompleteService.doSearch(
       params, AuthParams(), None, None)._2
-    val expectedCompletions = List(CompletionResult("One", "<span class=highlight>O</span>ne"))
+    val expectedCompletions = List(CompletionResult("One", "<span class=highlight>O</span>ne", List("O")))
     actualCompletions should contain theSameElementsAs expectedCompletions
   }
 }

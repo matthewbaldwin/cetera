@@ -110,18 +110,22 @@ object SearchResults {
 }
 
 @JsonKeyStrategy(Strategy.Underscore)
-case class CompletionResult(title: String, displayTitle: String)
+case class CompletionResult(title: String, displayTitle: String, matchedText: Seq[String])
 
 object CompletionResult {
   implicit val jCodec = AutomaticJsonCodecBuilder[CompletionResult]
+  val HighlightPattern = """<span class=highlight>(.*?)</span>""".r
 
   def fromElasticsearchHit(hit: SearchHit): CompletionResult = {
     val title = TitleFieldType.fromSearchHit(hit)
     val highlightMap = hit.highlightFields.asScala
     val highlightField = highlightMap.get(TitleFieldType.autocompleteFieldName)
     val displayTitle = highlightField.flatMap(field =>
-      field.fragments.collect { case title: Text => title.toString }.headOption
+      field.fragments.collect { case t: Text => t.toString }.headOption
     ).getOrElse(title)
-    CompletionResult(title, displayTitle)
+    val matches = for {
+      m <- HighlightPattern.findAllMatchIn(displayTitle)
+    } yield m.group(1)
+    CompletionResult(title, displayTitle, matches.toList)
   }
 }
