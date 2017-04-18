@@ -9,8 +9,7 @@ import com.socrata.cetera.TestESData
 import com.socrata.cetera.auth.AuthParams
 import com.socrata.cetera.errors.MissingRequiredParameterError
 import com.socrata.cetera.handlers.Params
-import com.socrata.cetera.response.SearchResult
-import com.socrata.cetera.response.{CompletionResult, SearchResults}
+import com.socrata.cetera.response.{CompletionResult, MatchSpan, SearchResult, SearchResults}
 
 class AutocompleteServiceSpec
   extends FunSuiteLike
@@ -39,7 +38,7 @@ class AutocompleteServiceSpec
     val params = Map("q" -> "Multiword Title").mapValues(Seq(_))
     val SearchResults(actualCompletions, _, _) = autocompleteService.doSearch(
       params, AuthParams(), None, None)._2
-    val expectedCompletions = List(CompletionResult("A Multiword Title", "A <span class=highlight>Multiword</span> <span class=highlight>Title</span>", List("Multiword", "Title")))
+    val expectedCompletions = List(CompletionResult("A Multiword Title", "A <span class=highlight>Multiword</span> <span class=highlight>Title</span>", List(MatchSpan(2, 9), MatchSpan(12, 5))))
     actualCompletions should contain theSameElementsAs expectedCompletions
   }
 
@@ -47,7 +46,7 @@ class AutocompleteServiceSpec
     val params = Map("q" -> "rammy").mapValues(Seq(_))
     val SearchResults(actualCompletions, _, _) = autocompleteService.doSearch(
       params, AuthParams(), None, None)._2
-    val expectedCompletions = List(CompletionResult("rammy is rammy", "<span class=highlight>rammy</span> is <span class=highlight>rammy</span>", List("rammy", "rammy")))
+    val expectedCompletions = List(CompletionResult("rammy is rammy", "<span class=highlight>rammy</span> is <span class=highlight>rammy</span>", List(MatchSpan(0, 5), MatchSpan(9, 5))))
     actualCompletions should contain theSameElementsAs expectedCompletions
   }
 
@@ -57,7 +56,7 @@ class AutocompleteServiceSpec
       .mapValues(Seq(_))
     val SearchResults(actualCompletions, _, _) = autocompleteService.doSearch(
       params, AuthParams(), None, None)._2
-    val expectedCompletions = List(CompletionResult("One", "<span class=highlight>O</span>ne", List("O")))
+    val expectedCompletions = List(CompletionResult("One", "<span class=highlight>O</span>ne", List(MatchSpan(0, 1))))
     actualCompletions should contain theSameElementsAs expectedCompletions
   }
 }
