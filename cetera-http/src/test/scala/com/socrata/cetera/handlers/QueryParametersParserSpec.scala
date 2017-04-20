@@ -441,6 +441,26 @@ class QueryParametersParserSpec extends FunSuiteLike with Matchers {
       case Some(AgeDecayParamSet("linear", "182d", 0.5, "14d", now)) =>
     }
   }
+
+  test("a single column name parameter is honored") {
+    val columnNames = QueryParametersParser(Map("column_names" -> Seq("action"))).searchParamSet.columnNames.map(_.toList)
+
+    columnNames should matchPattern {
+      case Some(List("action")) =>
+    }
+  }
+
+  test("multiple column name parameters are honored") {
+    val columnNames = QueryParametersParser(Map("column_names[]" -> Seq("first_name", "last_name"))).searchParamSet.columnNames.map(_.toList)
+
+    columnNames should matchPattern {
+      case Some(List("first_name", "last_name")) =>
+    }
+  }
+
+  test("empty string column name parameters are elided") {
+    QueryParametersParser(Map("column_names[]" -> Seq(""))).searchParamSet.columnNames shouldBe None
+  }
 }
 
 class ParamsSpec extends FunSuiteLike with Matchers {
@@ -480,11 +500,19 @@ class ParamsSpec extends FunSuiteLike with Matchers {
     Params.isCatalogKey("attribution") should be (true)
   }
 
-  test("iscatalogKey recognizes provenance") {
+  test("isCatalogKey recognizes provenance") {
     Params.isCatalogKey("provenance") should be (true)
   }
 
-  test("iscatalogKey recognizes license") {
+  test("isCatalogKey recognizes license") {
     Params.isCatalogKey("license") should be (true)
+  }
+
+  test("isCatalogKey recognizes column_names") {
+    Params.isCatalogKey("column_names") should be (true)
+  }
+
+  test("isCatalogKey recognizes column_names[] array") {
+    Params.isCatalogKey("column_names[]") should be (true)
   }
 }

@@ -16,29 +16,25 @@
     "created_at": "2016-09-19T10:37:21.147-07:00",
     "type": "dataset",
     "id": "zeta-0006",
-    "columns": [
-    ],
     "name": "",
     "attribution": null,
-    "provenance": "community"
+    "provenance": "community",
+    "columns_field_name": [],
+    "columns_description": [],
+    "columns_name": []
   },
   "animl_annotations": {
-    "categories": [
-    ],
-    "tags": [
-    ]
+    "categories": [],
+    "tags": []
   },
   "datatype": "dataset",
   "viewtype": "",
   "indexed_metadata": {
     "name": "",
     "description": "",
-    "columns_field_name": [
-    ],
-    "columns_description": [
-    ],
-    "columns_name": [
-    ]
+    "columns_field_name": [],
+    "columns_description": [],
+    "columns_name": []
   },
   "customer_metadata_flattened": [],
   "private_customer_metadata_flattened": [
@@ -51,12 +47,9 @@
   "is_published": false,
   "is_default_view": true,
   "moderation_status": null,
-  "approving_domain_ids": [
-  ],
-  "rejecting_domain_ids": [
-  ],
-  "pending_domain_ids": [
-  ],
+  "approving_domain_ids": [],
+  "rejecting_domain_ids": [],
+  "pending_domain_ids": [],
   "is_approved_by_parent_domain": false,
   "is_rejected_by_parent_domain": false,
   "is_pending_on_parent_domain": false,
@@ -66,8 +59,7 @@
     "page_views_last_week": 42
   },
   "customer_category": "Unpublished",
-  "customer_tags": [
-  ],
+  "customer_tags": [],
   "owner_id": "cook-mons",
   "shared_to": [
     "Little John"

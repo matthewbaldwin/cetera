@@ -288,7 +288,7 @@ case object DescriptionFieldType extends DocumentFieldType with Boostable {
   val fieldName: String = "indexed_metadata.description"
 }
 
-case object ColumnNameFieldType extends DocumentFieldType with Boostable {
+case object ColumnNameFieldType extends DocumentFieldType with Rawable with Boostable {
   val fieldName: String = "indexed_metadata.columns_name"
 }
 

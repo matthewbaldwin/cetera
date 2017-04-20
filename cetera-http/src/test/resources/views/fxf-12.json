@@ -16,16 +16,18 @@
     "created_at": "2016-09-19T10:37:20.933-07:00",
     "type": "dataset",
     "id": "fxf-12",
-    "columns": [],
     "name": "A Multiword Title",
     "attribution": null,
-    "provenance": "official"
+    "provenance": "official",
+    "columns_field_name": [],
+    "columns_description": [],
+    "columns_name": []
   },
   "animl_annotations": {
     "categories": [
       {
         "name": "Personal",
-        "score": 1.0
+        "score": 1
       }
     ],
     "tags": [

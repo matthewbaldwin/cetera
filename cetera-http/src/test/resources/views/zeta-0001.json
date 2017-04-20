@@ -16,29 +16,25 @@
     "created_at": "2016-09-19T10:37:21.138-07:00",
     "type": "dataset",
     "id": "zeta-0001",
-    "columns": [
-    ],
     "name": "",
     "attribution": null,
-    "provenance": "community"
+    "provenance": "community",
+    "columns_field_name": [],
+    "columns_description": [],
+    "columns_name": []
   },
   "animl_annotations": {
-    "categories": [
-    ],
-    "tags": [
-    ]
+    "categories": [],
+    "tags": []
   },
   "datatype": "dataset",
   "viewtype": "",
   "indexed_metadata": {
     "name": "",
     "description": "",
-    "columns_field_name": [
-    ],
-    "columns_description": [
-    ],
-    "columns_name": [
-    ]
+    "columns_field_name": [],
+    "columns_description": [],
+    "columns_name": []
   },
   "customer_metadata_flattened": [],
   "private_customer_metadata_flattened": [
@@ -54,10 +50,8 @@
   "approving_domain_ids": [
     2
   ],
-  "rejecting_domain_ids": [
-  ],
-  "pending_domain_ids": [
-  ],
+  "rejecting_domain_ids": [],
+  "pending_domain_ids": [],
   "is_approved_by_parent_domain": false,
   "is_rejected_by_parent_domain": false,
   "is_pending_on_parent_domain": false,
@@ -67,8 +61,7 @@
     "page_views_last_week": 42
   },
   "customer_category": "Fun",
-  "customer_tags": [
-  ],
+  "customer_tags": [],
   "owner_id": "robin-hood",
   "shared_to": [],
   "attribution": null,

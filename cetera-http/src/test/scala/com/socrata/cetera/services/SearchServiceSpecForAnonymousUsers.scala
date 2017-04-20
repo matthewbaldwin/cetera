@@ -2,7 +2,7 @@ package com.socrata.cetera.services
 
 import java.nio.charset.{Charset, CodingErrorAction}
 
-import com.rojoma.json.v3.ast.JString
+import com.rojoma.json.v3.ast.{JArray, JString}
 import com.rojoma.simplearm.v2._
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, FunSuiteLike, Matchers}
 
@@ -624,5 +624,27 @@ class SearchServiceSpecForAnonymousUsers
     // confirm there were documents that were excluded.
     anonymouslyViewableDocs.find(_.socrataId.datasetId == "fxf-8").get.privateCustomerMetadataFlattened.exists(m =>
       m.value == privateValue && m.key == privateKey) should be(true)
+  }
+
+  test("filtering by column names works") {
+    val params = Map("column_names[]" -> Seq("first_name"))
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
+    results.results.headOption.flatMap { case SearchResult(resource, _, _, _, _, _) =>
+      resource.dyn.columns_name.!.asInstanceOf[JArray] match {
+        case JArray(elems) => elems.headOption.map(_.asInstanceOf[JString].string)
+        case _ => None
+      }
+    } should be(Some("first_name"))
+  }
+
+  test("searching for column names works via the 'q' param works") {
+    val params = Map("q" -> Seq("first_name"))
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
+    results.results.headOption.flatMap { case SearchResult(resource, _, _, _, _, _) =>
+      resource.dyn.columns_name.!.asInstanceOf[JArray] match {
+        case JArray(elems) => elems.headOption.map(_.asInstanceOf[JString].string)
+        case _ => None
+      }
+    } should be(Some("first_name"))
   }
 }

@@ -16,10 +16,12 @@
     "created_at": "2016-09-19T10:37:20.933-07:00",
     "type": "dataset",
     "id": "1234-5679",
-    "columns": [],
     "name": "My Latest and Greatest Dataset",
     "attribution": null,
-    "provenance": "community"
+    "provenance": "community",
+    "columns_field_name": [],
+    "columns_description": [],
+    "columns_name": ["first_name"]
   },
   "animl_annotations": {
     "categories": [],
@@ -32,7 +34,9 @@
     "description": "A recently updated dataset",
     "columns_field_name": [],
     "columns_description": [],
-    "columns_name": []
+    "columns_name": [
+      "first_name"
+    ]
   },
   "customer_metadata_flattened": [],
   "private_customer_metadata_flattened": [],

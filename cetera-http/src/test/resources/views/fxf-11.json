@@ -16,16 +16,18 @@
     "created_at": "2016-09-19T10:37:20.933-07:00",
     "type": "federated_href",
     "id": "fxf-11",
-    "columns": [],
     "name": "Five",
     "attribution": null,
-    "provenance": "official"
+    "provenance": "official",
+    "columns_field_name": [],
+    "columns_description": [],
+    "columns_name": []
   },
   "animl_annotations": {
     "categories": [
       {
         "name": "Personal",
-        "score": 1.0
+        "score": 1
       }
     ],
     "tags": [

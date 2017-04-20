@@ -71,6 +71,9 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
 
   def customerTagsQuery(tags: Set[String]): TermsQueryBuilder =
     termsQuery(DomainTagsFieldType.rawFieldName, tags.toSeq: _*)
+
+  def columnNamesQuery(columnNames: Set[String]): TermsQueryBuilder =
+    termsQuery(ColumnNameFieldType.rawFieldName, columnNames.toSeq: _*)
   // ------------------------------------------------------------------------------------------
 
   // this query limits documents to those owned/shared to the user
@@ -361,6 +364,7 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
     val metaQuery = searchParams.domainMetadata.flatMap(combinedMetadataQuery(_, user))
     val derivationQuery = searchParams.derived.map(d => defaultViewQuery(!d))
     val licensesQuery = searchParams.license.map(licenseQuery(_))
+    val colNamesQuery = searchParams.columnNames.map(columnNamesQuery)
 
     // we want to honor categories and tags in domain search only, and this can only be done via filters.
     // for document search however, we score these in queries
@@ -376,7 +380,7 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
 
     List(typeQuery, ownerQuery, sharingQuery, attrQuery, provQuery, parentIdQuery, idsQuery, metaQuery,
       derivationQuery, privacyQuery, publicationQuery, hiddenQuery, approvalQuery, licensesQuery,
-      catQuery, tagsQuery).flatten match {
+      colNamesQuery, catQuery, tagsQuery).flatten match {
       case Nil => None
       case queries: Seq[QueryBuilder] => Some(queries.foldLeft(boolQuery()) { (b, f) => b.must(f) })
     }

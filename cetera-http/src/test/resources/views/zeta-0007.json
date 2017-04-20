@@ -16,29 +16,25 @@
     "created_at": "2016-09-19T10:37:21.149-07:00",
     "type": "dataset",
     "id": "zeta-0007",
-    "columns": [
-    ],
     "name": "rammy is rammy",
     "attribution": "The Merry Men",
-    "provenance": "community"
+    "provenance": "community",
+    "columns_field_name": [],
+    "columns_description": [],
+    "columns_name": []
   },
   "animl_annotations": {
-    "categories": [
-    ],
-    "tags": [
-    ]
+    "categories": [],
+    "tags": []
   },
   "datatype": "dataset",
   "viewtype": "",
   "indexed_metadata": {
     "name": "rammy is rammy",
     "description": "",
-    "columns_field_name": [
-    ],
-    "columns_description": [
-    ],
-    "columns_name": [
-    ]
+    "columns_field_name": [],
+    "columns_description": [],
+    "columns_name": []
   },
   "customer_metadata_flattened": [],
   "private_customer_metadata_flattened": [
@@ -54,10 +50,8 @@
   "approving_domain_ids": [
     2
   ],
-  "rejecting_domain_ids": [
-  ],
-  "pending_domain_ids": [
-  ],
+  "rejecting_domain_ids": [],
+  "pending_domain_ids": [],
   "is_approved_by_parent_domain": false,
   "is_rejected_by_parent_domain": false,
   "is_pending_on_parent_domain": false,

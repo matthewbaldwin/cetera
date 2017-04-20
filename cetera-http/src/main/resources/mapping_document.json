@@ -140,7 +140,7 @@
           "type": "text",
           "analyzer": "snowball_en",
           "fields": {
-            "raw": { "type": "keyword" }
+            "raw": { "type": "text", "analyzer": "case_insensitive_en" }
           },
           "copy_to": [ "fts_analyzed", "fts_raw" ]
         },

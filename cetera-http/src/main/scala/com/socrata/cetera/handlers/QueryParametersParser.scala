@@ -242,6 +242,9 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
   def prepareLicense(queryParameters: MultiQueryParams): Option[String] =
     filterNonEmptyStringParams(queryParameters.first(Params.license))
 
+  def prepareColumnNames(queryParameters: MultiQueryParams): Option[Set[String]] =
+    filterNonEmptySetParams(mergeArrayCommaParams(queryParameters, Params.columnNames))
+
   def prepareApprovalStatus(queryParameters: MultiQueryParams): Option[ApprovalStatus] = {
     val status = filterNonEmptyStringParams(queryParameters.first(Params.approvalStatus))
     status.map(restrictApprovalFilter(_))
@@ -380,7 +383,8 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
       prepareDerived(queryParameters),
       prepareHidden(queryParameters),
       prepareApprovalStatus(queryParameters),
-      prepareLicense(queryParameters)
+      prepareLicense(queryParameters),
+      prepareColumnNames(queryParameters)
     )
 
     val scoringParams = ScoringParamSet(
@@ -424,7 +428,6 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
 }
 
 object Params {
-
   def arrayify(param: String): String = s"${param}[]"
 
   // catalog params
@@ -444,6 +447,7 @@ object Params {
   val explicitlyHidden = "explicitly_hidden"
   val approvalStatus = "approval_status"
   val license = "license"
+  val columnNames = "column_names"
 
   val qInternal = "q_internal"
   val q = "q"
@@ -552,7 +556,8 @@ object Params {
     limit,
     offset,
     order,
-    license
+    license,
+    columnNames
   ) ++ datatypeBoostParams.toSet
 
 
@@ -560,7 +565,8 @@ object Params {
   private val catalogArrayKeys = Set(
     arrayify(categories),
     arrayify(only),
-    arrayify(tags)
+    arrayify(tags),
+    arrayify(columnNames)
   )
 
   // If your param is a hashmap like boostDomains[example.com]=1.23, add it here

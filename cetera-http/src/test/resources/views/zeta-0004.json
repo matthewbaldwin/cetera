@@ -16,29 +16,25 @@
     "created_at": "2016-09-19T10:37:21.143-07:00",
     "type": "datalens_chart",
     "id": "zeta-0004",
-    "columns": [
-    ],
     "name": "",
     "attribution": null,
-    "provenance": "community"
+    "provenance": "community",
+    "columns_field_name": [],
+    "columns_description": [],
+    "columns_name": []
   },
   "animl_annotations": {
-    "categories": [
-    ],
-    "tags": [
-    ]
+    "categories": [],
+    "tags": []
   },
   "datatype": "datalens_chart",
   "viewtype": "",
   "indexed_metadata": {
     "name": "",
     "description": "",
-    "columns_field_name": [
-    ],
-    "columns_description": [
-    ],
-    "columns_name": [
-    ]
+    "columns_field_name": [],
+    "columns_description": [],
+    "columns_name": []
   },
   "customer_metadata_flattened": [],
   "private_customer_metadata_flattened": [
@@ -51,10 +47,8 @@
   "is_published": true,
   "is_default_view": false,
   "moderation_status": "pending",
-  "approving_domain_ids": [
-  ],
-  "rejecting_domain_ids": [
-  ],
+  "approving_domain_ids": [],
+  "rejecting_domain_ids": [],
   "pending_domain_ids": [
     2
   ],
@@ -67,11 +61,11 @@
     "page_views_last_week": 42
   },
   "customer_category": "Standalone",
-  "customer_tags": [
-  ],
+  "customer_tags": [],
   "owner_id": "lil-john",
   "shared_to": [
-    "cook-mons", "maid-marian"
+    "cook-mons",
+    "maid-marian"
   ],
   "attribution": null,
   "preview_image_id": null,

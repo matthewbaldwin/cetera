@@ -23,7 +23,8 @@ case class SearchParamSet(
     derived: Option[Boolean] = None,
     explicitlyHidden: Option[Boolean] = None,
     approvalStatus: Option[ApprovalStatus] = None,
-    license: Option[String] = None)
+    license: Option[String] = None,
+    columnNames: Option[Set[String]] = None)
 
 case class AgeDecayParamSet(
     decayType: String,

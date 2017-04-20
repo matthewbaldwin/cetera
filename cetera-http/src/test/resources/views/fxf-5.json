@@ -18,17 +18,18 @@
     "created_at": "2016-09-19T10:37:20.933-07:00",
     "type": "filter",
     "id": "fxf-5",
-    "columns": [
-    ],
     "name": "Two",
     "attribution": null,
-    "provenance": "community"
+    "provenance": "community",
+    "columns_field_name": [],
+    "columns_description": [],
+    "columns_name": []
   },
   "animl_annotations": {
     "categories": [
       {
         "name": "Personal",
-        "score": 1.0
+        "score": 1
       }
     ],
     "tags": [
@@ -47,12 +48,9 @@
   "indexed_metadata": {
     "name": "Two",
     "description": "Second the best",
-    "columns_field_name": [
-    ],
-    "columns_description": [
-    ],
-    "columns_name": [
-    ]
+    "columns_field_name": [],
+    "columns_description": [],
+    "columns_name": []
   },
   "customer_metadata_flattened": [
     {
@@ -70,12 +68,9 @@
   "is_published": true,
   "is_default_view": false,
   "moderation_status": "rejected",
-  "approving_domain_ids": [
-  ],
-  "rejecting_domain_ids": [
-  ],
-  "pending_domain_ids": [
-  ],
+  "approving_domain_ids": [],
+  "rejecting_domain_ids": [],
+  "pending_domain_ids": [],
   "is_approved_by_parent_domain": false,
   "is_rejected_by_parent_domain": false,
   "is_pending_on_parent_domain": false,
