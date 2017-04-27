@@ -28,6 +28,7 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
 
   val filterDelimiter = "," // to be deprecated
   val limitLimit = 10000
+  val maxResultWindow = 10000
   val allowedFilterTypes = Datatypes.all.flatMap(d => Seq(d.plural, d.singular)).mkString(filterDelimiter)
 
   def validated[T](x: Either[ParamConversionFailure, T]): T = x match {
@@ -329,6 +330,17 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
       ).value
     )
 
+  def prepareOffsetAndLimit(queryParameters: MultiQueryParams): (Int, Int) = {
+    val offset = prepareOffset(queryParameters)
+    val limit = prepareLimit(queryParameters)
+
+    if (offset + limit > maxResultWindow) {
+      throw new IllegalArgumentException(s"Sum of offset and limit cannot exceed $maxResultWindow")
+    }
+
+    (offset, limit)
+  }
+
   //  user search param preparers
 
   def prepareEmail(queryParameters: MultiQueryParams): Option[Set[String]] =
@@ -396,11 +408,12 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
       prepareSlop(queryParameters),
       prepareAgeDecay(queryParameters)
     )
-    val pagingParams = PagingParamSet(
-      prepareOffset(queryParameters),
-      prepareLimit(queryParameters),
-      prepareSortOrder(queryParameters)
-    )
+
+    // NOTE: validating offset and limit together to ensure their sum is less than index.max_result_window
+    val (offset, limit) = prepareOffsetAndLimit(queryParameters)
+
+    val pagingParams = PagingParamSet(offset, limit, prepareSortOrder(queryParameters))
+
     val formatParams = FormatParamSet(
       prepareShowScore(queryParameters),
       prepareShowVisiblity(queryParameters),
@@ -410,20 +423,24 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
   }
 
   def prepUserParams(queryParameters: MultiQueryParams): ValidatedUserQueryParameters = {
-     val searchParams = UserSearchParamSet(
-       prepareId(queryParameters),
-       prepareEmail(queryParameters),
-       prepareScreenName(queryParameters),
-       prepareFlag(queryParameters),
-       prepareRole(queryParameters),
-       prepareUserDomain(queryParameters),
-       prepareUserQuery(queryParameters)
-     )
-     val pagingParams = PagingParamSet(
-       prepareOffset(queryParameters),
-       prepareLimit(queryParameters)
-     )
-     ValidatedUserQueryParameters(searchParams, pagingParams)
+    val searchParams = UserSearchParamSet(
+      prepareId(queryParameters),
+      prepareEmail(queryParameters),
+      prepareScreenName(queryParameters),
+      prepareFlag(queryParameters),
+      prepareRole(queryParameters),
+      prepareUserDomain(queryParameters),
+      prepareUserQuery(queryParameters)
+    )
+
+    // NOTE: validating offset and limit together to ensure their sum is less than index.max_result_window
+    val (offset, limit) = prepareOffsetAndLimit(queryParameters)
+
+    val pagingParams = PagingParamSet(
+      prepareOffset(queryParameters),
+      prepareLimit(queryParameters)
+    )
+    ValidatedUserQueryParameters(searchParams, pagingParams)
   }
 }
 

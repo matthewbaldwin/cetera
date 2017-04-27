@@ -461,6 +461,16 @@ class QueryParametersParserSpec extends FunSuiteLike with Matchers {
   test("empty string column name parameters are elided") {
     QueryParametersParser(Map("column_names[]" -> Seq(""))).searchParamSet.columnNames shouldBe None
   }
+
+  test("if the sum of limit and offset exceeds the default index.max_result_window value of 10000, an exception is thrown") {
+    intercept[IllegalArgumentException] {
+      QueryParametersParser(Map("limit" -> Seq("1000"), "offset" -> Seq("9001")))
+    }
+  }
+
+  test("if the sum of limit and offset does not exceed the value of index.max_result_window (10000), no exception is thrown") {
+    QueryParametersParser(Map("limit" -> Seq("1000"), "offset" -> Seq("9000"))).pagingParamSet should be (PagingParamSet(9000, 1000, None))
+  }
 }
 
 class ParamsSpec extends FunSuiteLike with Matchers {
