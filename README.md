@@ -58,7 +58,7 @@ Cetera, in development use, assumes an Elasticsearch setup as follows:
 - Cluster name: es_dev
 
 Assuming ES was installed with Homebrew, set the cluster name to `es_dev` in
-`/usr/local/opt/elasticsearch/config/elasticsearch.yml`.
+`/usr/local/etc/elasticsearch/elasticsearch.yml`
 
 For non-homebrew installations, please find and edit this file.
 
