@@ -18,6 +18,8 @@ Check out [Cetera's Apiary spec](http://docs.socratadiscovery.apiary.io/#) for t
 
 ## Setup
 
+[Check out this great doc that Katie Vedder put together!](https://docs.google.com/document/d/1wsslEGnp15STX8UnUFZ_kLzxDHkpLWstvAa-9OS31Gk/edit)
+
 ### Dependencies
 
 #### Java 1.8
@@ -53,14 +55,14 @@ Cetera, in development use, assumes an Elasticsearch setup as follows:
 - ES version: 5.2.2
 - Host: localhost (127.0.0.1)
 - Port: 9200 for HTTP requests and 9300 for Transport (java access)
-- Cluster name: catalog
+- Cluster name: es_dev
 
-Assuming ES was installed with Homebrew, set the cluster name to `catalog` in
-`/usr/local/opt/elasticsearch/config/elasticsearch.yml`.
+Assuming ES was installed with Homebrew, set the cluster name to `es_dev` in
+`/usr/local/etc/elasticsearch/elasticsearch.yml`.
 
 For non-homebrew installations, please find and edit this file.
 
-If your ES cluster name is something other than `catalog`, be sure you update the `es-cluster-name`
+If your ES cluster name is something other than `es_dev`, be sure you update the `es-cluster-name`
 setting in `local-cetera.conf` accordingly.
 
 Start Elasticsearch (if using Homebrew): `brew services start elasticsearch`
@@ -69,7 +71,7 @@ Start Elasticsearch (if using Homebrew): `brew services start elasticsearch`
 
 `brew install elasticsearch`
 
-In `/usr/local/opt/elasticsearch/config/elasticsearch.yml` set `cluster.name: catalog`
+In `/usr/local/opt/elasticsearch/config/elasticsearch.yml` set `cluster.name: es_dev`
 
 `ln -sfv /usr/local/opt/elasticsearch/*.plist ~/Library/LaunchAgents` (optional, launch
 automatically)
