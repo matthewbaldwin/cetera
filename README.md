@@ -18,6 +18,8 @@ Check out [Cetera's Apiary spec](http://docs.socratadiscovery.apiary.io/#) for t
 
 ## Setup
 
+[Check out this great doc that Katie Vedder put together!](https://docs.google.com/document/d/1wsslEGnp15STX8UnUFZ_kLzxDHkpLWstvAa-9OS31Gk/edit)
+
 ### Dependencies
 
 #### Java 1.8
