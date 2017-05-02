@@ -72,8 +72,10 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
   def customerTagsQuery(tags: Set[String]): TermsQueryBuilder =
     termsQuery(DomainTagsFieldType.rawFieldName, tags.toSeq: _*)
 
-  def columnNamesQuery(columnNames: Set[String]): TermsQueryBuilder =
-    termsQuery(ColumnNameFieldType.lowercaseFieldName, columnNames.toSeq: _*)
+  def columnNamesQuery(columnNames: Set[String]): BoolQueryBuilder =
+    columnNames.foldLeft(boolQuery().minimumShouldMatch(1)) { (b, q) =>
+      b.should(matchQuery(ColumnNameFieldType.lowercaseFieldName, q))
+    }
   // ------------------------------------------------------------------------------------------
 
   // this query limits documents to those owned/shared to the user

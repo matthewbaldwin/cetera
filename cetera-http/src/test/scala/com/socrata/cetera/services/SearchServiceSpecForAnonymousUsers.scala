@@ -801,4 +801,15 @@ class SearchServiceSpecForAnonymousUsers
       }
     } should be(Some("first_name"))
   }
+
+  test("searching by column names is case insensitive") {
+    val params = Map("column_names[]" -> Seq("FIRST_NAME"))
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
+    results.results.headOption.flatMap { case SearchResult(resource, _, _, _, _, _) =>
+      resource.dyn.columns_name.!.asInstanceOf[JArray] match {
+        case JArray(elems) => elems.headOption.map(_.asInstanceOf[JString].string)
+        case _ => None
+      }
+    } should be(Some("first_name"))
+  }
 }
