@@ -4,6 +4,7 @@ import scala.language.existentials
 
 import org.elasticsearch.action.search.SearchRequestBuilder
 import org.elasticsearch.search.aggregations.AggregationBuilders
+import org.elasticsearch.search.sort.SortBuilder
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder
 import org.elasticsearch.search.fetch.subphase.highlight.SearchContextHighlight.FieldOptions
 
@@ -108,6 +109,15 @@ class DocumentClient(
     preparedSearch
   }
 
+  def buildSort(domainSet: DomainSet, searchParams: SearchParamSet, pagingParams: PagingParamSet): SortBuilder[_] =
+    pagingParams match {
+      case PagingParamSet(_, _, Some(id), _) => Sorts.sortDatasetId
+      case PagingParamSet(_, _, _, Some(so)) if so != "relevance" =>
+        Sorts.mapSortParam(so).get // will raise if invalid param got through
+      case _ =>
+        Sorts.chooseSort(domainSet.searchContext, searchParams)
+    }
+
   def buildAutocompleteSearchRequest(
       domainSet: DomainSet,
       searchParams: SearchParamSet,
@@ -137,14 +147,22 @@ class DocumentClient(
       .preTags("<span class=highlight>")
       .postTags("</span>")
 
-    esClient.client
+    val sort = buildSort(domainSet, searchParams, pagingParams)
+
+    val request = esClient.client
       .prepareSearch(indexAliasName)
       .setFrom(pagingParams.offset)
       .setSize(pagingParams.limit)
       .setQuery(query)
+      .addSort(sort)
       .setTypes(esDocumentType)
       .setFetchSource(Array(TitleFieldType.fieldName), Array.empty[String])
       .highlighter(highlighter)
+
+    pagingParams.scrollId match {
+      case Some(id) if (!id.isEmpty) => request.searchAfter(Array(id))
+      case _ => request
+    }
   }
 
   def buildSearchRequest(
@@ -159,17 +177,17 @@ class DocumentClient(
 
     // WARN: Sort will totally blow away score if score isn't part of the sort
     // "Relevance" without a query can mean different things, so chooseSort decides
-    val sort = pagingParams.sortOrder match {
-      case Some(so) if so != "relevance" =>
-        Sorts.mapSortParam(so).get // will raise if invalid param got through
-      case _ =>
-        Sorts.chooseSort(domainSet.searchContext, searchParams)
-    }
+    val sort = buildSort(domainSet, searchParams, pagingParams)
 
-    baseRequest
+    val request = baseRequest
       .setFrom(pagingParams.offset)
       .setSize(pagingParams.limit)
       .addSort(sort)
+
+    pagingParams.scrollId match {
+      case Some(id) if (!id.isEmpty) => request.searchAfter(Array(id))
+      case _ => request
+    }
   }
 
   def buildCountRequest(

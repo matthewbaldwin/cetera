@@ -39,10 +39,11 @@ class AutocompleteService(
       searchParams.searchContext, extendedHost, searchParams.domains,
       excludeLockedDomains = true, authorizedUser, requestId
     )
-
+    val domainSet = domains.addDomainBoosts(scoringParams.domainBoosts)
     val authedUser = authorizedUser.map(u => u.copy(authenticatingDomain = domains.extendedHost))
+
     val req = documentClient.buildAutocompleteSearchRequest(
-      domains, searchParams, scoringParams, pagingParams, authedUser)
+      domainSet, searchParams, scoringParams, pagingParams, authedUser)
 
     logger.info(LogHelper.formatEsRequest(req))
 

@@ -56,12 +56,12 @@ class SearchService(
     )
     val domainSet = domains.addDomainBoosts(scoringParams.domainBoosts)
     val authedUser = authorizedUser.map(u => u.copy(authenticatingDomain = domainSet.extendedHost))
+
     val req = documentClient.buildSearchRequest(
-      domainSet,
-      searchParams, scoringParams, pagingParams,
-      authedUser
-    )
+      domainSet, searchParams, scoringParams, pagingParams, authedUser)
+
     logger.info(LogHelper.formatEsRequest(req))
+
     val res = req.execute.actionGet
     val formattedResults = Format.formatDocumentResponse(res, authedUser, domainSet, formatParams)
     val timings = InternalTimings(Timings.elapsedInMillis(now), Seq(domainSearchTime, res.getTookInMillis))

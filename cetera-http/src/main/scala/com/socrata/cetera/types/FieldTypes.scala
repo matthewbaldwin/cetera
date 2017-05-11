@@ -193,6 +193,10 @@ case object PendingDomainIdsFieldType extends DocumentFieldType {
   val fieldName: String = "pending_domain_ids"
 }
 
+case object SocrataIdDatasetIdFieldType extends DocumentFieldType {
+  val fieldName: String = "socrata_id.dataset_id"
+}
+
 case object SocrataIdDomainIdFieldType extends DocumentFieldType {
   val fieldName: String = "socrata_id.domain_id"
 }

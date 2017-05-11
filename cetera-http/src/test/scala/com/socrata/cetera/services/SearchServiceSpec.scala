@@ -358,6 +358,28 @@ class SearchServiceSpec extends FunSuiteLike
     ) should contain inOrderOnly ("1234-5678", "1234-5679")
   }
 
+  test("if scroll_id is specified, then results will be sorted by dataset ID") {
+    val params = Map("scroll_id" -> Seq(""), "domains" -> Seq(domains.map(_.domainCname).mkString(",")))
+
+    val results = service.doSearch(params, AuthParams(), None, None)._2.results
+
+    results.map(result =>
+      result.resource.dyn.id.!.cast[JString].get.string
+    ) should contain theSameElementsInOrderAs anonymouslyViewableDocIds.sorted
+  }
+
+  test("the expected results are returned when scroll_id and limit are specified") {
+    val params = Map("scroll_id" -> Seq("fxf-8"), "limit" -> Seq("5"), "domains" -> Seq(domains.map(_.domainCname).mkString(",")))
+    val anonymouslyViewableDocIdsSorted = anonymouslyViewableDocIds.sorted
+    val dropIndex = anonymouslyViewableDocIdsSorted.indexOf("fxf-8") + 1
+
+    val results = service.doSearch(params, AuthParams(), None, None)._2.results
+
+    results.map(result =>
+      result.resource.dyn.id.!.cast[JString].get.string
+    ) should contain theSameElementsInOrderAs anonymouslyViewableDocIdsSorted.drop(dropIndex).take(5)
+  }
+
   ignore("es client - min should match") {}
   ignore("es client - slop") {}
   ignore("es client - function score") {}

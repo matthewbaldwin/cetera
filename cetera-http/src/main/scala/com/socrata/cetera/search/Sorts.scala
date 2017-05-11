@@ -17,6 +17,9 @@ object Sorts {
   def sortFieldDesc(field: String): FieldSortBuilder =
     SortBuilders.fieldSort(field).order(SortOrder.DESC)
 
+  def sortDatasetId: FieldSortBuilder =
+    SortBuilders.fieldSort(SocrataIdDatasetIdFieldType.fieldName)
+
   def buildAverageScoreSort(
       fieldName: String,
       rawFieldName: String,
@@ -64,11 +67,14 @@ object Sorts {
       // Relevance
       case "relevance" => Some(sortScoreDesc)
 
+      // Dataset ID
+      case "dataset_id" => Some(sortDatasetId)
+
       // Otherwise...
       case _ => None
     }
 
-  /** Get the appropriate SortBuilder given a searchContext and a searcHparams
+  /** Get the appropriate SortBuilder given a searchContext and a searchParams
     *
     * First pass logic is very simple. query >> categories >> tags >> default
     *

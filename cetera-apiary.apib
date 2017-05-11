@@ -56,6 +56,7 @@ This is assumed and not documented in the API spec below. Please refer to our ma
 [Developer site](https://dev.socrata.com/docs/app-tokens.html) for information on using an app token.*
 
 ## Asset Visiblity
+
 There are four key factors which control whether or not a Socrata asset can be viewed anonymously by an unauthenticated
 user on the platform. An asset must meet criteria for all factors which apply to the domain itself
 (this varies domain-by-domain, as not all domains employ relevant features or modules which utilize these).
@@ -85,7 +86,6 @@ When properly authenticated, you will be able to search over:
   if and only if the authenticating domain has granted you a
   [role](https://support.socrata.com/hc/en-us/articles/202950278-Understanding-user-roles)
   which allows you to view such assets.
-
 
 # Search Endpoint [/catalog/v1]
 
@@ -154,10 +154,8 @@ When properly authenticated, you will be able to search over:
             "timings" : { "serviceMillis" : 5, "searchMillis" : 5 }
         }
 
-
-
-
 ## Searching particular domains [/catalog/v1{?domains,search_context}]
+
 Each asset is owned by a single domain. The `domain` and `search_context` params limit the results down to those
 from a single domain. Without these, the search service returns results from the full corpus of customer domains.
 
@@ -176,6 +174,7 @@ from a single domain. Without these, the search service returns results from the
     [Search Endpoint][]
 
 ## Searching particular categories/tags [/catalog/v1{?categories,tags,search_context}]
+
 Each asset may have categories/tags assigned by Socrata or by the owning domain.
 The `categories` and `tags` parameters limit the results to those having the given category or tag.
 Without these, the search service returns results from the entire set of categories/tags.
@@ -202,6 +201,7 @@ assets containing one or more of the specified tags.
     [Search Endpoint][]
 
 ## Searching particular asset types [/catalog/v1{?only}]
+
 Each asset has a logical, such as a dataset or chart. The `only` parameter limits the results to a particular type
 (eg `datasets`, `charts`, `maps`). Without this param, the search service returns results from the entire
 set of types.
@@ -218,6 +218,7 @@ set of types.
     [Search Endpoint][]
 
 ## Searching domain-specific metadata [/catalog/v1{?set%2dName_key%2dName,search_context}]
+
 Each domain has the ability to add custom metadata to datasets beyond Socrata’s default metadata.
 This custom metadata is different for every domain, but within a domain, all assets may be labeled
 with the metadata. The custom metadata is a named set of key-value pairs. For example one domain might
@@ -228,12 +229,10 @@ combination of the set's name and the key's name and the param value as the key'
 param name join the set's name to the key's name with an underscore and replace all spaces with dashes.
 Some examples are given in the table below:
 
-
 | Set Name             | Key Name          | Key Value            |  Param |
 |----------------------|-------------------|----------------------|--------|
 | Publication Metadata | Publication Cycle | Daily                | ?q=Publication-Metadata_Publication-Cycle=Daily
 | Agency Ownership     | Department        | Fisheries & Wildlife | ?q=Agency-Ownership_Department=Fisheries %26 Wildlife
-
 
 + Parameters
     + set%2dName_key%2dName (optional, string, `Key%20Value`) ...
@@ -249,6 +248,7 @@ Some examples are given in the table below:
     [Search Endpoint][]
 
 ## Searching particular attributions [/catalog/v1{?attribution}]
+
 Assets can be attributed to various organizations. The caller can restrict the results to only the
 assets with the given attribution by specifying this parameter.
 
@@ -262,6 +262,7 @@ assets with the given attribution by specifying this parameter.
     [Search Endpoint][]
 
 ## Searching by license [/catalog/v1{?license}]
+
 Assets can be released under various licenses. The caller can restrict the results to only the
 assets with the given license by specifying this parameter.
 
@@ -275,6 +276,7 @@ assets with the given license by specifying this parameter.
     [Search Endpoint][]
 
 ## Text search [/catalog/v1{?q,min_should_match}]
+
 Assets may be searched by any of the text found in the
 `name, description, category, column names, column fieldnames and column descriptions`.
 The `q` parameter takes arbitrary text and finds assets having some or all of the text.
@@ -294,8 +296,8 @@ all of them must match; otherwise 60% of the search terms must be found in the f
 
     [Search Endpoint][]
 
-
 ## Searching for derived views [/catalog/v1{?derived_from}]
+
 The search service maintains any relationship present between a dataset asset and view-type assets
 that derive from it. For example charts derive from a parent dataset. The `derived_from` param will
 limit the results to those that derive from a particular dataset.
@@ -310,13 +312,13 @@ limit the results to those that derive from a particular dataset.
     [Search Endpoint][]
 
 ## Searching for official or community-created views [/catalog/v1{?provenance}]
+
 While many assets on Socrata are owned by government data publishers and other staff, some visualizations,
 maps, filtered views, and more visible in a data catalog may have been created by a
 member of the community. These assets are usually denoted with a "Community" badge on
 the data catalog; this search service accounts for this information in the `provenance` field.
 Filtering by `provenance=official` will limit results to assets owned by roled users on the domain.
 Conversely, filtering by `provenance=community` will limit results to community-owned views.
-
 
 + Parameters
     + provenance (optional, string, `official`) ...
@@ -330,6 +332,7 @@ Conversely, filtering by `provenance=community` will limit results to community-
     [Search Endpoint][]
 
 ## Boosting official views [/catalog/v1{?boostOfficial}]
+
 It is possible to adjust the rankings of official views to promote them above community-created content.
 This leverages the `weight` function of [function score queries](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-function-score-query.html#function-weight)
 in Elasticsearch. This weight acts as a multiplier for the relevance score of each official document.
@@ -347,6 +350,7 @@ Thus, a number between 0 and 1 will demote official views, while any number grea
     [Search Endpoint][]
 
 ## Searching for private or public data [/catalog/v1{?public}]
+
 The Privacy status of each asset is the first of four factors which control an asset’s visibility.
 A `public=true` param will limit results to those that are public.
 A `public=false` param will limit results to those that are private, noting that if you fail to authenticate or lack the
@@ -364,8 +368,8 @@ permissions to view private data, no results will be returned.
 
     [Search Endpoint][]
 
-
 ## Searching for published or unpublished data [/catalog/v1{?published}]
+
 The Publication status of each asset is the second of four factors which control an asset’s visibility.
 A `published=true` param will limit results to those that are published.
 A `published=false` param will limit results to those that are unpublished, noting that if you fail to authenticate
@@ -384,6 +388,7 @@ or lack the permissions to view unpublished data, no results will be returned.
     [Search Endpoint][]
 
 ## Searching for approved or pending or rejected data [/catalog/v1{?approval_status}]
+
 The Approval status of each asset is the third of four factors which control an asset’s visibility.
 Some Socrata sites employ an Approval module which routes assets through a series of steps before allowing
 them to be anonymously-viewable.
@@ -406,6 +411,7 @@ authenticate or lack the permissions to view rejected data, no results will be r
     [Search Endpoint][]
 
 ## Searching for hidden or not hidden data [/catalog/v1{?explicitly_hidden}]
+
 The Hidden status of each asset is the fourth of four factors which control an asset’s visibiliy.
 Some Socrata sites selectively and explicitly hide certain assets from their public catalog for different reasons;
 this parameter accounts for this setting.
@@ -426,9 +432,8 @@ noting that if you fail to authenticate or lack the permissions to view hidden d
 
     [Search Endpoint][]
 
-
-
 ## Sort order [/catalog/v1{?order}]
+
 The results of all the above filters can be sorted by a number of fields.
 If not specified, the results are sorted by relevance.
 If a sort field is specified that the search service does not recognize, the query will fail.
@@ -448,19 +453,25 @@ must be URL-escaped with `+` or `%20`.
 + Parameters
     + order (optional, string, `name`) ... The sort order of the results
 
-
 ### Sort order API [GET]
 
 + response 200
 
     [Search Endpoint][]
 
-
 ## Pagination [/catalog/v1{?offset,limit}]
-The search service allows pagination of results.  By default, we will return at most 100 results starting from 0.
+
+The search service allows pagination of results.  By default, we will return at most 100 results
+starting from 0.
+
+If the sum of the `offset` and `limit` parameters is greater than 10000, the server will respond
+with a 400. If your use-case involves scanning over a large set of results, you will want to use
+the `scroll_id` parameter in conjunction with the `limit` parameter. For more detail, refer to
+the Deep scrolling section.
+
 + Parameters
     + offset (optional, number, `23`) ... Initial starting point for paging (0 by default)
-    + limit (optional, number, `47`) ... Number of results to return (100 max/default)
+    + limit (optional, number, `47`) ... Number of results to return (100 by default, up to 10000)
 
 ### Pagination API [GET]
 
@@ -468,8 +479,39 @@ The search service allows pagination of results.  By default, we will return at 
 
     [Search Endpoint][]
 
+## Deep scrolling over large sets of search results [/catalog/v1{?scroll_id,limit}]
 
-## Complete Search API [/catalog/v1{?domains,search_context,categories,tags,only,attribution,provenance,q,derived_from,public,published,approval_status,explicitly_hidden,offset,limit,order,license,min_should_match,boostOfficial}]
+The search API is optimized for the prototypical use-case -- namely, providing some queries or
+filter conditions, and retrieving a relatively small number of search results. As a result, the
+search service does not support paging over a large set of search results. Specifically, if the sum
+of the `offset` and `limit` parameters is greater than 10000, the server will respond with
+a 400. This will happen regardless of the actual result set size. Larger result sets can be
+incrementally paged over via the `scroll_id` parameter. This parameter takes a value corresponding
+to an asset ID, specifically, the ID of the last result in the previously fetched chunk of
+results. So for example, suppose you execute a query and find that it returns a large set of
+results (ie. more than 10000). You should execute the same query again, including a reasonable
+value for the `limit` parameter, being sure to include the `scroll_id` parameter as well.
+Initially, you won't have a value for the `scroll_id` parameter, so you will leave it blank. But
+with each subsequent request, you should pass the asset `id` corresponding to the last result from
+the previously fetched batch of results.
+
+Note that sorting parameters are not honored when used in conjunction with deep scrolling via the
+`scroll_id` parameter. If the `order` parameter is specified at the same time as the `scroll_id`
+parameter, the server will respond with a 400.
+
++ Parameters
+    + scroll_id (optional, string, `abcd-1234`) ... The identifier for the last asset from the
+    most recently fetched chunk
+    + limit (optional, number, `47`) ... Number of results to return (100 by default, up to 10000)
+
+### Deep scrolling API [GET]
+
++ Response 200
+
+    [Search Endpoint][]
+
+## Complete Search API [/catalog/v1{?domains,search_context,categories,tags,only,attribution,provenance,q,derived_from,public,published,approval_status,explicitly_hidden,offset,limit,scroll_id,order,license,min_should_match,boostOfficial}]
+
 The full search API is detailed here.
 
 + Parameters
@@ -500,7 +542,9 @@ The full search API is detailed here.
       If not specified and authentication is given, both public and private data may be returned according to the rules described above.
     + published (optional, boolean, `false`) ... Limit results to assets that are published (if true) or unpublished (if false).
       If not specified and no authentication is given, only published assets will be returned.
-      If not specified and authentication is given, both published and unpublished data may be returned according to rules described above    + offset (optional, number, `0`) ... Initial starting point for paging (0 by default)
+      If not specified and authentication is given, both published and unpublished data may be returned according to rules described above
+    + offset (optional, number, `0`) ... Initial starting point for paging (0 by default). Should be used in conjunction with the `limit` parameter when paging over a small (less than 10000 results) result set. If specified, `scroll_id` is not allowed.
+    + scroll_id (optional, string, `2vvn-pdyi`) ... Asset identifier to start after when doing deep scrolling. Should be used in conjunction with `limit` parameter when paging over large (more than 10000 results) result set. If specified, `offset` is not allowed.
     + approval_status (optional, string, `pending`) ... Limit results to assets with the given approval status (`approved`, `pending`, `rejected`).
       If not specified and no authentication is given, only approved assets will be returned.
       If not specified and authentication is given, assets with any status may be returned according to rules described above.
@@ -519,15 +563,14 @@ The full search API is detailed here.
       Multiplier for the relevance score of official documents.
       If not specified, no boost will be applied (equivalent to a boost of 1)
 
-
 ### Search API with all options [GET]
 
 + Response 200
 
     [Search Endpoint][]
 
-
 ## Search autocomplete [/catalog/v1/autocomplete{?q}]
+
 To improve the catalog search experience, we added an autocomplete API, which returns a list of titles that match the search query. This API supports all the same filtering parameters as the top-level complete search API. Moreover, the response body has the same shape as the search API, containing `resultSetSize`, `results`, and `timings` fields at the root of the response object. The `results` field consists of an array of objects, with each object containing `display_title` and `title` fields. The `display_title` field contains markup to enable highlighting of the matching query string. The `title` field contains the raw title string.
 
 Note that while this API mirrors the top-level search API, the behavior of the `q` parameter is slightly different in this case. Just as with the full search endpoint, it takes arbitrary text. However, the autocomplete search is restricted to the `name` (ie. asset title) field.
@@ -559,9 +602,8 @@ Note that while this API mirrors the top-level search API, the behavior of the `
           }
         }
 
-
-
 ## Count by and list domains [/catalog/v1/domains]
+
 Returns each domain and the count of assets owned by that domain. The counts may be restricted according to
 any of the query parameters described in the Complete Search API, with the exception of the `q` text search param.
 
@@ -655,8 +697,8 @@ any of the query parameters described in the Complete Search API, with the excep
           "timings" : { "serviceMillis" : 5, "searchMillis" : 4 }
         }
 
-
 ## Count by and list tags [/catalog/v1/tags]
+
 Returns each tag and the count of assets having that tag. The counts may be restricted according to any of the query parameters described in the Complete Search API.
 
 ### Count by tag API [GET]
@@ -682,6 +724,7 @@ Returns each tag and the count of assets having that tag. The counts may be rest
         }
 
 ## Count by and list custom domain tags [/catalog/v1/domain_tags]
+
 Returns each domain-specific tag and the count of assets having that tag.  The counts may be restricted according to any of the query parameters described in the Complete Search API.
 
 ### Count by domain tags API [GET]
@@ -705,11 +748,10 @@ Returns each domain-specific tag and the count of assets having that tag.  The c
           "timings" : { "serviceMillis" : 5, "searchMillis" : 4 }
         }
 
-
 ## Count by and list categories [/catalog/v1/categories]
+
 Returns each category and the count of assets having that category. The counts may be restricted according to
 any of the query parameters described in the Complete Search API.
-
 
 ### Count by category API [GET]
 
@@ -778,6 +820,7 @@ any of the query parameters described in the Complete Search API.
         }
 
 ## Count by and list custom domain categories [/catalog/v1/domain_categories]
+
 Returns each domain-specific category and the count of assets having that category.  The counts may be restricted
 according to any of the query parameters described in the Complete Search API.
 
@@ -803,6 +846,7 @@ according to any of the query parameters described in the Complete Search API.
         }
 
 ## Count by and list custom domain facets [/catalog/v1/domains/{domain}/facets]
+
 Returns the domain's custom facets (e.g. categories, tags, asset types and any custom metadata) and the count
 of assets having a value for that facet. Each facet also includes counts aggregated by the various facet values.
 

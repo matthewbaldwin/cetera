@@ -5,7 +5,7 @@ import java.nio.charset.{Charset, CodingErrorAction}
 import com.rojoma.json.v3.ast.JString
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, FunSuiteLike, Matchers}
 
-import com.socrata.cetera.TestESData
+import com.socrata.cetera.{TestESData, TestESDomains}
 import com.socrata.cetera.auth.AuthParams
 import com.socrata.cetera.errors.MissingRequiredParameterError
 import com.socrata.cetera.handlers.Params
@@ -15,6 +15,7 @@ class AutocompleteServiceSpec
   extends FunSuiteLike
     with Matchers
     with TestESData
+    with TestESDomains
     with BeforeAndAfterAll
     with BeforeAndAfterEach {
 
@@ -58,5 +59,16 @@ class AutocompleteServiceSpec
       params, AuthParams(), None, None)._2
     val expectedCompletions = List(CompletionResult("One", "<span class=highlight>O</span>ne", List(MatchSpan(0, 1))))
     actualCompletions should contain theSameElementsAs expectedCompletions
+  }
+
+  test("an autocomplete search honors the order parameter") {
+    val params = Map("domains" -> domains.map(_.domainCname).mkString(","), "q" -> "t", "order" -> "name")
+      .mapValues(Seq(_))
+
+    val SearchResults(actualCompletions, _, _) = autocompleteService.doSearch(
+      params, AuthParams(), None, None)._2
+
+    val expectedCompletions = List("A Multiword Title", "Three", "Two")
+    actualCompletions.map(_.title) should contain theSameElementsInOrderAs expectedCompletions
   }
 }

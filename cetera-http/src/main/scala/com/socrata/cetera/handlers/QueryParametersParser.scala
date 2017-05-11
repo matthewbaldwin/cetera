@@ -322,6 +322,9 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
       queryParameters.typedFirstOrElse(Params.offset, NonNegativeInt(PagingParamSet.defaultPageOffset))
     ).value
 
+  def prepareScrollId(queryParameters: MultiQueryParams): Option[String] =
+    queryParameters.get(Params.scrollId).flatMap(_.headOption)
+
   def prepareLimit(queryParameters: MultiQueryParams): Int =
     Math.min(
       limitLimit,
@@ -329,17 +332,6 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
         queryParameters.typedFirstOrElse(Params.limit, NonNegativeInt(PagingParamSet.defaultPageLength))
       ).value
     )
-
-  def prepareOffsetAndLimit(queryParameters: MultiQueryParams): (Int, Int) = {
-    val offset = prepareOffset(queryParameters)
-    val limit = prepareLimit(queryParameters)
-
-    if (offset + limit > maxResultWindow) {
-      throw new IllegalArgumentException(s"Sum of offset and limit cannot exceed $maxResultWindow")
-    }
-
-    (offset, limit)
-  }
 
   //  user search param preparers
 
@@ -366,6 +358,20 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
   def prepareId(queryParameters: MultiQueryParams): Option[Set[String]] =
     filterNonEmptySetParams(mergeArrayCommaParams(queryParameters, Params.ids))
 
+  // param set validators
+  def validatePagingParams(pagingParams: PagingParamSet): Unit = {
+    if (pagingParams.offset + pagingParams.limit > maxResultWindow) {
+      throw new IllegalArgumentException(s"Sum of `offset` and `limit` cannot exceed $maxResultWindow")
+    }
+
+    if (pagingParams.scrollId.isDefined && pagingParams.sortOrder.isDefined) {
+      throw new IllegalArgumentException(s"The `order` and `scroll_id` parameters cannot both be specified")
+    }
+
+    if (pagingParams.scrollId.isDefined && pagingParams.offset > 0) {
+      throw new IllegalArgumentException(s"The `offset` and `scroll_id` parameters cannot both be specified")
+    }
+  }
 
   //////////////////
 
@@ -409,16 +415,21 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
       prepareAgeDecay(queryParameters)
     )
 
-    // NOTE: validating offset and limit together to ensure their sum is less than index.max_result_window
-    val (offset, limit) = prepareOffsetAndLimit(queryParameters)
+    val pagingParams = PagingParamSet(
+      prepareOffset(queryParameters),
+      prepareLimit(queryParameters),
+      prepareScrollId(queryParameters),
+      prepareSortOrder(queryParameters)
+    )
 
-    val pagingParams = PagingParamSet(offset, limit, prepareSortOrder(queryParameters))
+    validatePagingParams(pagingParams)
 
     val formatParams = FormatParamSet(
       prepareShowScore(queryParameters),
       prepareShowVisiblity(queryParameters),
       prepareLocale(queryParameters)
     )
+
     ValidatedQueryParameters(searchParams, scoringParams, pagingParams, formatParams)
   }
 
@@ -433,13 +444,13 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
       prepareUserQuery(queryParameters)
     )
 
-    // NOTE: validating offset and limit together to ensure their sum is less than index.max_result_window
-    val (offset, limit) = prepareOffsetAndLimit(queryParameters)
-
     val pagingParams = PagingParamSet(
       prepareOffset(queryParameters),
       prepareLimit(queryParameters)
     )
+
+    validatePagingParams(pagingParams)
+
     ValidatedUserQueryParameters(searchParams, pagingParams)
   }
 }
@@ -529,8 +540,8 @@ object Params {
   // sorting and pagination parameters
   val limit = "limit"
   val offset = "offset"
+  val scrollId = "scroll_id"
   val order = "order"
-
 
   ///////////////////////
   // Explicit Param Lists
@@ -572,6 +583,7 @@ object Params {
     showVisibility,
     limit,
     offset,
+    scrollId,
     order,
     license,
     columnNames
