@@ -60,9 +60,9 @@ object Sorts {
       case "page_views_total" => Some(sortFieldDesc(PageViewsTotalFieldType.fieldName))
 
       // Alphabetical
-      case "name" => Some(sortFieldAsc(NameFieldType.fieldName))
-      case "name ASC" => Some(sortFieldAsc(NameFieldType.fieldName))
-      case "name DESC" => Some(sortFieldDesc(NameFieldType.fieldName))
+      case "name" => Some(sortFieldAsc(TitleFieldType.lowercaseAlphanumFieldName))
+      case "name ASC" => Some(sortFieldAsc(TitleFieldType.lowercaseAlphanumFieldName))
+      case "name DESC" => Some(sortFieldDesc(TitleFieldType.lowercaseAlphanumFieldName))
 
       // Relevance
       case "relevance" => Some(sortScoreDesc)

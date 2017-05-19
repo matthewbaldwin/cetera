@@ -2,6 +2,23 @@
   "settings": {
     "index": {
       "analysis": {
+        "char_filter": {
+          "replace_non_letters": {
+            "type": "pattern_replace",
+            "pattern": "[^\\p{L}]+",
+            "replacement": " "
+          },
+          "normalize_whitespace": {
+            "type": "pattern_replace",
+            "pattern": "[\\s]+",
+            "replacement": " "
+          },
+          "trim": {
+            "type": "pattern_replace",
+            "pattern": "(?:^[\\s]|[\\s]$)",
+            "replacement": ""
+          }
+        },
         "filter": {
           "lowercase_en": {
             "type": "lowercase"
@@ -63,6 +80,12 @@
             "type": "custom",
             "tokenizer": "autocomplete_tokenizer",
             "filter": ["lowercase_en"]
+          },
+          "lowercase_alphanumeric": {
+            "type": "custom",
+            "char_filter": ["replace_non_letters", "normalize_whitespace", "trim"],
+            "filter": ["lowercase_en"],
+            "tokenizer": "keyword"
           }
         }
       },

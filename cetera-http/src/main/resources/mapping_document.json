@@ -164,7 +164,8 @@
           "analyzer": "snowball_en",
           "fields": {
             "raw": { "type": "keyword" },
-            "autocomplete": { "type": "text", "analyzer": "autocomplete", "term_vector": "with_positions_offsets", "search_analyzer": "standard" }
+            "autocomplete": { "type": "text", "analyzer": "autocomplete", "term_vector": "with_positions_offsets", "search_analyzer": "standard" },
+            "lowercase_alphanumeric": { "type": "text", "analyzer": "lowercase_alphanumeric", "fielddata": true }
           },
           "copy_to": [ "fts_analyzed", "fts_raw" ]
         }

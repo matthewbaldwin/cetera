@@ -29,6 +29,6 @@ class FieldTypesSpec extends FunSuiteLike with Matchers {
     UpdatedAtFieldType.fieldName should be ("updated_at") // snake_case
     CreatedAtFieldType.fieldName should be ("created_at") // snake_case
 
-    NameFieldType.fieldName should be ("indexed_metadata.name.raw")
+    TitleFieldType.fieldName should be ("indexed_metadata.name")
   }
 }

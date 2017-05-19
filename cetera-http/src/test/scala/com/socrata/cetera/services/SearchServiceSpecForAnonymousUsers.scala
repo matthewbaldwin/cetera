@@ -619,22 +619,30 @@ class SearchServiceSpecForAnonymousUsers
 
   test("sorting by name works") {
     val params = Map("order" -> Seq("name"))
-    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    val expected = results.results.map(_.resource.dyn("name").!.asInstanceOf[JString].string).sorted.head
-    val firstResult = results.results.head.resource.dyn("name").? match {
-      case Right(n) => n should be(JString(expected))
-      case Left(_) => fail("resource had no name!")
-    }
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)    
+    results.results.head.resource.dyn("name").? should be(Right(JString("")))
+    results.results.last.resource.dyn("name").? should be(Right(JString("Three")))
   }
 
   test("sorting by name DESC works") {
-    val params = Map("order" -> Seq("name DESC"))
+    val params = Map("order" -> Seq("name DESC"), "domains" -> Seq("robert.demo.socrata.com"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    val expected = results.results.map(_.resource.dyn("name").!.asInstanceOf[JString].string).sorted.last
-    val firstResult = results.results.head.resource.dyn("name").? match {
-      case Right(n) => n should be(JString(expected))
-      case Left(_) => fail("resource had no name!")
-    }
+    results.results.head.resource.dyn("name").? should be(Right(JString("My Latest and Greatest Dataset")))
+    results.results.last.resource.dyn("name").? should be(Right(JString("Alfa")))
+  }
+
+  test("sorting by name ignores non-alphanumeric characters") {
+    val params = Map("order" -> Seq("name"), "domains" -> Seq("robert.demo.socrata.com"))
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
+    results.results.head.resource.dyn("name").? should be(Right(JString("Alfa")))
+    results.results.last.resource.dyn("name").? should be(Right(JString("My Latest and Greatest Dataset")))
+  }
+
+  test("sorting by name ignores case") {
+    val params = Map("order" -> Seq("name"), "ids" -> Seq("1234-5680", "1234-5682"))
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
+    results.results.head.resource.dyn("name").? should be(Right(JString("'bravo")))
+    results.results.last.resource.dyn("name").? should be(Right(JString("Charlie")))
   }
 
   //////////////////////////////////////////////////

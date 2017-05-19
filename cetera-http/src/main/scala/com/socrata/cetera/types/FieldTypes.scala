@@ -78,6 +78,11 @@ sealed trait Lowercasable extends CeteraFieldType {
   lazy val lowercaseFieldName: String = fieldName + ".lowercase"
 }
 
+// For sortable text fields where we want to ignore non-alphanumeric characters
+sealed trait HasLowercaseAlphanumericSubfield extends CeteraFieldType {
+  lazy val lowercaseAlphanumFieldName: String = fieldName + ".lowercase_alphanumeric"
+}
+
 ///////////////////
 // Full Text Search
 case object FullTextSearchAnalyzedFieldType extends CeteraFieldType {
@@ -279,7 +284,13 @@ case object DomainPrivateMetadataFieldType extends DocumentFieldType with Mapabl
 /////////////
 // Boostables
 
-case object TitleFieldType extends DocumentFieldType with Boostable with Rawable with Autocompletable {
+case object TitleFieldType
+  extends DocumentFieldType
+  with Boostable
+  with Rawable
+  with Autocompletable
+  with HasLowercaseAlphanumericSubfield {
+
   val fieldName: String = "indexed_metadata.name"
 
   def fromSearchHit(searchHit: SearchHit): String = {
@@ -338,11 +349,6 @@ case object UpdatedAtFieldType extends DocumentFieldType with Sortable {
 case object CreatedAtFieldType extends DocumentFieldType with Sortable {
   val fieldName: String = "created_at" // notice the snake_case, long story
 }
-
-case object NameFieldType extends DocumentFieldType with Sortable {
-  val fieldName: String = "indexed_metadata.name.raw"
-}
-
 
 ////////////////
 // U'sarians
