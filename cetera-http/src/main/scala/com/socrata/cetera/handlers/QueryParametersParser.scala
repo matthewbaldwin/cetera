@@ -125,6 +125,13 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
         s"'${Params.approvalStatus}' must be one of ${ApprovalStatus.all.map(_.status)}; got $status")
     }
 
+  private def restrictVisibilityFilter(vis: String, queryParameters: MultiQueryParams): String = {
+    if (!VisibilityStatus.all.contains(vis.toLowerCase)) {
+      throw new IllegalArgumentException(s"'${Params.visibility}' must be one ${VisibilityStatus.all}; got $vis")
+    }
+    vis.toLowerCase
+  }
+
   // for extracting `example.com` from `boostDomains[example.com]`
   class FieldExtractor(val key: String) {
     def unapply(s: String): Option[String] =
@@ -251,6 +258,11 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
     status.map(restrictApprovalFilter(_))
   }
 
+  def prepareVisibility(queryParameters: MultiQueryParams): Option[String] = {
+    val vis = filterNonEmptyStringParams(queryParameters.first(Params.visibility))
+    vis.map(restrictVisibilityFilter(_, queryParameters))
+  }
+
   def prepareDomainMetadata(queryParameters: MultiQueryParams): Option[Set[(String, String)]] = {
     val queryParamsNonEmpty = queryParameters.filter { case (key, value) => key.nonEmpty && value.nonEmpty }
     // TODO: EN-1401 - don't just take head, allow for mulitple selections
@@ -373,15 +385,24 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
     }
   }
 
-  //////////////////
+  def validateSearchParams(searchParams: SearchParamSet): Unit = {
+    if (searchParams.visibility.nonEmpty && (
+          searchParams.public.nonEmpty ||
+          searchParams.published.nonEmpty ||
+          searchParams.approvalStatus.nonEmpty ||
+          searchParams.explicitlyHidden.nonEmpty )
+    ) {
+      val otherVizParams = s"'${Params.public}', '${Params.published}', '${Params.approvalStatus}' or " +
+        s"'${Params.explicitlyHidden}' params"
+      throw new IllegalArgumentException(
+        s"The '${Params.visibility}' parameter may not be used with any of the $otherVizParams")
+    }
+  }
 
-  ////////
-  // APPLY
-  //
-  // NOTE: Watch out for case sensitivity in params
-  // Some field values are stored internally in lowercase, others are not
-  // Yes, the params parser now concerns itself with ES internals
-  def apply(queryParameters: MultiQueryParams): ValidatedQueryParameters = {
+  //////////////////////
+  // ParamSet builders
+
+  def searchParamSet(queryParameters: MultiQueryParams): SearchParamSet = {
     val searchParams = SearchParamSet(
       prepareSearchQuery(queryParameters),
       prepareDomains(queryParameters),
@@ -401,20 +422,16 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
       prepareDerived(queryParameters),
       prepareHidden(queryParameters),
       prepareApprovalStatus(queryParameters),
+      prepareVisibility(queryParameters),
       prepareLicense(queryParameters),
       prepareColumnNames(queryParameters)
     )
 
-    val scoringParams = ScoringParamSet(
-      prepareFieldBoosts(queryParameters),
-      prepareDatatypeBoosts(queryParameters),
-      prepareDomainBoosts(queryParameters),
-      prepareOfficialBoost(queryParameters),
-      prepareMinShouldMatch(queryParameters),
-      prepareSlop(queryParameters),
-      prepareAgeDecay(queryParameters)
-    )
+    validateSearchParams(searchParams)
+    searchParams
+  }
 
+  def pagingParamSet(queryParameters: MultiQueryParams): PagingParamSet = {
     val pagingParams = PagingParamSet(
       prepareOffset(queryParameters),
       prepareLimit(queryParameters),
@@ -423,13 +440,40 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
     )
 
     validatePagingParams(pagingParams)
+    pagingParams
+  }
 
-    val formatParams = FormatParamSet(
+  def scoringParamSet(queryParameters: MultiQueryParams): ScoringParamSet = {
+    ScoringParamSet(
+      prepareFieldBoosts(queryParameters),
+      prepareDatatypeBoosts(queryParameters),
+      prepareDomainBoosts(queryParameters),
+      prepareOfficialBoost(queryParameters),
+      prepareMinShouldMatch(queryParameters),
+      prepareSlop(queryParameters),
+      prepareAgeDecay(queryParameters)
+    )
+  }
+
+  def formatParamSet(queryParameters: MultiQueryParams): FormatParamSet = {
+    FormatParamSet(
       prepareShowScore(queryParameters),
       prepareShowVisiblity(queryParameters),
       prepareLocale(queryParameters)
     )
+  }
 
+  ////////
+  // APPLY
+  //
+  // NOTE: Watch out for case sensitivity in params
+  // Some field values are stored internally in lowercase, others are not
+  // Yes, the params parser now concerns itself with ES internals
+  def apply(queryParameters: MultiQueryParams): ValidatedQueryParameters = {
+    val searchParams = searchParamSet(queryParameters)
+    val scoringParams = scoringParamSet(queryParameters)
+    val pagingParams = pagingParamSet(queryParameters)
+    val formatParams = formatParamSet(queryParameters)
     ValidatedQueryParameters(searchParams, scoringParams, pagingParams, formatParams)
   }
 
@@ -474,6 +518,7 @@ object Params {
   val derived = "derived"
   val explicitlyHidden = "explicitly_hidden"
   val approvalStatus = "approval_status"
+  val visibility = "visibility"
   val license = "license"
   val columnNames = "column_names"
 
@@ -567,6 +612,7 @@ object Params {
     derived,
     explicitlyHidden,
     approvalStatus,
+    visibility,
     locale,
     sharedTo,
     qInternal,

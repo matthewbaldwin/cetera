@@ -488,4 +488,40 @@ class SearchServiceSpecForEditorsAndTheLike
     val actualFxfs = fxfs(res._2)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
+
+  test("searching with 'visibility=open' filters away the internal items the user can view") {
+    val host = domains(0).domainCname
+    val userBody = authedUserBodyFromRole("editor", "robin-hood")
+    prepareAuthenticatedUser(cookie, host, userBody)
+    val params = Map("domains" -> host).mapValues(Seq(_))
+    val allRes = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val allFxfs = fxfs(allRes._2)
+    val (openFxfs, internalFxfs) = allFxfs.partition(anonymouslyViewableDocIds.contains(_))
+
+    val openParams = Map("domains" -> host, "visibility" -> "open").mapValues(Seq(_))
+    val openRes = service.doSearch(openParams, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val actualFxfs = fxfs(openRes._2)
+
+    // confirm that only open docs are returned and that there were internal docs removed.
+    actualFxfs should contain theSameElementsAs openFxfs
+    internalFxfs.nonEmpty should be(true)
+  }
+
+  test("searching with 'visibility=internal' filters away the open items the user can view") {
+    val host = domains(0).domainCname
+    val userBody = authedUserBodyFromRole("editor", "robin-hood")
+    prepareAuthenticatedUser(cookie, host, userBody)
+    val params = Map("domains" -> host).mapValues(Seq(_))
+    val allRes = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val allFxfs = fxfs(allRes._2)
+    val (openFxfs, internalFxfs) = allFxfs.partition(anonymouslyViewableDocIds.contains(_))
+
+    val internalParams = Map("domains" -> host, "visibility" -> "internal").mapValues(Seq(_))
+    val internalRes = service.doSearch(internalParams, AuthParams(cookie=Some(cookie)), Some(host), None)
+    val actualFxfs = fxfs(internalRes._2)
+
+    // confirm that only internal docs are returned and that there were open docs removed.
+    actualFxfs should contain theSameElementsAs internalFxfs
+    openFxfs.nonEmpty should be(true)
+  }
 }

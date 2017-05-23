@@ -230,7 +230,7 @@ class SearchServiceSpecForAnonymousUsers
     val metadata = res.results.map(_.metadata)
     val annabelleRes = metadata.filter(_.domain == "annabelle.island.net")
     annabelleRes.foreach { r =>
-      r.score.get should be(0.0)
+      r.score should be(Some(0.0))
     }
   }
 
@@ -408,6 +408,27 @@ class SearchServiceSpecForAnonymousUsers
     // confirm there were documents that were excluded.
     anonymouslyViewableDocs.find(_.socrataId.datasetId == "fxf-8").get.privateCustomerMetadataFlattened.exists(m =>
       m.value == privateValue && m.key == privateKey) should be(true)
+  }
+
+  test("using 'visibility=open' filters nothing, since anonymous users already see 'open' views") {
+    val dom = domains(0).domainCname
+    val params = Map("search_context" -> Seq(dom), "domains" -> Seq(dom))
+    val vizParams = Map("search_context" -> Seq(dom), "domains" -> Seq(dom), "visibility" -> Seq("open"))
+
+    val (_, res, _, _) = service.doSearch(params, AuthParams(), None, None)
+    val (_, resWithVizFilter, _, _) = service.doSearch(vizParams, AuthParams(), None, None)
+
+    val actualFxfs = fxfs(resWithVizFilter)
+    val expectedFxfs = fxfs(res)
+    actualFxfs should contain theSameElementsAs (expectedFxfs)
+  }
+
+  test("using 'visibility=internal' filters everything, since anonymous users can only see 'open' views") {
+    val dom = domains(0).domainCname
+    val params = Map("search_context" -> Seq(dom), "domains" -> Seq(dom), "visibility" -> Seq("internal"))
+    val (_, res, _, _) = service.doSearch(params, AuthParams(), None, None)
+    val actualFxfs = fxfs(res)
+    actualFxfs should be('empty)
   }
 
   //////////////////////////////////////////////////

@@ -444,6 +444,36 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isDefaultView should be(true)
       doc.isSharedOrOwned("honorable.sheriff") should be(true)
     }
+
+    "have the expected statuses for 1234-5680" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "1234-5680").get
+      doc.isPublic should be(true)
+      doc.isPublished should be(true)
+      doc.isDatalens should be(false)
+      doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(true)
+      doc.isSharedOrOwned("honorable.sheriff") should be(true)
+    }
+
+    "have the expected statuses for 1234-5681" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "1234-5681").get
+      doc.isPublic should be(true)
+      doc.isPublished should be(true)
+      doc.isDatalens should be(false)
+      doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(true)
+      doc.isSharedOrOwned("honorable.sheriff") should be(true)
+    }
+
+    "have the expected statuses for 1234-5682" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "1234-5682").get
+      doc.isPublic should be(true)
+      doc.isPublished should be(true)
+      doc.isDatalens should be(false)
+      doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(true)
+      doc.isSharedOrOwned("honorable.sheriff") should be(true)
+    }
   }
 }
 

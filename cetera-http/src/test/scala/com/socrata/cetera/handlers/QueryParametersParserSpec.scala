@@ -43,6 +43,33 @@ class QueryParametersParserSpec extends FunSuiteLike with Matchers {
     qpp.restrictParamFilterDatatype("maps") should be(Right(Some(mapsExpected)))
   }
 
+  test("'visibility' query parameter allows only 'open' and 'internal'") {
+    QueryParametersParser(Map("visibility" -> Seq("open"))).searchParamSet.visibility should be(Some("open"))
+    QueryParametersParser(Map("visibility" -> Seq("internal"))).searchParamSet.visibility should be(Some("internal"))
+
+    intercept[IllegalArgumentException] {
+      QueryParametersParser(Map("visibility" -> Seq("link_accessible"))).searchParamSet.visibility
+    }
+  }
+
+  test("'visibility' query parameter is not allowed in conjunction with other vis params") {
+    intercept[IllegalArgumentException] {
+      QueryParametersParser(Map("visibility" -> Seq("open"), "public" -> Seq("true"))).searchParamSet
+    }
+
+    intercept[IllegalArgumentException] {
+      QueryParametersParser(Map("visibility" -> Seq("open"), "published" -> Seq("true"))).searchParamSet
+    }
+
+    intercept[IllegalArgumentException] {
+      QueryParametersParser(Map("visibility" -> Seq("open"), "approval_status" -> Seq("true"))).searchParamSet
+    }
+
+    intercept[IllegalArgumentException] {
+      QueryParametersParser(Map("visibility" -> Seq("open"), "explicitly_hidden" -> Seq("true"))).searchParamSet
+    }
+  }
+
   test("datatype boost parameter parses with valid datatype") {
     Params.datatypeBoostParam("boostDatasets") should contain(DatasetDatatype)
   }
@@ -87,13 +114,13 @@ class QueryParametersParserSpec extends FunSuiteLike with Matchers {
   test("'only' query parameter allows multiple selections") {
     val params = QueryParametersParser(Map("only" -> Seq("datasets,datalenses"))).searchParamSet
     params.datatypes should be('defined)
-    params.datatypes.get should be(Set(DatasetDatatype.singular, DatalensDatatype.singular))
+    params.datatypes should be(Some(Set(DatasetDatatype.singular, DatalensDatatype.singular)))
   }
 
   test("'only[]' query parameter allows multiple selections") {
     val params = QueryParametersParser(Map("only[]" -> Seq("datasets", "datalenses"))).searchParamSet
     params.datatypes should be('defined)
-    params.datatypes.get should be(Set(DatasetDatatype.singular, DatalensDatatype.singular))
+    params.datatypes should be(Some(Set(DatasetDatatype.singular, DatalensDatatype.singular)))
   }
 
   test("valid 'approval_status' values should return the correct ApprovalStatus") {
@@ -101,9 +128,9 @@ class QueryParametersParserSpec extends FunSuiteLike with Matchers {
     val actualRejectedApproval = QueryParametersParser(Map("approval_status" -> Seq("rejected"))).searchParamSet.approvalStatus
     val actualPendingApproval = QueryParametersParser(Map("approval_status" -> Seq("pending"))).searchParamSet.approvalStatus
 
-    actualApprovedApproval.get should be(ApprovalStatus.approved)
-    actualRejectedApproval.get should be(ApprovalStatus.rejected)
-    actualPendingApproval.get should be(ApprovalStatus.pending)
+    actualApprovedApproval should be(Some(ApprovalStatus.approved))
+    actualRejectedApproval should be(Some(ApprovalStatus.rejected))
+    actualPendingApproval should be(Some(ApprovalStatus.pending))
   }
 
   test("invalid 'approval_status' values should throw") {
@@ -132,44 +159,38 @@ class QueryParametersParserSpec extends FunSuiteLike with Matchers {
     val params = QueryParametersParser(Map("categories" -> "Traffic, Parking, and Transportation")
       .mapValues(Seq(_))).searchParamSet
     params.categories should be('defined)
-    params.categories.get should have size 1
-    params.categories.get.head should be("Traffic, Parking, and Transportation")
+    params.categories should be(Some(Set("Traffic, Parking, and Transportation")))
   }
 
   test("allow tag with commas") {
     val params = QueryParametersParser(Map("tags" -> "this, probably, doesn't, happen, on, any, customer, sites")
       .mapValues(Seq(_))).searchParamSet
     params.tags should be('defined)
-    params.tags.get should have size 1
-    params.tags.get.head should be("this, probably, doesn't, happen, on, any, customer, sites")
+    params.tags should be(Some(Set("this, probably, doesn't, happen, on, any, customer, sites")))
   }
 
   test("allow multiple category parameters") {
     val params = QueryParametersParser(Map("categories" -> Seq("Traffic", "Parking", "Transportation"))).searchParamSet
     params.categories should be('defined)
-    params.categories.get should have size 3
-    params.categories.get should contain theSameElementsAs Seq("Traffic", "Parking", "Transportation")
+    params.categories.getOrElse(Seq.empty) should contain theSameElementsAs Seq("Traffic", "Parking", "Transportation")
   }
 
   test("allow multiple tag parameters") {
     val params = QueryParametersParser(Map("tags" -> Seq("Traffic", "Parking", "Transportation"))).searchParamSet
     params.tags should be('defined)
-    params.tags.get should have size 3
-    params.tags.get should contain theSameElementsAs Seq("Traffic", "Parking", "Transportation")
+    params.tags.getOrElse(Seq.empty) should contain theSameElementsAs Seq("Traffic", "Parking", "Transportation")
   }
 
   test("also allow categories[] parameters") {
     val params = QueryParametersParser(Map("categories" -> Seq("foo", "foos"), "categories[]" -> Seq("bar", "baz"))).searchParamSet
     params.categories should be('defined)
-    params.categories.get should have size 4
-    params.categories.get should contain theSameElementsAs Seq("foo", "foos", "bar", "baz")
+    params.categories.getOrElse(Seq.empty) should contain theSameElementsAs Seq("foo", "foos", "bar", "baz")
   }
 
   test("also allow tags[] parameters") {
     val params = QueryParametersParser(Map("tags" -> Seq("foo", "foos"), "tags[]" -> Seq("bar", "baz"))).searchParamSet
     params.tags should be('defined)
-    params.tags.get should have size 4
-    params.tags.get should contain theSameElementsAs Seq("foo", "foos", "bar", "baz")
+    params.tags.getOrElse(Seq.empty) should contain theSameElementsAs Seq("foo", "foos", "bar", "baz")
   }
 
   test("domain metadata excludes known parameters") {
@@ -293,28 +314,28 @@ class QueryParametersParserSpec extends FunSuiteLike with Matchers {
   test("empty boolean param values should be true") {
     QueryParametersParser(Map("show_score" -> Seq())).formatParamSet.showScore should be(true)
     QueryParametersParser(Map("show_visibility" -> Seq())).formatParamSet.showVisibility should be(true)
-    QueryParametersParser(Map("public" -> Seq())).searchParamSet.public.get should be(true)
-    QueryParametersParser(Map("published" -> Seq())).searchParamSet.published.get should be(true)
-    QueryParametersParser(Map("derived" -> Seq())).searchParamSet.derived.get should be(true)
-    QueryParametersParser(Map("explicitly_hidden" -> Seq())).searchParamSet.explicitlyHidden.get should be(true)
+    QueryParametersParser(Map("public" -> Seq())).searchParamSet.public should be(Some(true))
+    QueryParametersParser(Map("published" -> Seq())).searchParamSet.published should be(Some(true))
+    QueryParametersParser(Map("derived" -> Seq())).searchParamSet.derived should be(Some(true))
+    QueryParametersParser(Map("explicitly_hidden" -> Seq())).searchParamSet.explicitlyHidden should be(Some(true))
   }
 
   test("explicitly true boolean param values should be true") {
     QueryParametersParser(Map("show_score" -> Seq("true"))).formatParamSet.showScore should be(true)
     QueryParametersParser(Map("show_visibility" -> Seq("true"))).formatParamSet.showVisibility should be(true)
-    QueryParametersParser(Map("public" -> Seq("true"))).searchParamSet.public.get should be(true)
-    QueryParametersParser(Map("published" -> Seq("true"))).searchParamSet.published.get should be(true)
-    QueryParametersParser(Map("derived" -> Seq("true"))).searchParamSet.derived.get should be(true)
-    QueryParametersParser(Map("explicitly_hidden" -> Seq("true"))).searchParamSet.explicitlyHidden.get should be(true)
+    QueryParametersParser(Map("public" -> Seq("true"))).searchParamSet.public should be(Some(true))
+    QueryParametersParser(Map("published" -> Seq("true"))).searchParamSet.published should be(Some(true))
+    QueryParametersParser(Map("derived" -> Seq("true"))).searchParamSet.derived should be(Some(true))
+    QueryParametersParser(Map("explicitly_hidden" -> Seq("true"))).searchParamSet.explicitlyHidden should be(Some(true))
   }
 
   test("explicitly false boolean param values should be false") {
     QueryParametersParser(Map("show_score" -> Seq("false"))).formatParamSet.showScore should be(false)
     QueryParametersParser(Map("show_visibility" -> Seq("false"))).formatParamSet.showVisibility should be(false)
-    QueryParametersParser(Map("public" -> Seq("false"))).searchParamSet.public.get should be(false)
-    QueryParametersParser(Map("published" -> Seq("false"))).searchParamSet.published.get should be(false)
-    QueryParametersParser(Map("derived" -> Seq("false"))).searchParamSet.derived.get should be(false)
-    QueryParametersParser(Map("explicitly_hidden" -> Seq("false"))).searchParamSet.explicitlyHidden.get should be(false)
+    QueryParametersParser(Map("public" -> Seq("false"))).searchParamSet.public should be(Some(false))
+    QueryParametersParser(Map("published" -> Seq("false"))).searchParamSet.published should be(Some(false))
+    QueryParametersParser(Map("derived" -> Seq("false"))).searchParamSet.derived should be(Some(false))
+    QueryParametersParser(Map("explicitly_hidden" -> Seq("false"))).searchParamSet.explicitlyHidden should be(Some(false))
   }
 
   test("empty non-boolean param values shouldn't be defined") {
@@ -330,6 +351,7 @@ class QueryParametersParserSpec extends FunSuiteLike with Matchers {
     QueryParametersParser(Map("appoval" -> Seq(""))).searchParamSet.approvalStatus shouldNot be('defined)
     QueryParametersParser(Map("custom_metadata" -> Seq(""))).searchParamSet.parentDatasetId shouldNot be('defined)
     QueryParametersParser(Map("license" -> Seq(""))).searchParamSet.license shouldNot be('defined)
+    QueryParametersParser(Map("visibility" -> Seq(""))).searchParamSet.license shouldNot be('defined)
     QueryParametersParser.prepUserParams(Map("role" -> Seq(""))).searchParamSet.roles shouldNot be('defined)
     QueryParametersParser.prepUserParams(Map("email" -> Seq(""))).searchParamSet.emails shouldNot be('defined)
     QueryParametersParser.prepUserParams(Map("screen_name" -> Seq(""))).searchParamSet.screenNames shouldNot be('defined)

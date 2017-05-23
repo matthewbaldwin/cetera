@@ -308,6 +308,18 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
     }
   }
 
+  // this limits results to only
+  //   - those in the public catalog when the 'visibility' param is set to 'open' OR
+  //   - those not in the public catalog when the 'visibility' param is set to 'internal'
+  def visibilityStatusQuery(visibility: String, domainSet: DomainSet): BoolQueryBuilder = {
+    val anonQuery = anonymousQuery(domainSet)
+    if (visibility == VisibilityStatus.internal) {
+      boolQuery().mustNot(anonQuery)
+    } else {
+      anonQuery
+    }
+  }
+
   // this limits results to the given socrata categories (this assumes no search context is present)
   def socrataCategoriesQuery(categories: Set[String]): BoolQueryBuilder =
     boolQuery().should(
@@ -379,10 +391,13 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
     val publicationQuery = searchParams.published.map(publishedQuery(_))
     val hiddenQuery = searchParams.explicitlyHidden.map(hiddenFromCatalogQuery(_))
     val approvalQuery = searchParams.approvalStatus.map(approvalStatusQuery(_, domainSet))
+    val visibilityQuery = searchParams.visibility.map(visibilityStatusQuery(_, domainSet))
 
-    List(typeQuery, ownerQuery, sharingQuery, attrQuery, provQuery, parentIdQuery, idsQuery, metaQuery,
-      derivationQuery, privacyQuery, publicationQuery, hiddenQuery, approvalQuery, licensesQuery,
-      colNamesQuery, catQuery, tagsQuery).flatten match {
+    List(
+      typeQuery, ownerQuery, sharingQuery, attrQuery, provQuery, parentIdQuery, idsQuery, metaQuery,
+      derivationQuery, licensesQuery, colNamesQuery, catQuery, tagsQuery,
+      privacyQuery, publicationQuery, hiddenQuery, approvalQuery, visibilityQuery
+    ).flatten match {
       case Nil => None
       case queries: Seq[QueryBuilder] => Some(queries.foldLeft(boolQuery()) { (b, f) => b.must(f) })
     }
