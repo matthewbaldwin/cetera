@@ -72,6 +72,9 @@ case class Metadata(
     isRoutingApprovedOnContext: Option[Boolean] = None,
     isDatalensApproved: Option[Boolean] = None,
     visibleToAnonymous: Option[Boolean] = None,
+    moderationStatus: Option[String] = None,
+    routingStatus: Option[String] = None,
+    datalensStatus: Option[String] = None,
     score: Option[BigDecimal] = None,
     grants: Option[Seq[JValue]] = None)
 

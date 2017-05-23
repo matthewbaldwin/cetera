@@ -15,7 +15,6 @@ import com.socrata.cetera.types._
 object Format {
   lazy val logger = LoggerFactory.getLogger(Format.getClass)
   val UrlSegmentLengthLimit = 50
-  val visibleToAnonKey = "visible_to_anonymous"
 
   private def decodeErrorToNone(err: DecodeError) = None
 
@@ -177,9 +176,22 @@ object Format {
   }
 
   val datalensTypeStrings = List(DatalensDatatype, DatalensChartDatatype, DatalensMapDatatype).map(_.singular)
+  def datalensStatus(j: JValue): Option[String] = {
+    val isDatalens = extractJString(j.dyn.datatype.?).exists(datalensTypeStrings.contains(_))
+    if (isDatalens) extractJString(j.dyn.moderation_status.?) else None
+  }
+
   def datalensApproved(j: JValue): Option[Boolean] = {
-    val isDatalens = extractJString(j.dyn.datatype.?).exists(t => datalensTypeStrings.contains(t))
+    val isDatalens = extractJString(j.dyn.datatype.?).exists(datalensTypeStrings.contains(_))
     if (isDatalens) Some(literallyApproved(j)) else None
+  }
+
+  def moderationStatus(j: JValue, viewsDomain: Domain): Option[String] = {
+    val isDefault = extractJBoolean(j.dyn.is_default_view.?).exists(identity)
+    viewsDomain.moderationEnabled match {
+      case true => if (isDefault) Some(ApprovalStatus.approved.status) else extractJString(j.dyn.moderation_status.?)
+      case false => None
+    }
   }
 
   def moderationApproved(j: JValue, viewsDomain: Domain): Option[Boolean] = {
@@ -201,6 +213,21 @@ object Format {
       case (false, _) => None
     }
   }
+
+  def routingStatus(j: JValue, viewsDomain: Domain): Option[String] =
+    viewsDomain.routingApprovalEnabled match {
+      case true =>
+        if (extractJBoolean(j.dyn.is_approved_by_parent_domain.?).exists(identity)) {
+          Some(ApprovalStatus.approved.status)
+        } else if (extractJBoolean(j.dyn.is_pending_on_parent_domain.?).exists(identity)) {
+          Some(ApprovalStatus.pending.status)
+        } else if (extractJBoolean(j.dyn.is_rejected_by_parent_domain.?).exists(identity)) {
+          Some(ApprovalStatus.rejected.status)
+        } else {
+          None
+        }
+      case false => None
+    }
 
   def routingApproved(j: JValue, viewsDomain: Domain): Option[Boolean] = {
     val viewDomainId = viewsDomain.domainId
@@ -232,8 +259,11 @@ object Format {
     val public = isPublic(j)
     val published = isPublished(j)
     val hidden = isHidden(j)
+    val raStatus = routingStatus(j, viewsDomain)
     val routingApproval = routingApproved(j, viewsDomain)
+    val modStatus = moderationStatus(j, viewsDomain)
     val moderationApproval = moderationApproved(j, viewsDomain)
+    val dlStatus = datalensStatus(j)
     val datalensApproval = datalensApproved(j)
     val(moderationApprovalOnContext, routingApprovalOnContext) = contextApprovals(j, viewsDomain, domainSet)
     val viewGrants = grants(j)
@@ -256,6 +286,9 @@ object Format {
       isRoutingApprovedOnContext = routingApprovalOnContext,
       isDatalensApproved = datalensApproval,
       visibleToAnonymous = Some(anonymousVis),
+      moderationStatus = modStatus,
+      routingStatus = raStatus,
+      datalensStatus = dlStatus,
       grants = viewGrants)
   }
 

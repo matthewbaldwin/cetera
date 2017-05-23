@@ -166,7 +166,7 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
 
     "return the expected JValue if passed good json" in {
       val domainCategory = Format.domainCategory(drewRawJson)
-      domainCategory.get should be(JString("Finance"))
+      domainCategory should be(Some(JString("Finance")))
     }
   }
 
@@ -181,7 +181,7 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
 
     "return the expected string if passed good json" in {
       val domainCategory = Format.domainCategoryString(esDrewJson)
-      domainCategory.get should be("Finance")
+      domainCategory should be(Some("Finance"))
     }
   }
 
@@ -193,7 +193,7 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
 
     "return the expected JValue if passed good json" in {
       val domainTags = Format.domainTags(drewRawJson)
-      domainTags.get should be(JArray(List(JString("pie"))))
+      domainTags should be(Some(JArray(List(JString("pie")))))
     }
   }
 
@@ -209,7 +209,7 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
       val emailObject = JObject(Map("value" -> JString("drew@redmond.gov"), "key" -> JString("Common-Core_Contact-Email")))
       val metadataArray = JArray(List(publisherObject, emailObject))
 
-      domainMetadata.get should be(metadataArray)
+      domainMetadata should be(Some(metadataArray))
     }
   }
 
@@ -240,31 +240,31 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
     "return the expected JValue if the user owns the view" in {
       val user = Some(User("7kqh-9s5a", Some(domains(1))))
       val metadata = Format.domainPrivateMetadata(drewRawJson, user, viewsDomainId)
-      metadata.get should be(privateMetadata)
+      metadata should be(Some(privateMetadata))
     }
 
     "return the expected JValue if the user shares the view" in {
       val user = Some(User("ti9x-irmy", Some(domains(1))))
       val metadata = Format.domainPrivateMetadata(drewRawJson, user, viewsDomainId)
-      metadata.get should be(privateMetadata)
+      metadata should be(Some(privateMetadata))
     }
 
     "return the expected JValue if the user is a super admin" in {
       val user = Some(User("super-user", flags = Some(List("admin"))))
       val metadata = Format.domainPrivateMetadata(drewRawJson, user, viewsDomainId)
-      metadata.get should be(privateMetadata)
+      metadata should be(Some(privateMetadata))
     }
 
     "return the expected JValue if the user is an admin on the view's domain" in {
       val user = Some(User("some-user", Some(domains(0)), Some("administrator")))
       val metadata = Format.domainPrivateMetadata(drewRawJson, user, viewsDomainId)
-      metadata.get should be(privateMetadata)
+      metadata should be(Some(privateMetadata))
     }
 
     "return the expected JValue if the user is a publisher on the view's domain" in {
       val user = Some(User("some-user", Some(domains(0)), Some("publisher")))
       val metadata = Format.domainPrivateMetadata(drewRawJson, user, viewsDomainId)
-      metadata.get should be(privateMetadata)
+      metadata should be(Some(privateMetadata))
     }
   }
 
@@ -315,7 +315,7 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
 
     "return the expected cname if passed good json" in {
       val viewtype = Format.viewtype(drewRawJson)
-      viewtype.get should be("pie")
+      viewtype should be(Some("pie"))
     }
   }
 
@@ -327,7 +327,7 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
 
     "return the expected cname if passed good json" in {
       val datasetId = Format.datasetId(drewRawJson)
-      datasetId.get should be("94sr-dmsy")
+      datasetId should be(Some("94sr-dmsy"))
     }
   }
 
@@ -365,6 +365,36 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
     }
   }
 
+  "the datalensStatus method" should {
+    "return None if the view isn't a datalens" in {
+      val view = j"""{ "datatype": "chart" }"""
+      val fakeDatalens = j"""{ "datatype": "datalens_fake_thing" }"""
+
+      Format.datalensStatus(view) should be(None)
+      Format.datalensStatus(fakeDatalens) should be(None)
+    }
+
+    "return rejected if the datalens is rejected" in {
+      val view = j"""{ "datatype": "datalens", "moderation_status": "rejected" }"""
+      Format.datalensStatus(view) should be(Some("rejected"))
+    }
+
+    "return pending if the datalens is pending" in {
+      val view = j"""{ "datatype": "datalens", "moderation_status": "pending" }"""
+      Format.datalensStatus(view) should be(Some("pending"))
+    }
+
+    "return approved if the datalens is approved (for all datalens types)" in {
+      val datalens = j"""{ "datatype": "datalens", "moderation_status": "approved" }"""
+      val datalensChart = j"""{ "datatype": "datalens_chart", "moderation_status": "approved" }"""
+      val datalensMap = j"""{ "datatype": "datalens_map", "moderation_status": "approved" }"""
+
+      Format.datalensStatus(datalens) should be(Some("approved"))
+      Format.datalensStatus(datalensChart) should be(Some("approved"))
+      Format.datalensStatus(datalensMap) should be(Some("approved"))
+    }
+  }
+
   "the datalensApproved method" should {
     "return None if the view isn't a datalens" in {
       val view = j"""{ "datatype": "chart" }"""
@@ -376,12 +406,12 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
 
     "return false if the datalens is rejected" in {
       val view = j"""{ "datatype": "datalens", "moderation_status": "rejected" }"""
-      Format.datalensApproved(view).get should be(false)
+      Format.datalensApproved(view) should be(Some(false))
     }
 
     "return false if the datalens is pending" in {
       val view = j"""{ "datatype": "datalens", "moderation_status": "pending" }"""
-      Format.datalensApproved(view).get should be(false)
+      Format.datalensApproved(view) should be(Some(false))
     }
 
     "return true if the datalens is approved (for all datalens types)" in {
@@ -389,9 +419,34 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
       val datalensChart = j"""{ "datatype": "datalens_chart", "moderation_status": "approved" }"""
       val datalensMap = j"""{ "datatype": "datalens_map", "moderation_status": "approved" }"""
 
-      Format.datalensApproved(datalens).get should be(true)
-      Format.datalensApproved(datalensChart).get should be(true)
-      Format.datalensApproved(datalensMap).get should be(true)
+      Format.datalensApproved(datalens) should be(Some(true))
+      Format.datalensApproved(datalensChart) should be(Some(true))
+      Format.datalensApproved(datalensMap) should be(Some(true))
+    }
+  }
+
+  "the moderationStatus method" should {
+    "return None if the domain does not have moderation enabled" in {
+      val view = j"""{ "datatype": "chart", "moderation_status": "approved" }"""
+      val unmoderatedDomain = domains(0)
+      Format.moderationStatus(view, unmoderatedDomain) should be(None)
+    }
+
+    "return the appropriate status for a derived view if domain has moderation enabled" in {
+      val approvedView = j"""{ "datatype": "chart", "moderation_status": "approved" }"""
+      val pendingView = j"""{ "datatype": "chart", "moderation_status": "pending" }"""
+      val rejectedView = j"""{ "datatype": "chart", "moderation_status": "rejected" }"""
+
+      val moderatedDomain = domains(1)
+      Format.moderationStatus(approvedView, moderatedDomain) should be(Some("approved"))
+      Format.moderationStatus(pendingView, moderatedDomain) should be(Some("pending"))
+      Format.moderationStatus(rejectedView, moderatedDomain) should be(Some("rejected"))
+    }
+
+    "return 'approved' if the view is a dataset and the domain has moderation enabled" in {
+      val view = j"""{ "datatype": "dataset", "is_default_view": true }"""
+      val moderatedDomain = domains(1)
+      Format.moderationStatus(view, moderatedDomain) should be(Some("approved"))
     }
   }
 
@@ -404,28 +459,26 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
 
     "return false if the view is rejected and the domain has moderation enabled" in {
       val view = j"""{ "datatype": "chart", "moderation_status": "rejected" }"""
-      val unmoderatedDomain = domains(0)
       val moderatedDomain = domains(1)
-      Format.moderationApproved(view, moderatedDomain).get should be(false)
+      Format.moderationApproved(view, moderatedDomain) should be(Some(false))
     }
 
     "return false if the view is pending and the domain has moderation enabled" in {
       val view = j"""{ "datatype": "chart", "moderation_status": "pending" }"""
-      val unmoderatedDomain = domains(0)
       val moderatedDomain = domains(1)
-      Format.moderationApproved(view, moderatedDomain).get should be(false)
+      Format.moderationApproved(view, moderatedDomain) should be(Some(false))
     }
 
     "return true if the view is a dataset and the domain has moderation enabled" in {
       val view = j"""{ "datatype": "dataset", "is_default_view": true }"""
       val moderatedDomain = domains(1)
-      Format.moderationApproved(view, moderatedDomain).get should be(true)
+      Format.moderationApproved(view, moderatedDomain) should be(Some(true))
     }
 
     "return true if the view is approved and the domain has moderation enabled)" in {
       val view = j"""{ "datatype": "chart", "moderation_status": "approved" }"""
       val moderatedDomain = domains(1)
-      Format.moderationApproved(view, moderatedDomain).get should be(true)
+      Format.moderationApproved(view, moderatedDomain) should be(Some(true))
     }
   }
 
@@ -445,7 +498,7 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
       val moderatedDomain1 = domains(1)
       val moderatedDomain3 = domains(3)
       val context = DomainSet(searchContext = Some(moderatedDomain1))
-      Format.moderationApprovedByContext(view, moderatedDomain3, context).get should be(false)
+      Format.moderationApprovedByContext(view, moderatedDomain3, context) should be(Some(false))
     }
 
     "return false if the view is pending and the domain and context have moderation enabled" in {
@@ -453,7 +506,7 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
       val moderatedDomain1 = domains(1)
       val moderatedDomain3 = domains(3)
       val context = DomainSet(searchContext = Some(moderatedDomain1))
-      Format.moderationApprovedByContext(view, moderatedDomain3, context).get should be(false)
+      Format.moderationApprovedByContext(view, moderatedDomain3, context) should be(Some(false))
     }
 
     "return true if the view is a dataset and the domain and context have moderation enabled" in {
@@ -461,7 +514,7 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
       val moderatedDomain1 = domains(1)
       val moderatedDomain3 = domains(3)
       val context = DomainSet(searchContext = Some(moderatedDomain1))
-      Format.moderationApprovedByContext(view, moderatedDomain3, context).get should be(true)
+      Format.moderationApprovedByContext(view, moderatedDomain3, context) should be(Some(true))
     }
 
     "return true if the view is approved and the domain and context have moderation enabled" in {
@@ -469,7 +522,7 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
       val moderatedDomain1 = domains(1)
       val moderatedDomain3 = domains(3)
       val context = DomainSet(searchContext = Some(moderatedDomain1))
-      Format.moderationApprovedByContext(view, moderatedDomain3, context).get should be(true)
+      Format.moderationApprovedByContext(view, moderatedDomain3, context) should be(Some(true))
     }
 
     "return false if the view is not default and the context has moderation enabled, but not the view's domain" in {
@@ -477,7 +530,7 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
       val moderatedDomain = domains(1)
       val viewsDomain = domains(0)
       val context = DomainSet(searchContext = Some(moderatedDomain))
-      Format.moderationApprovedByContext(view, viewsDomain, context).get should be(false)
+      Format.moderationApprovedByContext(view, viewsDomain, context) should be(Some(false))
     }
 
     "return true if the view is a dataset and the context has moderation enabled, but not the view's domain" in {
@@ -485,7 +538,27 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
       val moderatedDomain = domains(1)
       val viewsDomain = domains(0)
       val context = DomainSet(searchContext = Some(moderatedDomain))
-      Format.moderationApprovedByContext(view, viewsDomain, context).get should be(true)
+      Format.moderationApprovedByContext(view, viewsDomain, context) should be(Some(true))
+    }
+  }
+
+
+  "the routingStatus method" should {
+    "return None if the domain does not have R&A enabled" in {
+      val view = j"""{ }"""
+      val unroutedDomain = domains(0)
+      Format.routingStatus(view, unroutedDomain) should be(None)
+    }
+
+    "return the appropriate status if domain has R&A enabled" in {
+      val approvedView = j"""{ "datatype": "dataset", "is_approved_by_parent_domain": true }"""
+      val pendingView = j"""{ "datatype": "dataset", "is_pending_on_parent_domain": true }"""
+      val rejectedView = j"""{ "datatype": "dataset", "is_rejected_by_parent_domain": true }"""
+
+      val routedDomain = domains(2)
+      Format.routingStatus(approvedView, routedDomain) should be(Some("approved"))
+      Format.routingStatus(pendingView, routedDomain) should be(Some("pending"))
+      Format.routingStatus(rejectedView, routedDomain) should be(Some("rejected"))
     }
   }
 
@@ -500,13 +573,13 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
       val view = j"""{ "datatype": "dataset", "approving_domain_ids": [ 0 ] }"""
       val unroutedDomain = domains(0)
       val routedDomain = domains(2)
-      Format.routingApproved(view, routedDomain).get should be(false)
+      Format.routingApproved(view, routedDomain) should be(Some(false))
     }
 
     "return true if the dataset is approved by its parent domain" in {
       val view = j"""{ "datatype": "dataset", "approving_domain_ids": [ 2 ] }"""
       val routedDomain = domains(2)
-      Format.routingApproved(view, routedDomain).get should be(true)
+      Format.routingApproved(view, routedDomain) should be(Some(true))
     }
   }
 
@@ -535,7 +608,7 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
       val routedDomain = domains(2)
       val routedContext = DomainSet(searchContext = Some(routedDomain))
 
-      Format.routingApprovedByContext(view, viewsDomain, routedContext).get should be(false)
+      Format.routingApprovedByContext(view, viewsDomain, routedContext) should be(Some(false))
     }
 
     "return true if the dataset is approved by the RA-enabled context" in {
@@ -544,7 +617,7 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
       val routedDomain = domains(2)
       val routedContext = DomainSet(searchContext = Some(routedDomain))
 
-      Format.routingApprovedByContext(view, viewsDomain, routedContext).get should be(true)
+      Format.routingApprovedByContext(view, viewsDomain, routedContext) should be(Some(true))
     }
   }
 
@@ -564,8 +637,8 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
       val contextDomain = domains(3)
       val context = DomainSet(searchContext = Some(contextDomain))
       val (vmContextApproval, raContextApproval) = Format.contextApprovals(view, viewsDomain, context)
-      vmContextApproval.get should be(true)
-      raContextApproval.get should be(true)
+      vmContextApproval should be(Some(true))
+      raContextApproval should be(Some(true))
     }
   }
 
