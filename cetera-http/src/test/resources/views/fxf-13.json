@@ -18,20 +18,21 @@
     "created_at": "2016-09-19T10:37:20.933-07:00",
     "type": "href",
     "id": "fxf-13",
-    "columns": [
-    ],
+    "columns": [],
     "name": "One",
     "attribution": null,
     "provenance": "community",
     "columns_field_name": [],
     "columns_description": [],
-    "columns_name": ["first_name"]
+    "columns_name": [
+      "first_name"
+    ]
   },
   "animl_annotations": {
     "categories": [
       {
         "name": "It's Personal Buddy",
-        "score": 1.0
+        "score": 1
       }
     ],
     "tags": [
@@ -46,12 +47,9 @@
   "indexed_metadata": {
     "name": "One",
     "description": "We're number one",
-    "columns_field_name": [
-    ],
-    "columns_description": [
-    ],
-    "columns_name": [
-    ]
+    "columns_field_name": [],
+    "columns_description": [],
+    "columns_name": []
   },
   "customer_metadata_flattened": [
     {
@@ -77,13 +75,11 @@
   "is_published": true,
   "is_default_view": true,
   "moderation_status": null,
-  "approving_domain_ids": [
-  ],
+  "approving_domain_ids": [],
   "rejecting_domain_ids": [
     2
   ],
-  "pending_domain_ids": [
-  ],
+  "pending_domain_ids": [],
   "is_approved_by_parent_domain": false,
   "is_rejected_by_parent_domain": false,
   "is_pending_on_parent_domain": false,
@@ -103,5 +99,8 @@
   "grants": [],
   "hide_from_catalog": false,
   "hide_from_data_json": false,
-  "provenance": "community"
+  "provenance": "community",
+  "owner": {
+    "id": "robin-hood"
+  }
 }

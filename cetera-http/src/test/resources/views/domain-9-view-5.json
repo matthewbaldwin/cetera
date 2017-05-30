@@ -55,12 +55,16 @@
   },
   "customer_category": "Science",
   "customer_tags": [],
-  "owner_id": "honorable.sheriff",
+  "owner_id": "lil-john",
   "shared_to": [],
   "attribution": null,
   "preview_image_id": null,
   "grants": [],
   "hide_from_catalog": false,
   "hide_from_data_json": false,
-  "provenance": "community"
+  "provenance": "community",
+  "owner": {
+    "id": "lil-john",
+    "display_name": "Little John"
+  }
 }

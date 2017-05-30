@@ -2,6 +2,22 @@ package com.socrata.cetera.types
 
 import org.scalatest.{FunSuiteLike, Matchers}
 
+import com.rojoma.json.v3.interpolation._
+
+class UserInfoSpec extends FunSuiteLike with Matchers {
+  test("ignore user email address when decoding a UserInfo from JSON") {
+    val userJValue = j"""{
+      "id": "abcd-1234",
+      "email": "aardvark@socrata.com",
+      "display_name": "Aardvark"
+    }
+    """
+
+    val expected = Some(UserInfo("abcd-1234", Some("Aardvark")))
+    UserInfo.fromJValue(userJValue) should be(expected)
+  }
+}
+
 class EsUserJsonSpec extends FunSuiteLike with Matchers {
   test("decode user from elasticsearch json") {
     val source =

@@ -1,6 +1,6 @@
 package com.socrata.cetera.response
 
-import com.rojoma.json.v3.ast.{JNumber, _}
+import com.rojoma.json.v3.ast._
 import com.rojoma.json.v3.codec.DecodeError
 import com.rojoma.json.v3.io.JsonReader
 import com.rojoma.json.v3.jpath.JPath
@@ -292,13 +292,17 @@ object Format {
       grants = viewGrants)
   }
 
+  def resultOwner(j: JValue): Option[UserInfo] =
+    j.dyn.owner.?.fold(decodeErrorToNone, UserInfo.fromJValue)
+
   def documentSearchResult( // scalastyle:ignore method.length
       j: JValue,
       user: Option[User],
       domainSet: DomainSet,
       locale: Option[String],
       score: Option[JNumber],
-      showVisibility: Boolean)
+      showVisibility: Boolean,
+      owner: Option[UserInfo])
     : Option[SearchResult] = {
     try {
       val viewsDomainId = domainId(j).getOrElse(throw new NoSuchElementException)
@@ -336,7 +340,8 @@ object Format {
         metadata,
         linkMap.getOrElse("permalink", JString("")),
         linkMap.getOrElse("link", JString("")),
-        linkMap.get("previewImageUrl"))
+        linkMap.get("previewImageUrl"),
+        owner)
       )
     }
     catch { case e: Exception =>
@@ -354,10 +359,13 @@ object Format {
     : SearchResults[SearchResult] = {
     val domainIdCnames = domainSet.idMap.map { case (i, d) => i -> d.domainCname }
     val hits = searchResponse.getHits
+
     val searchResult = hits.hits().flatMap { hit =>
       val json = JsonReader.fromString(hit.sourceAsString())
       val score = if (formatParams.showScore) Some(JNumber(hit.score)) else None
-      documentSearchResult(json, user, domainSet, formatParams.locale, score, formatParams.showVisibility)
+      val owner = resultOwner(json)
+
+      documentSearchResult(json, user, domainSet, formatParams.locale, score, formatParams.showVisibility, owner)
     }
     SearchResults(searchResult, hits.getTotalHits)
   }

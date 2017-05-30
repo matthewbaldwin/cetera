@@ -51,7 +51,8 @@
       "analyzer": "snowball_en",
       "fields": {
         "raw": { "type": "keyword" },
-        "lowercase": {"type": "text", "analyzer": "case_insensitive_en" }
+        "lowercase": {"type": "text", "analyzer": "case_insensitive_en" },
+        "lowercase_alphanumeric": { "type": "text", "analyzer": "lowercase_alphanumeric", "fielddata": true }
       },
       "copy_to": [ "fts_analyzed", "fts_raw" ]
     },
@@ -235,6 +236,13 @@
     "updated_at": { "type": "date", "format": "dateOptionalTime" },
     "indexed_at": { "type": "date", "format": "dateOptionalTime" },
     "viewtype": { "type": "keyword" },
+    "owner": {
+      "properties": {
+        "id": { "type": "keyword" },
+        "email": { "type": "keyword" },
+        "display_name": { "type": "text", "analyzer": "lowercase_alphanumeric", "fielddata": true }
+      }
+    },
     "owner_id": { "type": "keyword" },
     "attribution": {
       "type": "text",

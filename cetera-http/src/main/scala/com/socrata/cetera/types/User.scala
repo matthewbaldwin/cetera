@@ -1,5 +1,7 @@
 package com.socrata.cetera.types
 
+import com.rojoma.json.v3.ast.JValue
+import com.rojoma.json.v3.codec.JsonDecode
 import com.rojoma.json.v3.util.{AutomaticJsonCodecBuilder, JsonKeyStrategy, JsonUtil, Strategy}
 import org.slf4j.LoggerFactory
 
@@ -10,6 +12,23 @@ case class Role(domainId: Int, roleName: String)
 
 object Role {
   implicit val codec = AutomaticJsonCodecBuilder[Role]
+}
+
+// NOTE: not including email address in this model; doing so would require that we check auth
+@JsonKeyStrategy(Strategy.Underscore)
+case class UserInfo(id: String, displayName: Option[String])
+
+object UserInfo {
+  implicit val codec = AutomaticJsonCodecBuilder[UserInfo]
+  val logger = LoggerFactory.getLogger(getClass)
+
+  def fromJValue(jval: JValue): Option[UserInfo] =
+    JsonDecode.fromJValue(jval) match {
+      case Right(user) => Some(user)
+      case Left(err) =>
+        logger.error(err.english)
+        throw new JsonDecodeException(err)
+    }
 }
 
 @JsonKeyStrategy(Strategy.Underscore)
@@ -31,7 +50,7 @@ object EsUser {
   implicit val codec = AutomaticJsonCodecBuilder[EsUser]
   val logger = LoggerFactory.getLogger(getClass)
 
-  def apply(source: String): Option[EsUser] = {
+  def apply(source: String): Option[EsUser] =
     Option(source).flatMap { s =>
       JsonUtil.parseJson[EsUser](s) match {
         case Right(user) => Some(user)
@@ -40,7 +59,6 @@ object EsUser {
           throw new JsonDecodeException(err)
       }
     }
-  }
 }
 
 @JsonKeyStrategy(Strategy.Underscore)

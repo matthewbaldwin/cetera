@@ -67,5 +67,8 @@
   "grants": [],
   "hide_from_catalog": false,
   "hide_from_data_json": false,
-  "provenance": "official"
+  "provenance": "official",
+  "owner": {
+    "id": "prince-john"
+  }
 }

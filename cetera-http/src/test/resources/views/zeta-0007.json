@@ -73,5 +73,8 @@
   "grants": [],
   "hide_from_catalog": false,
   "hide_from_data_json": false,
-  "provenance": "community"
+  "provenance": "community",
+  "owner": {
+    "id": "lil-john"
+  }
 }

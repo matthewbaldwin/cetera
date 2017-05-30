@@ -645,7 +645,7 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
   "the documentSearchResult method" should {
     "return the expected payload if passed good json" in {
       val unmoderatedUnroutedContext = DomainSet(domains = Set(domains(0)), searchContext = Some(domains(0)))
-      val actualResult = Format.documentSearchResult(drewRawJson, None, unmoderatedUnroutedContext, None, Some(JNumber(.98)), true).get
+      val actualResult = Format.documentSearchResult(drewRawJson, None, unmoderatedUnroutedContext, None, Some(JNumber(.98)), true, None).get
       val drewFormattedString = Source.fromInputStream(getClass.getResourceAsStream("/drewFormatted.json")).getLines().mkString("\n")
       val drewFormattedJson = JsonReader.fromString(drewFormattedString)
 
@@ -667,7 +667,7 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
     "return the expected payload if passed good json and a user with rights to see the private metadata" in {
       val user = Some(User("some-user", Some(domains(0)), Some("publisher")))
       val unmoderatedUnroutedContext = DomainSet(domains = Set(domains(0)), searchContext = Some(domains(0)))
-      val actualResult = Format.documentSearchResult(drewRawJson, user, unmoderatedUnroutedContext, None, Some(JNumber(.98)), true).get
+      val actualResult = Format.documentSearchResult(drewRawJson, user, unmoderatedUnroutedContext, None, Some(JNumber(.98)), true, None).get
       val drewFormattedString = Source.fromInputStream(getClass.getResourceAsStream("/drewFormattedWithPrivateMetadata.json")).getLines().mkString("\n")
       val drewFormattedJson = JsonReader.fromString(drewFormattedString)
       val expectedResult = JsonDecode.fromJValue[SearchResult](drewFormattedJson).right.get
@@ -678,7 +678,7 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
     "return None if passed bad json" in {
       val view = j"""{"bad": "json", "socrata_id": { "domain_id": 0} }"""
       val unmoderatedUnroutedContext = DomainSet(domains = Set(domains(0)), searchContext = Some(domains(0)))
-      val actualResult = Format.documentSearchResult(view, None, unmoderatedUnroutedContext, None, None, false)
+      val actualResult = Format.documentSearchResult(view, None, unmoderatedUnroutedContext, None, None, false, None)
       actualResult should be(None)
     }
   }

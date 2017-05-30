@@ -59,10 +59,25 @@ object Sorts {
       case "page_views_total DESC" => Some(sortFieldDesc(PageViewsTotalFieldType.fieldName))
       case "page_views_total" => Some(sortFieldDesc(PageViewsTotalFieldType.fieldName))
 
-      // Alphabetical
+      // Name
       case "name" => Some(sortFieldAsc(TitleFieldType.lowercaseAlphanumFieldName))
       case "name ASC" => Some(sortFieldAsc(TitleFieldType.lowercaseAlphanumFieldName))
       case "name DESC" => Some(sortFieldDesc(TitleFieldType.lowercaseAlphanumFieldName))
+
+      // Owner
+      case "owner" => Some(sortFieldAsc(OwnerDisplayNameFieldType.fieldName))
+      case "owner ASC" => Some(sortFieldAsc(OwnerDisplayNameFieldType.fieldName))
+      case "owner DESC" => Some(sortFieldDesc(OwnerDisplayNameFieldType.fieldName))
+
+      // Category
+      case "domain_category" => Some(sortFieldAsc(DomainCategoryFieldType.lowercaseAlphanumFieldName))
+      case "domain_category ASC" => Some(sortFieldAsc(DomainCategoryFieldType.lowercaseAlphanumFieldName))
+      case "domain_category DESC" => Some(sortFieldDesc(DomainCategoryFieldType.lowercaseAlphanumFieldName))
+
+      // Datatype
+      case "datatype" => Some(sortFieldAsc(DatatypeFieldType.fieldName))
+      case "datatype ASC" => Some(sortFieldAsc(DatatypeFieldType.fieldName))
+      case "datatype DESC" => Some(sortFieldDesc(DatatypeFieldType.fieldName))
 
       // Relevance
       case "relevance" => Some(sortScoreDesc)

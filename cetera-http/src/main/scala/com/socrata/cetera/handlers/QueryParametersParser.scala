@@ -399,6 +399,7 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
     }
   }
 
+
   //////////////////////
   // ParamSet builders
 
@@ -578,7 +579,6 @@ object Params {
 
   // result formatting parameters
   val locale = "locale"
-  val showFeatureValues = "show_feature_vals" // TODO: revive feature values for relevance experimentation
   val showScore = "show_score"
   val showVisibility = "show_visibility"
 
@@ -624,7 +624,6 @@ object Params {
     minShouldMatch,
     slop,
     ageDecay,
-    showFeatureValues,
     showScore,
     showVisibility,
     limit,

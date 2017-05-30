@@ -160,7 +160,7 @@ class CountServiceSpecWithTestESData extends FunSuiteLike with Matchers with Bef
   }
 
   test("owners count request") {
-    val expectedResults = List(Count("robin-hood", 5), Count("lil-john", 2),  Count("john-clan", 1), Count("prince-john", 3), Count("honorable.sheriff", 5))
+    val expectedResults = List(Count("robin-hood", 5), Count("lil-john", 3),  Count("john-clan", 1), Count("prince-john", 3), Count("honorable.sheriff", 4))
     val (_, res, _, _) = countService.doAggregate(OwnerIdFieldType, Map.empty, AuthParams(), None, None)
     res.results should contain theSameElementsAs expectedResults
   }

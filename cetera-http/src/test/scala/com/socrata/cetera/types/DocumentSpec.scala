@@ -472,7 +472,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isDatalens should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(true)
-      doc.isSharedOrOwned("honorable.sheriff") should be(true)
+      doc.isSharedOrOwned("lil-john") should be(true)
     }
   }
 }

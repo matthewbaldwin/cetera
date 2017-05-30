@@ -15,7 +15,7 @@ import com.socrata.http.server.responses.{Json, StatusResponse, Unauthorized}
 import org.elasticsearch.common.text.Text
 import org.elasticsearch.search.SearchHit
 
-import com.socrata.cetera.types.TitleFieldType
+import com.socrata.cetera.types.{TitleFieldType, UserInfo}
 
 object JsonResponses {
   def jsonError(error: String): HttpResponse = {
@@ -89,7 +89,8 @@ case class SearchResult(
   metadata: Metadata,
   permalink: JString,
   link: JString,
-  previewImageUrl: Option[JString])
+  previewImageUrl: Option[JString],
+  owner: Option[UserInfo])
 
 object SearchResult {
   implicit val jCodec = AutomaticJsonCodecBuilder[SearchResult]

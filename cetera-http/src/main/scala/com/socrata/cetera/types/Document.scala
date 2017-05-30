@@ -110,6 +110,7 @@ case class Document(
     createdAt: String,
     updatedAt: String,
     indexedAt: Option[String],
+    owner: Option[UserInfo],
     ownerId: String,
     sharedTo: Seq[String],
     attribution: Option[String],

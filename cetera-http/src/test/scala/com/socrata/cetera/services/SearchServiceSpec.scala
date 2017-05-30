@@ -1,5 +1,6 @@
 package com.socrata.cetera.services
 
+import com.rojoma.json.v3.codec.JsonDecode
 import java.io.ByteArrayInputStream
 import java.nio.charset.{Charset, CodingErrorAction}
 import java.util.Collections
@@ -378,6 +379,61 @@ class SearchServiceSpec extends FunSuiteLike
     results.map(result =>
       result.resource.dyn.id.!.cast[JString].get.string
     ) should contain theSameElementsInOrderAs anonymouslyViewableDocIdsSorted.drop(dropIndex).take(5)
+  }
+
+  test("the owner field is included in the results") {
+    val params = Map("domains" -> Seq("robert.demo.socrata.com"), "ids" -> Seq("1234-5678"))
+
+    val results = service.doSearch(params, AuthParams(), None, None)._2.results
+
+    results.toList.headOption.flatMap(_.owner) should be(Some(UserInfo("honorable.sheriff", Some("Honorable Sheriff of Nottingham"))))
+  }
+
+  test("sorting on the owner returns results in the correct order") {
+    val params = Map("domains" -> Seq("robert.demo.socrata.com"), "ids" -> Seq("1234-5678", "1234-5682"), "order" -> Seq("owner ASC"))
+
+    val results = service.doSearch(params, AuthParams(), None, None)._2.results
+
+    results.toList.flatMap(_.owner.map(_.id)) should be(List("honorable.sheriff", "lil-john"))
+
+    val paramsDesc = params + ("order" -> Seq("owner DESC"))
+    val resultsDesc = service.doSearch(paramsDesc, AuthParams(), None, None)._2.results
+
+    resultsDesc.toList.flatMap(_.owner.map(_.id)) should be(List("lil-john", "honorable.sheriff"))
+  }
+
+  test("sorting on domain category returns results in the correct order") {
+    val params = Map("domains" -> Seq("robert.demo.socrata.com"), "ids" -> Seq("1234-5678", "1234-5682"), "order" -> Seq("domain_category ASC"))
+
+    val results = service.doSearch(params, AuthParams(), None, None)._2.results
+
+    val t = results.toList.flatMap(
+      _.classification.domainCategory.flatMap(_.cast[JString].map(_.string))
+    ) should be(List("Beta", "Science"))
+
+    val paramsDesc = params + ("order" -> Seq("domain_category DESC"))
+    val resultsDesc = service.doSearch(paramsDesc, AuthParams(), None, None)._2.results
+
+    resultsDesc.toList.flatMap(
+      _.classification.domainCategory.flatMap(_.cast[JString].map(_.string))
+    ) should be(List("Science", "Beta"))
+  }
+
+  test("sorting on datatype returns results in the correct order") {
+    val params = Map("domains" -> Seq("robert.demo.socrata.com"), "order" -> Seq("datatype ASC"))
+
+    val results = service.doSearch(params, AuthParams(), None, None)._2.results
+
+    results.toList.map(
+      _.resource.dyn.`type`.!.asInstanceOf[JString].string
+    ) should be(List("chart", "chart", "dataset", "dataset", "dataset"))
+
+    val paramsDesc = params + ("order" -> Seq("datatype DESC"))
+    val resultsDesc = service.doSearch(paramsDesc, AuthParams(), None, None)._2.results
+
+    resultsDesc.toList.map(
+      _.resource.dyn.`type`.!.asInstanceOf[JString].string
+    ) should be(List("dataset", "dataset", "dataset", "chart", "chart"))
   }
 
   ignore("es client - min should match") {}

@@ -105,7 +105,7 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
   }
 
   "the userQuery" should {
-    behaveLikeATermQuery(docQuery.userQuery, "owner_id", "wonder-woman", forDomainSearch = false)
+    behaveLikeATermQuery(docQuery.userQuery, "owner.id", "wonder-woman", forDomainSearch = false)
   }
 
 
@@ -221,7 +221,7 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
       {
           "bool": {
               "should": [
-                  {"term": {"owner_id": {"value": "user-fxf", "boost": 1.0}}},
+                  {"term": {"owner.id": {"value": "user-fxf", "boost": 1.0}}},
                   {"term": {"shared_to": {"value": "user-fxf", "boost": 1.0}}}
               ],
               $queryDefaults
@@ -239,7 +239,7 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
       {
           "bool": {
               "should": [
-                  {"term": {"owner_id": {"value": "user-fxf", "boost": 1.0}}},
+                  {"term": {"owner.id": {"value": "user-fxf", "boost": 1.0}}},
                   {"term": {"shared_to": {"value": "user-fxf", "boost": 1.0}}},
                   {"terms": {"socrata_id.domain_id": [0], "boost": 1.0}}
               ],
@@ -1110,7 +1110,7 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
           "bool": {
               "must": [
                   {"terms": {"datatype": ["dataset"], "boost": 1.0}},
-                  {"term": {"owner_id": {"value": "anna-belle", "boost": 1.0}}},
+                  {"term": {"owner.id": {"value": "anna-belle", "boost": 1.0}}},
                   {"term": {"shared_to": {"value": "ro-bear", "boost": 1.0}}},
                   {"term": {"attribution.raw": {"value": "org", "boost": 1.0}}},
                   {"term": {"socrata_id.parent_dataset_id": {"value": "parent-id", "boost": 1.0}}},
@@ -1189,7 +1189,7 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
       {
           "bool": {
               "should": [
-                  {"term": {"owner_id": {"value": "mooks", "boost": 1.0}}},
+                  {"term": {"owner.id": {"value": "mooks", "boost": 1.0}}},
                   {"term": {"shared_to": {"value": "mooks", "boost": 1.0}}}
               ],
               $queryDefaults

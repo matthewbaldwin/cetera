@@ -393,8 +393,10 @@ class SearchServiceSpecForAnonymousUsers
     actualFxfs should be('empty)
 
     // confirm there were documents that were excluded.
-    anonymouslyViewableDocs.find(_.socrataId.datasetId == "fxf-8").get.privateCustomerMetadataFlattened.exists(_.value == privateValue
-    ) should be(true)
+    val doc = anonymouslyViewableDocs.find(_.socrataId.datasetId == "fxf-8")
+    doc.map(
+      _.privateCustomerMetadataFlattened.exists(_.value == privateValue)
+    ) should be(Some(true))
   }
 
   test("searching with a private metadata k/v pair param finds no items if the user doesn't own/share the doc") {
@@ -406,8 +408,10 @@ class SearchServiceSpecForAnonymousUsers
     actualFxfs should be('empty)
 
     // confirm there were documents that were excluded.
-    anonymouslyViewableDocs.find(_.socrataId.datasetId == "fxf-8").get.privateCustomerMetadataFlattened.exists(m =>
-      m.value == privateValue && m.key == privateKey) should be(true)
+    val doc = anonymouslyViewableDocs.find(_.socrataId.datasetId == "fxf-8")
+    doc.map(
+      _.privateCustomerMetadataFlattened.exists(m => m.value == privateValue && m.key == privateKey)
+    ) should be(Some(true))
   }
 
   test("using 'visibility=open' filters nothing, since anonymous users already see 'open' views") {
@@ -697,7 +701,7 @@ class SearchServiceSpecForAnonymousUsers
   test("attribution is included in the resulting resource") {
     val params = Map("q" -> Seq("merry men"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    results.results.headOption.map { case SearchResult(resource, _, _, _, _, _) =>
+    results.results.headOption.map { case SearchResult(resource, _, _, _, _, _, _) =>
       resource.dyn.attribution.!.asInstanceOf[JString].string
     } should be(Some("The Merry Men"))
   }
@@ -709,7 +713,7 @@ class SearchServiceSpecForAnonymousUsers
   test("filtering by provenance works and the resulting resource has a 'provenance' field") {
     val params = Map("provenance" -> Seq("official"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    results.results.headOption.map { case SearchResult(resource, _, _, _, _, _) =>
+    results.results.headOption.map { case SearchResult(resource, _, _, _, _, _, _) =>
       resource.dyn.provenance.!.asInstanceOf[JString].string
     } should be(Some("official"))
   }
@@ -721,32 +725,32 @@ class SearchServiceSpecForAnonymousUsers
   test("filtering by license works and the resulting metadata has a 'license' field") {
     val params = Map("license" -> Seq("Academic Free License"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    results.results.headOption.map { case SearchResult(_, _, metadata, _, _, _) =>
-      metadata.license.get
+    results.results.headOption.flatMap { case SearchResult(_, _, metadata, _, _, _, _) =>
+      metadata.license
     } should be(Some("Academic Free License"))
   }
 
   test("filtering by license should be exact") {
     val params = Map("license" -> Seq("Free License"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    results.results.headOption.map { case SearchResult(_, _, metadata, _, _, _) =>
-      metadata.license.get
+    results.results.headOption.flatMap { case SearchResult(_, _, metadata, _, _, _, _) =>
+      metadata.license
     } should be(None)
   }
 
   test("filtering by license should be case sensitive") {
     val params = Map("license" -> Seq("academic free license"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    results.results.headOption.map { case SearchResult(_, _, metadata, _, _, _) =>
-      metadata.license.get
+    results.results.headOption.flatMap { case SearchResult(_, _, metadata, _, _, _, _) =>
+      metadata.license
     } should be(None)
   }
 
   test("a query that results in a dataset with a license should return metadata with a 'license' field") {
     val params = Map("q" -> Seq("A dataset with a multiword title"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    results.results.headOption.map { case SearchResult(_, _, metadata, _, _, _) =>
-      metadata.license.get
+    results.results.headOption.flatMap { case SearchResult(_, _, metadata, _, _, _, _) =>
+      metadata.license
     } should be(Some("Academic Free License"))
   }
 
@@ -812,7 +816,7 @@ class SearchServiceSpecForAnonymousUsers
   test("filtering by column names works") {
     val params = Map("column_names[]" -> Seq("first_name"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    results.results.headOption.flatMap { case SearchResult(resource, _, _, _, _, _) =>
+    results.results.headOption.flatMap { case SearchResult(resource, _, _, _, _, _, _) =>
       resource.dyn.columns_name.!.asInstanceOf[JArray] match {
         case JArray(elems) => elems.headOption.map(_.asInstanceOf[JString].string)
         case _ => None
@@ -823,7 +827,7 @@ class SearchServiceSpecForAnonymousUsers
   test("searching for column names works via the 'q' param works") {
     val params = Map("q" -> Seq("first_name"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    results.results.headOption.flatMap { case SearchResult(resource, _, _, _, _, _) =>
+    results.results.headOption.flatMap { case SearchResult(resource, _, _, _, _, _, _) =>
       resource.dyn.columns_name.!.asInstanceOf[JArray] match {
         case JArray(elems) => elems.headOption.map(_.asInstanceOf[JString].string)
         case _ => None
@@ -834,7 +838,7 @@ class SearchServiceSpecForAnonymousUsers
   test("searching by column names is case insensitive") {
     val params = Map("column_names[]" -> Seq("FIRST_NAME"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    results.results.headOption.flatMap { case SearchResult(resource, _, _, _, _, _) =>
+    results.results.headOption.flatMap { case SearchResult(resource, _, _, _, _, _, _) =>
       resource.dyn.columns_name.!.asInstanceOf[JArray] match {
         case JArray(elems) => elems.headOption.map(_.asInstanceOf[JString].string)
         case _ => None

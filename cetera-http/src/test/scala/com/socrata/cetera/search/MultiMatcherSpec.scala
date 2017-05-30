@@ -91,7 +91,7 @@ class MultiMatcherSpec extends WordSpec with ShouldMatchers with BeforeAndAfterA
                               {
                                   "bool": {
                                       "should": [
-                                          {"term": {"owner_id": {"value": "annabelle", "boost": 1.0}}},
+                                          {"term": {"owner.id": {"value": "annabelle", "boost": 1.0}}},
                                           {"term": {"shared_to": {"value": "annabelle", "boost": 1.0}}}
                                       ],
                                       $queryDefaults
@@ -140,7 +140,7 @@ class MultiMatcherSpec extends WordSpec with ShouldMatchers with BeforeAndAfterA
                               {
                                   "bool": {
                                       "should": [
-                                          {"term": {"owner_id": {"value": "annabelle", "boost": 1.0}}},
+                                          {"term": {"owner.id": {"value": "annabelle", "boost": 1.0}}},
                                           {"term": {"shared_to": {"value": "annabelle", "boost": 1.0}}}
                                       ],
                                       $queryDefaults
@@ -240,7 +240,7 @@ class MultiMatcherSpec extends WordSpec with ShouldMatchers with BeforeAndAfterA
                               {
                                   "bool": {
                                       "should": [
-                                          {"term": {"owner_id": {"value": "annabelle", "boost": 1.0}}},
+                                          {"term": {"owner.id": {"value": "annabelle", "boost": 1.0}}},
                                           {"term": {"shared_to": {"value": "annabelle", "boost": 1.0}}},
                                           {"terms": {"socrata_id.domain_id": [0], "boost": 1.0}}
                                       ],
@@ -297,7 +297,7 @@ class MultiMatcherSpec extends WordSpec with ShouldMatchers with BeforeAndAfterA
                               {
                                   "bool": {
                                       "should": [
-                                          {"term": {"owner_id": {"value": "annabelle", "boost": 1.0}}},
+                                          {"term": {"owner.id": {"value": "annabelle", "boost": 1.0}}},
                                           {"term": {"shared_to": {"value": "annabelle", "boost": 1.0}}},
                                           {"terms": {"socrata_id.domain_id": [0], "boost": 1.0}}
                                       ],
