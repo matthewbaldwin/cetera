@@ -9,6 +9,7 @@ import com.socrata.cetera.errors.JsonDecodeException
 case class Domain(
     domainId: Int,
     domainCname: String,
+    aliases: Option[Set[String]],
     siteTitle: Option[String],
     organization: Option[String],
     isCustomerDomain: Boolean,
@@ -17,7 +18,8 @@ case class Domain(
     lockedDown: Boolean,
     apiLockedDown: Boolean) {
 
-  def isLocked: Boolean = lockedDown || apiLockedDown
+  val isLocked = lockedDown || apiLockedDown
+  val aliasSet = aliases.getOrElse(Set.empty) + domainCname
 }
 
 object Domain {

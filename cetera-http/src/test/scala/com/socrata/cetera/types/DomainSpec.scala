@@ -21,6 +21,7 @@ class DomainSpec extends WordSpec with ShouldMatchers with TestESData with Befor
       dom.moderationEnabled should be(false)
       dom.routingApprovalEnabled should be(false)
       dom.isLocked should be(false)
+      dom.aliasSet should contain theSameElementsAs(Set("petercetera.net", "pc.net"))
 
       // NOTE: domain 0 federates its data into domains 1 and 2 and accepts data from domain 2
     }
@@ -37,6 +38,7 @@ class DomainSpec extends WordSpec with ShouldMatchers with TestESData with Befor
       dom.moderationEnabled should be(true)
       dom.routingApprovalEnabled should be(false)
       dom.isLocked should be(false)
+      dom.aliasSet should contain theSameElementsAs(Set("opendata.socrata.com", "opendata-demo.socrata.com"))
 
       // NOTE: domain 1 accepts data from domain 0
     }
@@ -53,6 +55,7 @@ class DomainSpec extends WordSpec with ShouldMatchers with TestESData with Befor
       dom.moderationEnabled should be(false)
       dom.routingApprovalEnabled should be(true)
       dom.isLocked should be(false)
+      dom.aliasSet should contain theSameElementsAs(Set("teal.org", "zaffre.org", "blue.org"))
 
       // NOTE: domain 2 federates its data into domains 0 and 3 and accepts data from domain 0
     }
@@ -69,6 +72,7 @@ class DomainSpec extends WordSpec with ShouldMatchers with TestESData with Befor
       dom.moderationEnabled should be(true)
       dom.routingApprovalEnabled should be(true)
       dom.isLocked should be(false)
+      dom.aliasSet should contain theSameElementsAs(Set("annabelle.island.net"))
 
       // NOTE: domain 3 accepts data from domain 2
     }
@@ -85,6 +89,7 @@ class DomainSpec extends WordSpec with ShouldMatchers with TestESData with Befor
       dom.moderationEnabled should be(false)
       dom.routingApprovalEnabled should be(true)
       dom.isLocked should be(false)
+      dom.aliasSet should contain theSameElementsAs(Set("dylan.demo.socrata.com"))
     }
   }
 
@@ -99,6 +104,7 @@ class DomainSpec extends WordSpec with ShouldMatchers with TestESData with Befor
       dom.moderationEnabled should be(false)
       dom.routingApprovalEnabled should be(false)
       dom.isLocked should be(false)
+      dom.aliasSet should contain theSameElementsAs(Set("dylan2.demo.socrata.com"))
     }
   }
 
@@ -113,6 +119,7 @@ class DomainSpec extends WordSpec with ShouldMatchers with TestESData with Befor
       dom.moderationEnabled should be(true)
       dom.routingApprovalEnabled should be(true)
       dom.isLocked should be(true)
+      dom.aliasSet should contain theSameElementsAs(Set("locked.demo.com"))
     }
   }
 
@@ -127,6 +134,7 @@ class DomainSpec extends WordSpec with ShouldMatchers with TestESData with Befor
       dom.moderationEnabled should be(true)
       dom.routingApprovalEnabled should be(false)
       dom.isLocked should be(true)
+      dom.aliasSet should contain theSameElementsAs(Set("api.locked.demo.com"))
     }
   }
 
@@ -141,6 +149,7 @@ class DomainSpec extends WordSpec with ShouldMatchers with TestESData with Befor
       dom.moderationEnabled should be(true)
       dom.routingApprovalEnabled should be(true)
       dom.isLocked should be(true)
+      dom.aliasSet should contain theSameElementsAs(Set("double.locked.demo.com"))
     }
   }
 
@@ -155,6 +164,7 @@ class DomainSpec extends WordSpec with ShouldMatchers with TestESData with Befor
       dom.moderationEnabled should be(false)
       dom.routingApprovalEnabled should be(false)
       dom.isLocked should be(false)
+      dom.aliasSet should contain theSameElementsAs(Set("robert.demo.socrata.com"))
     }
   }
 }

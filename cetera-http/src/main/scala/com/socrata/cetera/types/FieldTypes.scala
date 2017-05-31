@@ -100,6 +100,9 @@ case object PrivateFullTextSearchRawFieldType extends CeteraFieldType {
 case object DomainCnameFieldType extends DomainFieldType with Countable with Rawable {
   val fieldName: String = "domain_cname"
 }
+case object CnamesFieldType extends DomainFieldType with Countable with Rawable {
+  val fieldName: String = "cnames"
+}
 
 ////////////////////
 // Categories & Tags

@@ -549,7 +549,7 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
     val domainQuery = queryStringQuery(queryString)
       .field(FullTextSearchAnalyzedFieldType.fieldName)
       .field(FullTextSearchRawFieldType.fieldName)
-      .field(DomainCnameFieldType.fieldName)
+      .field(CnamesFieldType.fieldName)
       .autoGeneratePhraseQueries(true)
 
     fieldBoosts.foreach { case (field, weight) =>

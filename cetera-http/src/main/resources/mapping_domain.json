@@ -8,10 +8,20 @@
         "analyzed": { "type": "text", "analyzer": "snowball_en" },
         "raw": { "type": "keyword" }
       },
-      "copy_to": [ "fts_analyzed", "fts_raw" ]
+      "copy_to": [ "fts_analyzed", "fts_raw", "cnames" ]
+    },
+    "aliases": {
+      "type": "text",
+      "analyzer": "simple",
+      "fields": {
+        "analyzed": { "type": "text", "analyzer": "snowball_en" },
+        "raw": { "type": "keyword" }
+      },
+      "copy_to": [ "fts_analyzed", "fts_raw", "cnames" ]
     },
     "domain_name": { "type": "keyword", "index": false },
     "domain_id": { "type": "long" },
+    "cnames": { "type": "keyword" },
     "fts_analyzed": { "type": "text", "analyzer": "snowball_en" },
     "fts_raw": { "type": "keyword" },
     "is_customer_domain": { "type": "boolean" },

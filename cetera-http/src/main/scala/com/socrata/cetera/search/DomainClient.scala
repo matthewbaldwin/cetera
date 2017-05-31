@@ -1,7 +1,6 @@
 package com.socrata.cetera.search
 
 import org.elasticsearch.action.search.SearchRequestBuilder
-import org.elasticsearch.index.query.QueryBuilder
 import org.elasticsearch.index.query.QueryBuilders._
 import org.slf4j.LoggerFactory
 
@@ -10,7 +9,7 @@ import com.socrata.cetera.auth.{CoreClient, User}
 import com.socrata.cetera.errors.DomainNotFoundError
 import com.socrata.cetera.handlers.SearchParamSet
 import com.socrata.cetera.search.DomainQueries.{cnamesQuery, idQuery, isCustomerDomainQuery}
-import com.socrata.cetera.types.{Domain, DomainCnameFieldType, DomainSet}
+import com.socrata.cetera.types.{CnamesFieldType, Domain, DomainSet}
 import com.socrata.cetera.util.LogHelper
 
 trait BaseDomainClient {
@@ -54,7 +53,7 @@ class DomainClient(esClient: ElasticSearchClient, coreClient: CoreClient, indexA
     if (cnames.isEmpty) {
       (Set.empty, 0L)
     } else {
-      val query = termsQuery(DomainCnameFieldType.rawFieldName, cnames.toList: _*)
+      val query = termsQuery(CnamesFieldType.fieldName, cnames.toList: _*)
 
       val search = esClient.client.prepareSearch(indexAliasName)
         .setTypes(esDomainType)
@@ -135,20 +134,17 @@ class DomainClient(esClient: ElasticSearchClient, coreClient: CoreClient, indexA
       case (None, true) => customerDomainSearch(Set(searchContextCname, extendedHost).flatten)
     }
 
-    // parse out which domains are which
-    val searchContextDomain = searchContextCname.flatMap(cname => foundDomains.find(_.domainCname == cname))
-    val extendedHostDomain = extendedHost.flatMap(cname => foundDomains.find(_.domainCname == cname))
+    def findDomainFromCname(cname: String): Domain =
+      foundDomains.find(_.aliasSet.contains(cname)).getOrElse(throw new DomainNotFoundError(cname))
+
+    // parse out which domains are which and throw if we couldn't find any given domain
+    val searchContextDomain = searchContextCname.map(findDomainFromCname)
+    val extendedHostDomain = extendedHost.map(findDomainFromCname)
     val domains = (searchDomains, optionallyGetCustomerDomains) match {
-      case (Some(cnames), _) => foundDomains.filter(d => cnames.contains(d.domainCname))
+      case (Some(cnames), _) => cnames.map(findDomainFromCname)
       case (None, false) => Set.empty[Domain]
       case (None, true) => foundDomains.filter(d => d.isCustomerDomain)
     }
-
-    // If any domains were asked for and we can't find it, we have to bail
-    val foundDomainCnames = domains.map(_.domainCname)
-    searchContextCname.foreach(c => if (searchContextDomain.isEmpty) throw new DomainNotFoundError(c))
-    extendedHost.foreach(h => if (extendedHostDomain.isEmpty) throw new DomainNotFoundError(h))
-    domainCnames.getOrElse(Set.empty).foreach(d => if (!foundDomainCnames.contains(d)) throw new DomainNotFoundError(d))
 
     (DomainSet(domains, searchContextDomain, extendedHostDomain), timings)
   }

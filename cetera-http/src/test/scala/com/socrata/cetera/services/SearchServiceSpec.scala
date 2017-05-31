@@ -153,7 +153,7 @@ class SearchServiceSpec extends FunSuiteLike
   }
 
   test("extract and format resources from SearchResponse") {
-    val domain = Domain(1, "tempuri.org", Some("Title"), Some("Temp Org"), isCustomerDomain = true, moderationEnabled = false, routingApprovalEnabled = false, lockedDown = false, apiLockedDown = false)
+    val domain = Domain(1, "tempuri.org", None, Some("Title"), Some("Temp Org"), isCustomerDomain = true, moderationEnabled = false, routingApprovalEnabled = false, lockedDown = false, apiLockedDown = false)
     val resource = j"""{ "name" : "Just A Test", "I'm" : "OK", "you're" : "so-so" }"""
 
     val searchResults = Format.formatDocumentResponse(searchResponse, None, domainSet, FormatParamSet())
@@ -179,7 +179,7 @@ class SearchServiceSpec extends FunSuiteLike
   }
 
   test("SearchResponse does not throw on bad documents it just ignores them") {
-    val domain = Domain(1, "tempuri.org", Some("Title"), Some("Temp Org"), isCustomerDomain = true, moderationEnabled = false, routingApprovalEnabled = false, lockedDown = false, apiLockedDown = false)
+    val domain = Domain(1, "tempuri.org", None, Some("Title"), Some("Temp Org"), isCustomerDomain = true, moderationEnabled = false, routingApprovalEnabled = false, lockedDown = false, apiLockedDown = false)
 
     val expectedResource = j"""{ "name" : "Just A Test", "I'm" : "OK", "you're" : "so-so" }"""
     val searchResults = Format.formatDocumentResponse(badSearchResponse, None, domainSet, FormatParamSet())

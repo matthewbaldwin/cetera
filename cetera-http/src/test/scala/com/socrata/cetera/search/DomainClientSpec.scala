@@ -64,6 +64,15 @@ class DomainClientSpec extends WordSpec with ShouldMatchers with TestESData
       actualDomain.get should be(expectedDomain)
     }
 
+    "return the domain if it exists when searching by any of its aliases: blue.org" in {
+      val blueDomain = domains(2)
+      val (actualDomainViaTealAlias, _) = domainClient.find("teal.org")
+      val (actualDomainViaZaffreAlias, _) = domainClient.find("zaffre.org")
+
+      actualDomainViaTealAlias should be(Some(blueDomain))
+      actualDomainViaZaffreAlias should be(Some(blueDomain))
+    }
+
     "return the domain if it exists : opendata-demo.socrata.com" in {
       val expectedDomain = domains(1)
       val (actualDomain, _) = domainClient.find("opendata-demo.socrata.com")
@@ -351,6 +360,18 @@ class DomainClientSpec extends WordSpec with ShouldMatchers with TestESData
       domainSet.searchContext.get should be(domain)
       domainSet.extendedHost.get should be(domain)
       domainSet.domains should be(Set(domain))
+    }
+
+    "return the context, extended host and domains even if they are all specified by aliases" in {
+      val err = new Exception("domains are not properly set up with aliases")
+      val context = domains(0).aliases.map(_.head).getOrElse(throw err)
+      val xhost = domains(1).aliases.map(_.head).getOrElse(throw err)
+      val doms = (0 to 2).map(i => domains(i).aliases.map(_.head).getOrElse(throw err)).toSet
+      val (domainSet, _) = domainClient.findSearchableDomains(Some(context), Some(xhost), Some(doms), true, None, None)
+
+      domainSet.searchContext should be(Some(domains(0)))
+      domainSet.extendedHost should be(Some(domains(1)))
+      domainSet.domains should be(Set(domains(0), domains(1), domains(2)))
     }
 
     "throw DomainNotFound exception when searchContext is missing" in {

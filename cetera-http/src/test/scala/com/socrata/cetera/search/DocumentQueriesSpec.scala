@@ -1650,7 +1650,7 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
                               "query_string": {
                                   "query": "snuffy",
                                   "fields": [
-                                      "domain_cname^1.0",
+                                      "cnames^1.0",
                                       "fts_analyzed^1.0",
                                       "fts_raw^1.0"
                                   ],
@@ -1680,7 +1680,6 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
           }
       }
       """)
-
       actual should be(expected)
     }
 
@@ -1721,7 +1720,7 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
                               "query_string": {
                                   "query": "snuffy",
                                   "fields": [
-                                      "domain_cname^1.0",
+                                      "cnames^1.0",
                                       "fts_analyzed^1.0",
                                       "fts_raw^1.0",
                                       "indexed_metadata.name^2.2"
@@ -1807,8 +1806,8 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
                               "query_string": {
                                   "query": "any old query string",
                                   "fields": [
+                                       "cnames^1.0",
                                        "datatype^4.44",
-                                       "domain_cname^1.0",
                                        "fts_analyzed^1.0",
                                        "fts_raw^1.0",
                                        "indexed_metadata.columns_description^1.11",
@@ -1956,7 +1955,7 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
                               "query_string": {
                                   "query": "snuffy",
                                   "fields": [
-                                      "domain_cname^1.0",
+                                      "cnames^1.0",
                                       "fts_analyzed^1.0",
                                       "fts_raw^1.0"
                                   ],

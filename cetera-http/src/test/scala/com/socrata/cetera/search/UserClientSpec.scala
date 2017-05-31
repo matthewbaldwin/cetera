@@ -227,7 +227,7 @@ class UserClientSpec extends FunSuiteLike with Matchers with TestESData with Tes
   }
 
   test("search by non-existent domain, get no results") {
-    val badDom = Domain(80, "non", None, None, true, true, true, true, true)
+    val badDom = Domain(80, "non", None, None, None, true, true, true, true, true)
     val (userRes, totalCount, _) = userClient.search(UserSearchParamSet(), PagingParamSet(), Some(badDom), Some(superAdmin))
     userRes should be('empty)
     totalCount should be(0)
