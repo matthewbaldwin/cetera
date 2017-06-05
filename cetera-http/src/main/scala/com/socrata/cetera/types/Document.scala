@@ -110,8 +110,7 @@ case class Document(
     createdAt: String,
     updatedAt: String,
     indexedAt: Option[String],
-    owner: Option[UserInfo],
-    ownerId: String,
+    owner: UserInfo,
     sharedTo: Seq[String],
     attribution: Option[String],
     provenance: Option[String],
@@ -122,7 +121,7 @@ case class Document(
     moderationStatus: Option[String],
     license: Option[String]) {
 
-  def isSharedOrOwned(userId: String): Boolean = ownerId == userId || sharedTo.contains(userId)
+  def isSharedOrOwned(userId: String): Boolean = owner.id == userId || sharedTo.contains(userId)
   def isDatalens: Boolean = datatype.startsWith("datalens")
   def isHiddenFromCatalog: Boolean = hideFromCatalog.getOrElse(false)
 

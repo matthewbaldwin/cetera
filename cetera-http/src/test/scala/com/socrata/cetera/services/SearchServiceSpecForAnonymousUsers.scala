@@ -362,7 +362,7 @@ class SearchServiceSpecForAnonymousUsers
 
   test("if a user is provided, only anonymously viewabled datasets owned by that user should show up") {
     val params = Map("for_user" -> "robin-hood").mapValues(Seq(_))
-    val expectedFxfs = anonymouslyViewableDocs.filter(d => d.ownerId == "robin-hood").map(_.socrataId.datasetId)
+    val expectedFxfs = anonymouslyViewableDocs.filter(d => d.owner.id == "robin-hood").map(_.socrataId.datasetId)
     val res = service.doSearch(params, AuthParams(), None, None)._2
     val actualFxfs = fxfs(res)
     actualFxfs should contain theSameElementsAs expectedFxfs

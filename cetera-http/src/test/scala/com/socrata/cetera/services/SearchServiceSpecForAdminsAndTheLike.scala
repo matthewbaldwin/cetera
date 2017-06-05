@@ -31,7 +31,7 @@ class SearchServiceSpecForAdminsAndTheLike
     "c) views they own/share") {
     val raDisabledDomain = domains(0)
     val withinDomain = docs.filter(d => d.socrataId.domainId == raDisabledDomain.domainId).map(d => d.socrataId.datasetId)
-    val ownedByCookieMonster = docs.collect{ case d: Document if d.ownerId == "cook-mons" => d.socrataId.datasetId }
+    val ownedByCookieMonster = docs.collect{ case d: Document if d.owner.id == "cook-mons" => d.socrataId.datasetId }
     ownedByCookieMonster should be(List("zeta-0006"))
     val sharedToCookieMonster = docs.collect{ case d: Document if d.sharedTo.contains("cook-mons") => d.socrataId.datasetId }
     sharedToCookieMonster should be(List("zeta-0004"))
@@ -104,7 +104,7 @@ class SearchServiceSpecForAdminsAndTheLike
     val params = Map("for_user" -> Seq("robin-hood"))
     prepareAuthenticatedUser(cookie, authenticatingDomain, authedUserBodyFromRole("administrator"))
 
-    val ownedByRobin = docs.collect{ case d: Document if d.ownerId == "robin-hood" => d.socrataId.datasetId }.toSet
+    val ownedByRobin = docs.collect{ case d: Document if d.owner.id == "robin-hood" => d.socrataId.datasetId }.toSet
     val onDomain0 = docs.collect{ case d: Document if d.socrataId.domainId == 0 => d.socrataId.datasetId}.toSet
     val anonymouslyViewable = anonymouslyViewableDocIds.toSet
     val expectedFxfs = ownedByRobin & (onDomain0 ++ anonymouslyViewable)

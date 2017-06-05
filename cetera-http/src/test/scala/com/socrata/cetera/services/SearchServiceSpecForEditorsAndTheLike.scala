@@ -29,7 +29,7 @@ class SearchServiceSpecForEditorsAndTheLike
     "b) anonymously visible views from unlocked domains " +
     "c) views they own/share") {
     val authenticatingDomain = domains(0)
-    val ownedByCookieMonster = docs.collect{ case d: Document if d.ownerId == "cook-mons" => d.socrataId.datasetId }
+    val ownedByCookieMonster = docs.collect{ case d: Document if d.owner.id == "cook-mons" => d.socrataId.datasetId }
     val sharedToCookieMonster = docs.collect{ case d: Document if d.sharedTo.contains("cook-mons") => d.socrataId.datasetId }
     val expectedFxfs = (ownedByCookieMonster ++ sharedToCookieMonster ++ anonymouslyViewableDocIds).distinct
 
@@ -44,7 +44,7 @@ class SearchServiceSpecForEditorsAndTheLike
     "a) anonymously visible views " +
     "b) views they own/share") {
     val authenticatingDomain = domains(0)
-    val ownedByCookieMonster = docs.collect{ case d: Document if d.ownerId == "cook-mons" => d.socrataId.datasetId }
+    val ownedByCookieMonster = docs.collect{ case d: Document if d.owner.id == "cook-mons" => d.socrataId.datasetId }
     val sharedToCookieMonster = docs.collect{ case d: Document if d.sharedTo.contains("cook-mons") => d.socrataId.datasetId }
     val expectedFxfs = (ownedByCookieMonster ++ sharedToCookieMonster ++ anonymouslyViewableDocIds).distinct
 
@@ -89,7 +89,7 @@ class SearchServiceSpecForEditorsAndTheLike
     val userBody = j"""{"id" : "robin-hood"}"""
     prepareAuthenticatedUser(cookie, authenticatingDomain, userBody)
 
-    val docsOwnedByRobin = docs.filter(_.ownerId == "robin-hood")
+    val docsOwnedByRobin = docs.filter(_.owner.id == "robin-hood")
     val ownedByRobinIds = fxfs(docsOwnedByRobin).toSet
     val res = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(authenticatingDomain), None)
 
@@ -449,7 +449,7 @@ class SearchServiceSpecForEditorsAndTheLike
     val privateValue = "Cheetah Corp."
     val expectedFxfs = fxfs(docs.filter(d =>
       d.privateCustomerMetadataFlattened.exists(m => m.value == privateValue &&
-      d.ownerId == "robin-hood")))
+      d.owner.id == "robin-hood")))
     val userBody = authedUserBodyFromRole("editor", "robin-hood")
     prepareAuthenticatedUser(cookie, host, userBody)
     val params = allDomainsParams ++ Map("q" -> privateValue).mapValues(Seq(_))
@@ -480,7 +480,7 @@ class SearchServiceSpecForEditorsAndTheLike
     val privateValue = "Cheetah Corp."
     val expectedFxfs = fxfs(docs.filter(d =>
       d.privateCustomerMetadataFlattened.exists(m => m.value == privateValue &&
-      d.ownerId == "robin-hood")))
+      d.owner.id == "robin-hood")))
     val userBody = authedUserBodyFromRole("editor", "robin-hood")
     prepareAuthenticatedUser(cookie, host, userBody)
     val params = allDomainsParams ++ Map(privateKey -> Seq(privateValue))
