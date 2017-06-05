@@ -5,7 +5,7 @@
         "char_filter": {
           "replace_non_letters": {
             "type": "pattern_replace",
-            "pattern": "[^\\p{L}]+",
+            "pattern": "[^\\p{L}\\d]+",
             "replacement": " "
           },
           "normalize_whitespace": {
