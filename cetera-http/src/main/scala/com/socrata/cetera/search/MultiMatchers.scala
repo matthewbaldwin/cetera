@@ -1,9 +1,9 @@
 package com.socrata.cetera.search
 
-import org.elasticsearch.index.query.{MultiMatchQueryBuilder, QueryBuilder, QueryBuilders}
 import org.elasticsearch.index.query.MultiMatchQueryBuilder.Type.{CROSS_FIELDS, PHRASE}
+import org.elasticsearch.index.query.{MultiMatchQueryBuilder, QueryBuilder, QueryBuilders}
 
-import com.socrata.cetera.auth.User
+import com.socrata.cetera.auth.AuthedUser
 import com.socrata.cetera.handlers.ScoringParamSet
 import com.socrata.cetera.types.{FullTextSearchAnalyzedFieldType, FullTextSearchRawFieldType}
 import com.socrata.cetera.types.{PrivateFullTextSearchAnalyzedFieldType, PrivateFullTextSearchRawFieldType}
@@ -56,7 +56,7 @@ object MultiMatchers {
       q: String,
       mmType: MatchType,
       scoringParams: ScoringParamSet,
-      user: User)
+      user: AuthedUser)
   : QueryBuilder = {
     val privateMatch = privateMatchQuery(q, mmType, scoringParams)
     val privateFilter = DocumentQuery(forDomainSearch = false).privateMetadataUserRestrictionsQuery(user)
@@ -68,7 +68,7 @@ object MultiMatchers {
       .should(matchPrivateFieldsAndRespectPrivacy)
   }
 
-  def buildQuery(q: String,  mmType: MatchType, scoringParams: ScoringParamSet, user: Option[User])
+  def buildQuery(q: String,  mmType: MatchType, scoringParams: ScoringParamSet, user: Option[AuthedUser])
   : QueryBuilder =
     user match {
       case None => publicMatchQuery(q, mmType, scoringParams)

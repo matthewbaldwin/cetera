@@ -56,7 +56,7 @@ class DomainCountService(domainClient: BaseDomainClient, coreClient: CoreClient)
      searchParams.searchContext, extendedHost, searchParams.domains,
      excludeLockedDomains = true, authorizedUser, requestId
    )
-   val authedUser = authorizedUser.map(u => u.copy(authenticatingDomain = domainSet.extendedHost))
+   val authedUser = authorizedUser.map(_.convertToAuthedUser(domainSet.extendedHost))
 
    val search = domainClient.buildCountRequest(domainSet, searchParams, authedUser)
    logger.info(LogHelper.formatEsRequest(search))

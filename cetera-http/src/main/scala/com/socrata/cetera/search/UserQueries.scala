@@ -5,7 +5,7 @@ import org.apache.lucene.queryparser.flexible.standard.QueryParserUtil
 import org.elasticsearch.index.query._
 import org.elasticsearch.index.query.QueryBuilders._
 
-import com.socrata.cetera.auth.User
+import com.socrata.cetera.auth.{AuthedUser, User}
 import com.socrata.cetera.errors.UnauthorizedError
 import com.socrata.cetera.handlers.UserSearchParamSet
 import com.socrata.cetera.types._
@@ -41,24 +41,24 @@ object UserQueries {
     }
   }
 
-  def authQuery(user: Option[User], domain: Option[Domain]): Option[NestedQueryBuilder] = {
+  def authQuery(user: Option[AuthedUser], domain: Option[Domain]): Option[NestedQueryBuilder] = {
     user match {
       // if the user is searching for users on a domain, it must be the domain they are authed on
       case Some(u) if (domain.exists(d => !u.canViewUsers(d.domainId))) =>
-        throw UnauthorizedError(user, s"search for users on domain ${domain.get.domainCname}")
+        throw UnauthorizedError(Some(u.id), s"search for users on domain ${domain.get.domainCname}")
       // if the user can view all users, no restrictions are needed (other than the one above)
       case Some(u) if (u.canViewAllUsers) => None
       // if the user can view domain users, we restrict the user search to user's authenticating domain
-      case Some(u) if (u.canViewDomainUsers) => nestedRolesQuery(None, u.authenticatingDomain.map(_.domainId))
+      case Some(u) if (u.canViewDomainUsers) => nestedRolesQuery(None, Some(u.authenticatingDomain.domainId))
       // if the user can't view users or is not authenticated, we throw
-      case _ => throw UnauthorizedError(user, "search users")
+      case _ => throw UnauthorizedError(user.map(_.id), "search users")
     }
   }
 
   def compositeQuery(
       searchParams: UserSearchParamSet,
       domain: Option[Domain],
-      authorizedUser: Option[User])
+      authorizedUser: Option[AuthedUser])
   : QueryBuilder = {
     val queries = Seq(
       idQuery(searchParams.ids),
@@ -91,7 +91,7 @@ object UserQueries {
   def userQuery(
       searchParams: UserSearchParamSet,
       domain: Option[Domain],
-      authorizedUser: Option[User])
+      authorizedUser: Option[AuthedUser])
   : BoolQueryBuilder = {
     val emailOrNameQuery = emailNameMatchQuery(searchParams.query)
     val userQuery = compositeQuery(searchParams, domain, authorizedUser)

@@ -37,7 +37,7 @@ class UserSearchService(userClient: UserClient, domainClient: DomainClient, core
 
     val (domainSet, domainSearchTime) =
       domainClient.findDomainSet(None, extendedHost, searchParams.domain.map(Set(_)), false)
-    val authedUser = authorizedUser.map(u => u.copy(authenticatingDomain = domainSet.extendedHost))
+    val authedUser = authorizedUser.map(_.convertToAuthedUser(domainSet.extendedHost))
 
     val (searchDomain, domainForRoles) = domainSet.domains.toList match {
       case Nil => (None, domainSet.extendedHost)

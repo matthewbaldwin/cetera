@@ -7,7 +7,7 @@ import com.rojoma.json.v3.jpath.JPath
 import org.elasticsearch.action.search.SearchResponse
 import org.slf4j.LoggerFactory
 
-import com.socrata.cetera.auth.User
+import com.socrata.cetera.auth.AuthedUser
 import com.socrata.cetera.handlers.FormatParamSet
 import com.socrata.cetera.types._
 
@@ -106,8 +106,8 @@ object Format {
     case Right(jv) => Some(jv)
   }
 
-  def domainPrivateMetadata(j: JValue, user: Option[User], domainId: Int): Option[JValue] =
-    user.flatMap { case u: User =>
+  def domainPrivateMetadata(j: JValue, user: Option[AuthedUser], domainId: Int): Option[JValue] =
+    user.flatMap { case u: AuthedUser =>
       val ownsIt = extractJString(j.dyn.owner_id.?).exists(_ == u.id)
       val sharesIt = extractJArray(j.dyn.shared_to.?).exists(_.contains(u.id))
       val hasEnablingRole = u.canViewPrivateMetadata(domainId)
@@ -297,7 +297,7 @@ object Format {
 
   def documentSearchResult( // scalastyle:ignore method.length
       j: JValue,
-      user: Option[User],
+      user: Option[AuthedUser],
       domainSet: DomainSet,
       locale: Option[String],
       score: Option[JNumber],
@@ -353,7 +353,7 @@ object Format {
   // WARN: This will raise if a single document has a single missing path!
   def formatDocumentResponse(
       searchResponse: SearchResponse,
-      user: Option[User],
+      user: Option[AuthedUser],
       domainSet: DomainSet,
       formatParams: FormatParamSet)
     : SearchResults[SearchResult] = {

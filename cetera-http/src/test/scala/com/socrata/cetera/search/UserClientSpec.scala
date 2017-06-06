@@ -2,7 +2,7 @@ package com.socrata.cetera.search
 
 import org.scalatest.{BeforeAndAfterAll, FunSuiteLike, Matchers}
 
-import com.socrata.cetera.auth.User
+import com.socrata.cetera.auth.AuthedUser
 import com.socrata.cetera.errors.UnauthorizedError
 import com.socrata.cetera.handlers.{PagingParamSet, UserSearchParamSet}
 import com.socrata.cetera.types.Domain
@@ -11,15 +11,13 @@ import com.socrata.cetera.{TestESData, TestESUsers}
 class UserClientSpec extends FunSuiteLike with Matchers with TestESData with TestESUsers with BeforeAndAfterAll {
   val userClient = new UserClient(client, testSuiteName)
 
-  val superAdmin = User("", None, roleName = None, rights = None, flags = Some(List("admin")))
-  val customerAdmin = User("", Some(domains(0)), roleName = Some("administrator"), rights = None, flags = None)
-  val customerEditor = User("", Some(domains(0)), roleName = Some("editor"), rights = None, flags = None)
-  val customerPublisher = User("", Some(domains(0)), roleName = Some("publisher"), rights = None, flags = None)
-  val customerViewer = User("", Some(domains(0)), roleName = Some("viewer"), rights = None, flags = None)
-  val customerDesigner = User("", Some(domains(0)), roleName = Some("designer"), rights = None, flags = None)
-  val customerRoleless = User("", Some(domains(0)), roleName = None, rights = None, flags = None)
-  val anonymous = User("", None, roleName = None, rights = None, flags = None)
-  val adminWithoutAuthenticatingDomain = User("", None, roleName = Some("administrator"), rights = None, flags = None)
+  val superAdmin = AuthedUser("", domains(0), roleName = None, rights = None, flags = Some(List("admin")))
+  val customerAdmin = AuthedUser("", domains(0), roleName = Some("administrator"), rights = None, flags = None)
+  val customerEditor = AuthedUser("", domains(0), roleName = Some("editor"), rights = None, flags = None)
+  val customerPublisher = AuthedUser("", domains(0), roleName = Some("publisher"), rights = None, flags = None)
+  val customerViewer = AuthedUser("", domains(0), roleName = Some("viewer"), rights = None, flags = None)
+  val customerDesigner = AuthedUser("", domains(0), roleName = Some("designer"), rights = None, flags = None)
+  val customerRoleless = AuthedUser("", domains(0), roleName = None, rights = None, flags = None)
 
   override protected def beforeAll(): Unit = bootstrapData()
 
@@ -48,9 +46,6 @@ class UserClientSpec extends FunSuiteLike with Matchers with TestESData with Tes
   test("an UnauthorizedError should be thrown if the authorized user can't view users") {
     intercept[UnauthorizedError] {
       userClient.search(UserSearchParamSet(), PagingParamSet(), None, Some(customerRoleless))
-    }
-    intercept[UnauthorizedError] {
-      userClient.search(UserSearchParamSet(), PagingParamSet(), None, Some(anonymous))
     }
   }
 

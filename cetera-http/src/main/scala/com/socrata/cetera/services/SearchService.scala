@@ -55,7 +55,7 @@ class SearchService(
       excludeLockedDomains = true, authorizedUser, requestId
     )
     val domainSet = domains.addDomainBoosts(scoringParams.domainBoosts)
-    val authedUser = authorizedUser.map(u => u.copy(authenticatingDomain = domainSet.extendedHost))
+    val authedUser = authorizedUser.map(_.convertToAuthedUser(domainSet.extendedHost))
 
     val req = documentClient.buildSearchRequest(
       domainSet, searchParams, scoringParams, pagingParams, authedUser)

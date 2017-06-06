@@ -1,15 +1,15 @@
 package com.socrata.cetera.search
 
+import com.rojoma.json.v3.codec.JsonDecode
 import com.rojoma.json.v3.interpolation._
 import com.rojoma.json.v3.io.CompactJsonWriter
-import org.mockserver.integration.ClientAndServer.startClientAndServer
 import org.mockserver.model.HttpRequest.request
 import org.mockserver.model.HttpResponse.response
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, ShouldMatchers, WordSpec}
 
 import com.socrata.cetera._
 import com.socrata.cetera.auth.User
-import com.socrata.cetera.errors.DomainNotFoundError
+import com.socrata.cetera.errors.{DomainNotFoundError, UnauthorizedError}
 import com.socrata.cetera.types.DomainSet
 
 // Please see https://github.com/socrata/cetera/blob/master/cetera-http/src/test/resources/domains.tsv
@@ -54,7 +54,7 @@ class DomainClientSpec extends WordSpec with ShouldMatchers with TestESData
         .withHeader("Content-Type", "application/json; charset=utf-8")
         .withBody(CompactJsonWriter.toString(userBody))
     )
-    User(userBody)
+    JsonDecode.fromJValue[User](userBody).fold(_ => None, Some(_))
   }
 
   "find" should {
@@ -389,7 +389,7 @@ class DomainClientSpec extends WordSpec with ShouldMatchers with TestESData
   }
 
   "removeLockedDomainsFromUnauthorizedUsers" should {
-    "return None for a locked context if the user has no cookie" in {
+    "return None for a locked context if no user is given" in {
       val withoutDomains = domainClient.removeLockedDomainsForbiddenToUser(
         DomainSet(searchContext = Some(lockedNonCustomerDomain)), None, None)
       withoutDomains should be(DomainSet())
@@ -399,16 +399,26 @@ class DomainClientSpec extends WordSpec with ShouldMatchers with TestESData
       withDomains should be(DomainSet(domains = Set(domains(1))))
     }
 
+    "throw for a locked context if the user cannot be converted to an AuthedUser b/c no extendedHost is given" in {
+      // this is possible to test code, but would never come about in src, since to have a user implies
+      // core had an extendedHost. And if we failed to find the extendHost, a DomainNotFoundError would be thrown first
+      val user = User("lazy-bear", roleName = None, rights = None, flags = None)
+      intercept[UnauthorizedError] {
+        domainClient.removeLockedDomainsForbiddenToUser(
+          DomainSet(searchContext = Some(lockedNonCustomerDomain), extendedHost = None), Some(user), None)
+      }
+    }
+
     "return None for a locked context if the user has no role" in {
-      val user = User("lazy-bear", Some(unlockedCustomerDomain), roleName = None, rights = None, flags = None)
+      val user = User("lazy-bear", roleName = None, rights = None, flags = None)
 
       val withoutDomains = domainClient.removeLockedDomainsForbiddenToUser(
-        DomainSet(searchContext = Some(lockedCustomerDomain)), Some(user), None)
-      withoutDomains should be(DomainSet())
+        DomainSet(searchContext = Some(lockedCustomerDomain), extendedHost = Some(domains(0))), Some(user), None)
+      withoutDomains should be(DomainSet(extendedHost = Some(domains(0))))
 
       val withDomains = domainClient.removeLockedDomainsForbiddenToUser(
-        DomainSet(Set(domains(1)), Some(lockedCustomerDomain)), Some(user), None)
-      withDomains should be(DomainSet(domains = Set(domains(1))))
+        DomainSet(Set(domains(1)), Some(lockedCustomerDomain), extendedHost = Some(domains(0))), Some(user), None)
+      withDomains should be(DomainSet(domains = Set(domains(1)), extendedHost = Some(domains(0))))
     }
 
     "return the locked down context if the user is logged in and has a role" in {
@@ -418,7 +428,7 @@ class DomainClientSpec extends WordSpec with ShouldMatchers with TestESData
       res should be(DomainSet(Set(lockedNonCustomerDomain), Some(lockedNonCustomerDomain), Some(lockedNonCustomerDomain)))
     }
 
-    "remove locked domains if the user has no cookie" in {
+    "remove locked domains if no user is given" in {
       val relevantDomains = Set(unlockedCustomerDomain, lockedNonCustomerDomain)
       val withoutContext = domainClient.removeLockedDomainsForbiddenToUser(DomainSet(domains = relevantDomains), None, None)
       withoutContext should be(DomainSet(domains = Set(unlockedCustomerDomain)))
@@ -428,24 +438,49 @@ class DomainClientSpec extends WordSpec with ShouldMatchers with TestESData
       withContext should be(DomainSet(Set(unlockedCustomerDomain), Some(unlockedCustomerDomain), Some(unlockedCustomerDomain)))
     }
 
-    "remove locked domains if the user has a bad cookie" in {
-      val relevantDomains = Set(unlockedCustomerDomain, lockedCustomerDomain)
-      val res = domainClient.removeLockedDomainsForbiddenToUser(DomainSet(relevantDomains, Some(unlockedCustomerDomain)), None, None)
-      res should be(DomainSet(Set(unlockedCustomerDomain), Some(unlockedCustomerDomain)))
-    }
-
-    "remove locked domains if the user has a good cookie, but no role on the locked domain (where domain is the context)" in {
+    "throw for locked domains if the user cannot be converted to an AuthedUser b/c no extendedHost is given" in {
+      // this is possible to test code, but would never come about in src, since to have a user implies
+      // core had an extendedHost. And if we failed to find the extendHost, a DomainNotFoundError would be thrown first
       val relevantDomains = Set(unlockedCustomerDomain2, apiLockedDomain)
-      val user = prepUserAuth("")
-      val res = domainClient.removeLockedDomainsForbiddenToUser(DomainSet(relevantDomains, Some(apiLockedDomain), Some(apiLockedDomain)), user, None)
-      res should be(DomainSet(domains = Set(unlockedCustomerDomain2), extendedHost = Some(apiLockedDomain)))
+      val user = User("lazy-bear", roleName = None, rights = None, flags = None)
+      intercept[UnauthorizedError] {
+        domainClient.removeLockedDomainsForbiddenToUser(
+          DomainSet(relevantDomains, Some(apiLockedDomain), extendedHost = None), Some(user), None)
+      }
     }
 
-    "remove locked domains if the user has a good cookie, but no role on the locked domain (where domain is not the context)" in {
-      val relevantDomains = Set(unlockedCustomerDomain, lockedCustomerDomain)
-      val user = prepUserAuth("")
-      val res = domainClient.removeLockedDomainsForbiddenToUser(DomainSet(relevantDomains, None, Some(unlockedCustomerDomain)), user, None)
-      res should be(DomainSet(domains = Set(unlockedCustomerDomain), extendedHost = Some(unlockedCustomerDomain)))
+    "remove locked domains if the user has no role" in {
+      val user = User("lazy-bear", roleName = None, rights = None, flags = None)
+      val relevantDomains = Set(unlockedCustomerDomain2, apiLockedDomain)
+
+      val res = domainClient.removeLockedDomainsForbiddenToUser(
+        DomainSet(relevantDomains, Some(apiLockedDomain), extendedHost = Some(unlockedCustomerDomain2)), Some(user), None)
+      res should be(DomainSet(domains = Set(unlockedCustomerDomain2), extendedHost = Some(unlockedCustomerDomain2)))
+    }
+
+    "return the locked down domain if the user is logged in and has a role on that domain" in {
+      val user = prepUserAuth("publisher")
+      val relevantDomains = Set(unlockedCustomerDomain2, apiLockedDomain)
+      val res = domainClient.removeLockedDomainsForbiddenToUser(
+        DomainSet(relevantDomains, None, extendedHost = Some(apiLockedDomain)), user, None)
+      res should be(DomainSet(relevantDomains, None, extendedHost = Some(apiLockedDomain)))
+    }
+
+    "always return the extendhost - since this is used solely for auth" in {
+      val noUser = None
+      val roleLessUser = prepUserAuth("")
+      val roledUser = prepUserAuth("publisher")
+      val extendedHost = Some(apiLockedDomain)
+      val resForNoUser = domainClient.removeLockedDomainsForbiddenToUser(
+        DomainSet(Set.empty, None, extendedHost), noUser, None)
+      val resForRoleLessUser = domainClient.removeLockedDomainsForbiddenToUser(
+        DomainSet(Set.empty, None, extendedHost), roleLessUser, None)
+      val resForRoledUser = domainClient.removeLockedDomainsForbiddenToUser(
+        DomainSet(Set.empty, None, extendedHost), roledUser, None)
+
+      resForNoUser.extendedHost should be(extendedHost)
+      resForRoleLessUser.extendedHost should be(extendedHost)
+      resForRoledUser.extendedHost should be(extendedHost)
     }
 
     "return all the things if nothing is locked down" in {

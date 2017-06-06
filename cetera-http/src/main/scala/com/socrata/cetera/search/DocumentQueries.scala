@@ -3,16 +3,16 @@ package com.socrata.cetera.search
 import org.apache.lucene.search.join.ScoreMode
 import org.elasticsearch.common.lucene.search.function.CombineFunction
 import org.elasticsearch.common.lucene.search.function.FiltersFunctionScoreQuery.{ScoreMode => FnScoreMode}
-import org.elasticsearch.index.query._
 import org.elasticsearch.index.query.QueryBuilders._
+import org.elasticsearch.index.query._
 import org.elasticsearch.index.query.functionscore._
 
-import com.socrata.cetera.auth.User
-import com.socrata.cetera.{esDomainType, esDocumentType}
+import com.socrata.cetera.auth.AuthedUser
 import com.socrata.cetera.errors.UnauthorizedError
 import com.socrata.cetera.handlers.{ScoringParamSet, SearchParamSet}
 import com.socrata.cetera.search.MultiMatchers.buildQuery
 import com.socrata.cetera.types._
+import com.socrata.cetera.{esDocumentType, esDomainType}
 
 // TODO: This class is no longer required because ES automatically infers the field namespace correctly
 // in the case of child aggregations. We should revert this to an object.
@@ -80,13 +80,13 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
 
   // this query limits documents to those owned/shared to the user
   // or visible to user based on their domain and role
-  def privateMetadataUserRestrictionsQuery(user: User): BoolQueryBuilder = {
+  def privateMetadataUserRestrictionsQuery(user: AuthedUser): BoolQueryBuilder = {
     val userId = user.id
-    val domainId = user.authenticatingDomain.map(_.domainId).getOrElse(0)
+    val authingDomainId = user.authenticatingDomain.domainId
     val ownIt = userQuery(userId)
     val shareIt = sharedToQuery(userId)
-    if (user.canViewPrivateMetadata(domainId)) {
-      val beEnabledToSeeIt = domainIdQuery(Set(domainId))
+    if (user.canViewPrivateMetadata(authingDomainId)) {
+      val beEnabledToSeeIt = domainIdQuery(Set(authingDomainId))
       boolQuery().should(ownIt).should(shareIt).should(beEnabledToSeeIt)
     } else {
       boolQuery().should(ownIt).should(shareIt)
@@ -133,7 +133,7 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
   // this query limits documents to those that both:
   //  - have private metadata keys/values matching the given metadata
   //  - have private metadata visible to the given user
-  def privateMetadataQuery(metadata: Set[(String, String)], user: Option[User]): Option[BoolQueryBuilder] =
+  def privateMetadataQuery(metadata: Set[(String, String)], user: Option[AuthedUser]): Option[BoolQueryBuilder] =
     if (metadata.nonEmpty) {
       user match {
         // if we haven't a user, don't build a query to search private metadata
@@ -141,16 +141,10 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
         // if the user is a superadmin, use a metadata query pointed at the private fields
         case Some(u) if u.isSuperAdmin => metadataQuery(metadata, public = false)
         case Some(u) =>
-          u.authenticatingDomain match {
-            // if the user hasn't an authenticating domain, don't build a query to search private metadata
-            case None => None
-            // if the user has an authenticating domain, use a conditional query
-            case Some(d) =>
-              val beAbleToViewPrivateMetadata = privateMetadataUserRestrictionsQuery(u)
-              val dmt = metadataQuery(metadata, public = false)
-              dmt.map(matchMetadataTerms =>
-                boolQuery().must(beAbleToViewPrivateMetadata).must(matchMetadataTerms))
-          }
+          val beAbleToViewPrivateMetadata = privateMetadataUserRestrictionsQuery(u)
+          val dmt = metadataQuery(metadata, public = false)
+          dmt.map(matchMetadataTerms =>
+            boolQuery().must(beAbleToViewPrivateMetadata).must(matchMetadataTerms))
       }
     } else {
       None
@@ -161,7 +155,7 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
   // - have private key/value pairs that match the given metadata and have private metadata visible to the given user
   def combinedMetadataQuery(
       metadata: Set[(String, String)],
-      user: Option[User])
+      user: Option[AuthedUser])
     : Option[BoolQueryBuilder] = {
     val pubQuery = metadataQuery(metadata, public = true)
     val privateQuery = privateMetadataQuery(metadata, user)
@@ -360,7 +354,7 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
   // this limits results down to those requested by various search params
   def searchParamsQuery(
       searchParams: SearchParamSet,
-      user: Option[User],
+      user: Option[AuthedUser],
       domainSet: DomainSet)
     : Option[BoolQueryBuilder] = {
     val haveContext = domainSet.searchContext.isDefined
@@ -369,7 +363,7 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
     val sharingQuery = (user, searchParams.sharedTo) match {
       case (_, None) => None
       case (Some(u), Some(uid)) if (u.id == uid || u.isSuperAdmin) => Some(sharedToQuery(uid))
-      case (_, _) => throw UnauthorizedError(user, "search another user's shared files")
+      case (_, _) => throw UnauthorizedError(user.map(_.id), "search another user's shared files")
     }
     val attrQuery = searchParams.attribution.map(attributionQuery(_))
     val provQuery = searchParams.provenance.map(provenanceQuery(_))
@@ -419,7 +413,7 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
   }
 
   // this will limit results down to those owned or shared to a user
-  def ownedOrSharedQuery(user: User): BoolQueryBuilder = {
+  def ownedOrSharedQuery(user: AuthedUser): BoolQueryBuilder = {
     val userId = user.id
     val ownerQuery = userQuery(userId)
     val sharedQuery = sharedToQuery(userId)
@@ -427,29 +421,27 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
   }
 
   // this will limit results to only those the user is allowed to see
-  def authQuery(user: Option[User], domainSet: DomainSet): Option[BoolQueryBuilder] =
+  def authQuery(user: Option[AuthedUser], domainSet: DomainSet): Option[BoolQueryBuilder] =
     user match {
       // if user is super admin, no vis query needed
       case Some(u) if (u.isSuperAdmin) => None
       // if the user can view everything, they can only view everything on *their* domain
       // plus, of course, things they own/share and public/published/approved views from other domains
-      case Some(u) if (u.authenticatingDomain.exists(d => u.canViewAllViews(d.domainId))) => {
-        val personQuery = ownedOrSharedQuery(u)
+      case Some(u) if (u.canViewAllViews(u.authenticatingDomain.domainId)) => {
+        val ownOrShareIt = ownedOrSharedQuery(u)
         // re: includeContextApproval = false, in order for admins/etc to see views they've rejected from other domains,
         // we must allow them access to views that are approved on the parent domain, but not on the context.
         // yes, this is a snow-flaky case and it involves our auth. I am sorry  :(
-        val anonQuery = anonymousQuery(domainSet, includeContextApproval = false)
-        val fromUsersDomain = u.authenticatingDomain.map(d => domainIdQuery(Set(d.domainId)))
-        val query = boolQuery().should(personQuery).should(anonQuery)
-        fromUsersDomain.foreach(query.should(_))
-        Some(query)
+        val bePubliclyAvailable = anonymousQuery(domainSet, includeContextApproval = false)
+        val beFromUsersDomain = domainIdQuery(Set(u.authenticatingDomain.domainId))
+        Some(boolQuery().should(ownOrShareIt).should(bePubliclyAvailable).should(beFromUsersDomain))
       }
       // if the user isn't a superadmin nor can they view everything, they may only see
       // things they own/share and public/published/approved views
       case Some(u) => {
-        val personQuery = ownedOrSharedQuery(u)
-        val anonQuery = anonymousQuery(domainSet)
-        Some(boolQuery().should(personQuery).should(anonQuery))
+        val ownOrShareIt = ownedOrSharedQuery(u)
+        val bePubliclyAvailable = anonymousQuery(domainSet)
+        Some(boolQuery().should(ownOrShareIt).should(bePubliclyAvailable))
       }
       // if the user is anonymous, they can only view anonymously-viewable views
       case None => Some(anonymousQuery(domainSet))
@@ -459,7 +451,7 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
   def compositeQuery(
       domainSet: DomainSet,
       searchParams: SearchParamSet,
-      user: Option[User])
+      user: Option[AuthedUser])
     : BoolQueryBuilder = {
     val domainQueries = Some(domainSetQuery(domainSet))
     val authQueries = authQuery(user, domainSet)
@@ -498,7 +490,7 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
   def chooseMatchQuery(
       searchQuery: QueryType,
       scoringParams: ScoringParamSet,
-      user: Option[User])
+      user: Option[AuthedUser])
     : BoolQueryBuilder =
     searchQuery match {
       case NoQuery => noQuery
@@ -525,7 +517,7 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
   def simpleQuery(
       queryString: String,
       scoringParams: ScoringParamSet,
-      user: Option[User])
+      user: Option[AuthedUser])
     : BoolQueryBuilder = {
     val matchTerms = buildQuery(queryString, MultiMatchQueryBuilder.Type.CROSS_FIELDS, scoringParams, user)
     val matchPhrase = buildQuery(queryString, MultiMatchQueryBuilder.Type.PHRASE, scoringParams, user)
@@ -571,7 +563,7 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
       domainSet: DomainSet,
       searchParams: SearchParamSet,
       query: QueryBuilder,
-      user: Option[User])
+      user: Option[AuthedUser])
     : BoolQueryBuilder = {
 
     val categoriesAndTagsQuery = applyClassificationQuery(query, searchParams, domainSet.searchContext.isDefined)

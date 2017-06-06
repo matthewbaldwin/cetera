@@ -5,24 +5,16 @@ import org.scalatest.{ShouldMatchers, WordSpec}
 import com.socrata.cetera.TestESDomains
 
 class UserSpec extends WordSpec with ShouldMatchers with TestESDomains {
-  val superAdmin = User("", None, roleName = None, rights = None, flags = Some(List("admin")))
-  val customerAdmin = User("", Some(domains(8)), roleName = Some("administrator"), rights = None, flags = None)
-  val customerEditor = User("", Some(domains(8)), roleName = Some("editor"), rights = None, flags = None)
-  val customerEditorStories = User("", Some(domains(8)), roleName = Some("editor_stories"), rights = None, flags = None)
-  val customerPublisher = User("", Some(domains(8)), roleName = Some("publisher"), rights = None, flags = None)
-  val customerPublisherStories = User("", Some(domains(8)), roleName = Some("publisher_stories"), rights = None, flags = None)
-  val customerViewer = User("", Some(domains(8)), roleName = Some("viewer"), rights = None, flags = None)
-  val customerDesigner = User("", Some(domains(8)), roleName = Some("designer"), rights = None, flags = None)
-  val anonymous = User("", None, roleName = None, rights = None, flags = None)
-  val adminWithoutAuthenticatingDomain = User("", None, roleName = Some("administrator"), rights = None, flags = None)
+  val superAdmin = AuthedUser("", domains(0), roleName = None, rights = None, flags = Some(List("admin")))
+  val customerAdmin = AuthedUser("", domains(8), roleName = Some("administrator"), rights = None, flags = None)
+  val customerEditor = AuthedUser("", domains(8), roleName = Some("editor"), rights = None, flags = None)
+  val customerEditorStories = AuthedUser("", domains(8), roleName = Some("editor_stories"), rights = None, flags = None)
+  val customerPublisher = AuthedUser("", domains(8), roleName = Some("publisher"), rights = None, flags = None)
+  val customerPublisherStories = AuthedUser("", domains(8), roleName = Some("publisher_stories"), rights = None, flags = None)
+  val customerViewer = AuthedUser("", domains(8), roleName = Some("viewer"), rights = None, flags = None)
+  val customerDesigner = AuthedUser("", domains(8), roleName = Some("designer"), rights = None, flags = None)
 
   "The authorizedOnDomain method" should {
-    "return false if the user has no authenticating domain" in  {
-      domains.foreach { d =>
-        adminWithoutAuthenticatingDomain.authorizedOnDomain(d.domainId) should be(false)
-      }
-    }
-
     "return false if the user has an authenticating domain but is trying to authenticate on a different domain" in  {
       customerAdmin.authorizedOnDomain(1) should be(false)
     }
@@ -33,10 +25,6 @@ class UserSpec extends WordSpec with ShouldMatchers with TestESDomains {
   }
 
   "The canViewResource method" should {
-    "return false if the user has no authenticating domain and is not a super admin" in  {
-      adminWithoutAuthenticatingDomain.canViewResource(1, isAuthorized = true) should be(false)
-    }
-
     "return false if the user has an authenticating domain but is trying to authenticate on a different domain" in  {
       customerAdmin.canViewResource(1, isAuthorized = true) should be(false)
     }
@@ -83,10 +71,6 @@ class UserSpec extends WordSpec with ShouldMatchers with TestESDomains {
       customerViewer.canViewLockedDownCatalog(7) should be(false)
       customerDesigner.canViewLockedDownCatalog(7) should be(false)
     }
-
-    "return false if the user is anonymous" in {
-      anonymous.canViewLockedDownCatalog(8) should be(false)
-    }
   }
 
   "The canViewAllViews method" should {
@@ -116,10 +100,6 @@ class UserSpec extends WordSpec with ShouldMatchers with TestESDomains {
       customerViewer.canViewAllViews(7) should be(false)
       customerDesigner.canViewAllViews(7) should be(false)
     }
-
-    "return false if the user is anonymous" in {
-      anonymous.canViewAllViews(8) should be(false)
-    }
   }
 
   "The canViewUsers method" should {
@@ -137,10 +117,6 @@ class UserSpec extends WordSpec with ShouldMatchers with TestESDomains {
       customerPublisher.canViewAllUsers should be(false)
       customerPublisherStories.canViewAllUsers should be(false)
       customerViewer.canViewAllUsers should be(false)
-    }
-
-    "return false if the user is anonymous" in {
-      anonymous.canViewAllUsers should be(false)
     }
   }
 }

@@ -3,11 +3,11 @@ package com.socrata.cetera.search
 import org.slf4j.LoggerFactory
 
 import com.socrata.cetera._
-import com.socrata.cetera.auth.User
+import com.socrata.cetera.auth.AuthedUser
 import com.socrata.cetera.handlers.{PagingParamSet, UserSearchParamSet}
+import com.socrata.cetera.search.UserQueries.userQuery
 import com.socrata.cetera.types._
 import com.socrata.cetera.util.LogHelper
-import com.socrata.cetera.search.UserQueries.userQuery
 
 class UserClient(esClient: ElasticSearchClient, indexAliasName: String) {
   val logger = LoggerFactory.getLogger(getClass)
@@ -24,7 +24,7 @@ class UserClient(esClient: ElasticSearchClient, indexAliasName: String) {
       searchParams: UserSearchParamSet,
       pagingParams: PagingParamSet,
       domain: Option[Domain],
-      authorizedUser: Option[User])
+      authorizedUser: Option[AuthedUser])
     : (Seq[EsUser], Long, Long) = {
 
     val req = esClient.client.prepareSearch(indexAliasName)

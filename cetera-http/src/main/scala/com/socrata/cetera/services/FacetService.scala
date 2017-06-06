@@ -38,19 +38,19 @@ class FacetService(
     : (StatusResponse, Seq[FacetCount], InternalTimings, Seq[String]) = {
 
     val startMs = Timings.now()
-    val (authorizedUser, setCookies) = coreClient.optionallyAuthenticateUser(extendedHost, authParams, requestId)
+    val (user, setCookies) = coreClient.optionallyAuthenticateUser(extendedHost, authParams, requestId)
     val ValidatedQueryParameters(searchParams, _, pagingParams, _) =
       QueryParametersParser(queryParameters)
 
     val (domainSet, domainSearchTime) = domainClient.findSearchableDomains(
       Some(cname), extendedHost, Some(Set(cname)),
-      excludeLockedDomains = true, authorizedUser, requestId
+      excludeLockedDomains = true, user, requestId
     )
-    val authedUser = authorizedUser.map(u => u.copy(authenticatingDomain = domainSet.extendedHost))
+    val authedUser = user.map(_.convertToAuthedUser(domainSet.extendedHost))
 
     domainSet.searchContext match {
       case None => // domain exists but user isn't authorized to see it
-        throw UnauthorizedError(authedUser, s"search for facets on $cname")
+        throw UnauthorizedError(authedUser.map(_.id), s"search for facets on $cname")
       case Some(d) => // domain exists and is viewable by user
         val request = documentClient.buildFacetRequest(domainSet, searchParams, pagingParams, authedUser)
         logger.info(LogHelper.formatEsRequest(request))

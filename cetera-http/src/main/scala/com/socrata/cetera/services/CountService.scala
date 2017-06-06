@@ -71,7 +71,7 @@ class CountService(
       searchParams.searchContext, extendedHost, searchParams.domains,
       excludeLockedDomains = true, authorizedUser, requestId
     )
-    val authedUser = authorizedUser.map(u => u.copy(authenticatingDomain = domainSet.extendedHost))
+    val authedUser = authorizedUser.map(_.convertToAuthedUser(domainSet.extendedHost))
 
     val search = documentClient.buildCountRequest(field, domainSet, searchParams, pagingParams, authedUser)
     logger.info(LogHelper.formatEsRequest(search))

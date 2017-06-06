@@ -5,7 +5,7 @@ import org.elasticsearch.index.query.MultiMatchQueryBuilder.Type.{CROSS_FIELDS, 
 import org.scalatest.{BeforeAndAfterAll, ShouldMatchers, WordSpec}
 
 import com.socrata.cetera.TestESDomains
-import com.socrata.cetera.auth.User
+import com.socrata.cetera.auth.{AuthedUser, User}
 import com.socrata.cetera.handlers.ScoringParamSet
 
 class MultiMatcherSpec extends WordSpec with ShouldMatchers with BeforeAndAfterAll with TestESDomains {
@@ -17,7 +17,7 @@ class MultiMatcherSpec extends WordSpec with ShouldMatchers with BeforeAndAfterA
         "adjust_pure_negative": true,
         "boost": 1.0
     """
-    
+
     val multiMatchDefaults = """
       "operator": "OR",
       "slop": 0,
@@ -61,7 +61,7 @@ class MultiMatcherSpec extends WordSpec with ShouldMatchers with BeforeAndAfterA
     }
 
     "create a cross fields query over public fields and owned/shared items in private fields if the user is roleless" in {
-      val user = User("annabelle", authenticatingDomain = Some(domains(0)))
+      val user = AuthedUser("annabelle", domains(0))
       val actual = JsonReader.fromString(MultiMatchers.buildQuery(q, CROSS_FIELDS, ScoringParamSet(), Some(user)).toString)
       val expected = JsonReader.fromString(s"""
       {
@@ -110,7 +110,7 @@ class MultiMatcherSpec extends WordSpec with ShouldMatchers with BeforeAndAfterA
     }
 
     "create a phrase query over public fields and owned/shared items in private fields if the user is roleless" in {
-      val user = User("annabelle", authenticatingDomain = Some(domains(0)))
+      val user = AuthedUser("annabelle", domains(0))
       val actual = JsonReader.fromString(MultiMatchers.buildQuery(q, PHRASE, ScoringParamSet(), Some(user)).toString)
       val expected = JsonReader.fromString(s"""
       {
@@ -159,7 +159,7 @@ class MultiMatcherSpec extends WordSpec with ShouldMatchers with BeforeAndAfterA
     }
 
     "create a cross fields query over all fields for a super admin" in {
-      val user = User("annabelle", flags = Some(List("admin")))
+      val user = AuthedUser("annabelle", domains(0), flags = Some(List("admin")))
       val actual = JsonReader.fromString(
         MultiMatchers.buildQuery(q, CROSS_FIELDS, ScoringParamSet(), Some(user)).toString)
       val expected = JsonReader.fromString(s"""
@@ -181,7 +181,7 @@ class MultiMatcherSpec extends WordSpec with ShouldMatchers with BeforeAndAfterA
     }
 
     "create a phrase query over all fields for a super admin" in {
-      val user = User("annabelle", flags = Some(List("admin")))
+      val user = AuthedUser("annabelle", domains(0), flags = Some(List("admin")))
       val actual = JsonReader.fromString(
         MultiMatchers.buildQuery(q, PHRASE, ScoringParamSet(), Some(user)).toString)
       val expected = JsonReader.fromString(s"""
@@ -203,7 +203,7 @@ class MultiMatcherSpec extends WordSpec with ShouldMatchers with BeforeAndAfterA
     }
 
     "create a cross fields query over public fields and all domain/owned/shared items in private fields if the user has an enabling role" in {
-      val user = User("annabelle", authenticatingDomain = Some(domains(0)), roleName = Some("administrator"))
+      val user = AuthedUser("annabelle", domains(0), roleName = Some("administrator"))
       val actual = JsonReader.fromString(
         MultiMatchers.buildQuery(q, CROSS_FIELDS, ScoringParamSet(), Some(user)).toString)
       val expected = JsonReader.fromString(s"""
@@ -260,7 +260,7 @@ class MultiMatcherSpec extends WordSpec with ShouldMatchers with BeforeAndAfterA
     }
 
     "create a phrase query over public fields and all domain/owned/shared items in private fields if the user has an enabling role" in {
-      val user = User("annabelle", authenticatingDomain = Some(domains(0)), roleName = Some("administrator"))
+      val user = AuthedUser("annabelle", domains(0), roleName = Some("administrator"))
       val actual = JsonReader.fromString(
         MultiMatchers.buildQuery(q, PHRASE, ScoringParamSet(), Some(user)).toString)
       val expected = JsonReader.fromString(s"""

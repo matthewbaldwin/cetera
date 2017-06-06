@@ -5,7 +5,7 @@ import org.elasticsearch.index.query.QueryBuilders._
 import org.slf4j.LoggerFactory
 
 import com.socrata.cetera._
-import com.socrata.cetera.auth.{CoreClient, User}
+import com.socrata.cetera.auth.{AuthedUser, CoreClient, User}
 import com.socrata.cetera.errors.DomainNotFoundError
 import com.socrata.cetera.handlers.SearchParamSet
 import com.socrata.cetera.search.DomainQueries.{cnamesQuery, idQuery, isCustomerDomainQuery}
@@ -27,7 +27,7 @@ trait BaseDomainClient {
   def buildCountRequest(
       domainSet: DomainSet,
       searchParams: SearchParamSet,
-      user: Option[User])
+      user: Option[AuthedUser])
   : SearchRequestBuilder
 }
 
@@ -98,16 +98,13 @@ class DomainClient(esClient: ElasticSearchClient, coreClient: CoreClient, indexA
     if (!contextLocked && lockedDomains.isEmpty) {
       domainSet
     } else {
-      val loggedInUser = user.map(u => u.copy(authenticatingDomain = extendedHost))
-      val userCanViewLockedContext =
-        loggedInUser.exists(u => context.exists(c => u.canViewLockedDownCatalog(c.domainId)))
-      val viewableContext = context.filter(c => !contextLocked || userCanViewLockedContext)
-      loggedInUser match {
+      user match {
         case Some(u) =>
-          val viewableLockedDomains = lockedDomains.filter { d => u.canViewLockedDownCatalog(d.domainId) }
+          val authedUser = u.convertToAuthedUser(extendedHost)
+          val viewableContext = context.filter(c => !c.isLocked || authedUser.canViewLockedDownCatalog(c.domainId))
+          val viewableLockedDomains = lockedDomains.filter(d => authedUser.canViewLockedDownCatalog(d.domainId))
           DomainSet(unlockedDomains ++ viewableLockedDomains, viewableContext, extendedHost)
-        case None => // user is not logged in and thus can see no locked data
-          DomainSet(unlockedDomains, viewableContext, extendedHost)
+        case None => DomainSet(unlockedDomains, context.filterNot(_.isLocked), extendedHost)
       }
     }
   }
@@ -198,7 +195,7 @@ class DomainClient(esClient: ElasticSearchClient, coreClient: CoreClient, indexA
   def buildCountRequest(
       domainSet: DomainSet,
       searchParams: SearchParamSet,
-      user: Option[User])
+      user: Option[AuthedUser])
     : SearchRequestBuilder = {
     val domainQuery = idQuery(domainSet.domains.map(_.domainId))
     // NOTE: this limits the selection set based on facet constraints, but pays no attention to the

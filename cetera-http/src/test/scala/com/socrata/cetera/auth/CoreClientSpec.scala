@@ -147,7 +147,7 @@ class CoreClientSpec extends WordSpec with ShouldMatchers with BeforeAndAfterAll
 
     "return the user if core returns a 200 and an empowered user" in {
       setUpMockWithAuthorizedUser()
-      val expectedUser = User("boo-bear", None, roleName = Some("headBear"),
+      val expectedUser = User("boo-bear", roleName = Some("headBear"),
         rights = Some(List("steal_honey", "scare_tourists")), flags = Some(List("admin")))
 
       val (actualUser, _) = coreClient.authenticateUser(domain, AuthParams(cookie=Some(cookie)), None)
@@ -156,7 +156,7 @@ class CoreClientSpec extends WordSpec with ShouldMatchers with BeforeAndAfterAll
 
     "return the user if core returns a 200 and powerless user" in {
       setUpMockWithUnauthorizeddUser()
-      val expectedUser = User("lazy-bear", None, roleName = None, rights = None, flags = None)
+      val expectedUser = User("lazy-bear", roleName = None, rights = None, flags = None)
 
       val (actualUser, _) = coreClient.authenticateUser(domain, AuthParams(cookie=Some(cookie)), None)
       actualUser.get should be(expectedUser)
@@ -297,7 +297,7 @@ class CoreClientSpec extends WordSpec with ShouldMatchers with BeforeAndAfterAll
           .withBody(CompactJsonWriter.toString(userBody))
       )
 
-      val expectedUser = User("boo-bear", None, roleName = Some("headBear"),
+      val expectedUser = User("boo-bear", roleName = Some("headBear"),
         rights = Some(List("steal_honey", "scare_tourists")), flags = Some(List("admin")))
 
       val (actualUser, _) = coreClient.fetchUserById(domain, fxf, None)

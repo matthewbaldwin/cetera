@@ -40,7 +40,7 @@ class AutocompleteService(
       excludeLockedDomains = true, authorizedUser, requestId
     )
     val domainSet = domains.addDomainBoosts(scoringParams.domainBoosts)
-    val authedUser = authorizedUser.map(u => u.copy(authenticatingDomain = domains.extendedHost))
+    val authedUser = authorizedUser.map(_.convertToAuthedUser(domainSet.extendedHost))
 
     val req = documentClient.buildAutocompleteSearchRequest(
       domainSet, searchParams, scoringParams, pagingParams, authedUser)

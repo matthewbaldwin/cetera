@@ -9,7 +9,7 @@ import com.rojoma.json.v3.io.JsonReader
 import org.scalatest._
 
 import com.socrata.cetera.TestESDomains
-import com.socrata.cetera.auth.User
+import com.socrata.cetera.auth.{AuthedUser, User}
 import com.socrata.cetera.types.{Datatype, DomainSet}
 
 class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
@@ -226,43 +226,43 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
     }
 
     "return None if the user has no claim on the private metadata" in {
-      val user = Some(User("some-user"))  // who isn't a publisher or admin and doesn't own/share the data
+      val user = Some(AuthedUser("some-user", domains(0)))  // who isn't a publisher or admin and doesn't own/share the data
       val metadata = Format.domainPrivateMetadata(drewRawJson, user, viewsDomainId)
       metadata should be(None)
     }
 
     "return None if the user has a role, but it isn't on the view's domain" in {
-      val user = Some(User("some-user", Some(domains(1)), Some("publisher"))) // drewRaw is on domain 0
+      val user = Some(AuthedUser("some-user", domains(1), Some("publisher"))) // drewRaw is on domain 0
       val metadata = Format.domainPrivateMetadata(drewRawJson, user, viewsDomainId)
       metadata should be(None)
     }
 
     "return the expected JValue if the user owns the view" in {
-      val user = Some(User("7kqh-9s5a", Some(domains(1))))
+      val user = Some(AuthedUser("7kqh-9s5a", domains(1)))
       val metadata = Format.domainPrivateMetadata(drewRawJson, user, viewsDomainId)
       metadata should be(Some(privateMetadata))
     }
 
     "return the expected JValue if the user shares the view" in {
-      val user = Some(User("ti9x-irmy", Some(domains(1))))
+      val user = Some(AuthedUser("ti9x-irmy", domains(1)))
       val metadata = Format.domainPrivateMetadata(drewRawJson, user, viewsDomainId)
       metadata should be(Some(privateMetadata))
     }
 
     "return the expected JValue if the user is a super admin" in {
-      val user = Some(User("super-user", flags = Some(List("admin"))))
+      val user = Some(AuthedUser("super-user", domains(0), flags = Some(List("admin"))))
       val metadata = Format.domainPrivateMetadata(drewRawJson, user, viewsDomainId)
       metadata should be(Some(privateMetadata))
     }
 
     "return the expected JValue if the user is an admin on the view's domain" in {
-      val user = Some(User("some-user", Some(domains(0)), Some("administrator")))
+      val user = Some(AuthedUser("some-user", domains(0), Some("administrator")))
       val metadata = Format.domainPrivateMetadata(drewRawJson, user, viewsDomainId)
       metadata should be(Some(privateMetadata))
     }
 
     "return the expected JValue if the user is a publisher on the view's domain" in {
-      val user = Some(User("some-user", Some(domains(0)), Some("publisher")))
+      val user = Some(AuthedUser("some-user", domains(0), Some("publisher")))
       val metadata = Format.domainPrivateMetadata(drewRawJson, user, viewsDomainId)
       metadata should be(Some(privateMetadata))
     }
@@ -665,7 +665,7 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
     }
 
     "return the expected payload if passed good json and a user with rights to see the private metadata" in {
-      val user = Some(User("some-user", Some(domains(0)), Some("publisher")))
+      val user = Some(AuthedUser("some-user", domains(0), Some("publisher")))
       val unmoderatedUnroutedContext = DomainSet(domains = Set(domains(0)), searchContext = Some(domains(0)))
       val actualResult = Format.documentSearchResult(drewRawJson, user, unmoderatedUnroutedContext, None, Some(JNumber(.98)), true, None).get
       val drewFormattedString = Source.fromInputStream(getClass.getResourceAsStream("/drewFormattedWithPrivateMetadata.json")).getLines().mkString("\n")
