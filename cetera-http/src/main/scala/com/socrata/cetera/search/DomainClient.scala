@@ -65,9 +65,9 @@ class DomainClient(esClient: ElasticSearchClient, coreClient: CoreClient, indexA
       val res = search.execute.actionGet
       val timing = res.getTookInMillis
 
-      val domains = res.getHits.hits.flatMap { hit =>
+      val domains = res.getHits.getHits.flatMap { hit =>
         try {
-          Domain(hit.sourceAsString)
+          Domain(hit.getSourceAsString)
         }
         catch {
           case e: Exception =>
@@ -180,7 +180,7 @@ class DomainClient(esClient: ElasticSearchClient, coreClient: CoreClient, indexA
     val res = search.execute.actionGet
     val timing = res.getTookInMillis
 
-    val domains = res.getHits.hits.flatMap { hit =>
+    val domains = res.getHits.getHits.flatMap { hit =>
       try { Domain(hit.getSourceAsString) }
       catch { case e: Exception =>
         logger.info(e.getMessage)

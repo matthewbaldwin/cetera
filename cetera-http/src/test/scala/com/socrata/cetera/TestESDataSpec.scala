@@ -26,7 +26,7 @@ class TestESDataSpec extends FunSuiteLike with Matchers with TestESData with Bef
   }
 
   def formatEsHits(hits: Array[SearchHit]): String = {
-    hits.toList.map(_.sourceAsString()).mkString("\n")
+    hits.toList.map(_.getSourceAsString()).mkString("\n")
   }
 
   test("aliases are bootstrapped") {

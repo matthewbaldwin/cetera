@@ -146,7 +146,7 @@ object CompletionResult {
 
   def fromElasticsearchHit(hit: SearchHit): CompletionResult = {
     val title = TitleFieldType.fromSearchHit(hit)
-    val highlightMap = hit.highlightFields.asScala
+    val highlightMap = hit.getHighlightFields.asScala
     val highlightField = highlightMap.get(TitleFieldType.autocompleteFieldName)
 
     val displayTitle = highlightField.flatMap(field =>

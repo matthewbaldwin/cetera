@@ -23,6 +23,7 @@ object CeteraBuild extends Build {
     },
 
     fork in Test := true,
+    javaOptions in Test := Seq("-Des.set.netty.runtime.available.processors=false"),
     testOptions in Test += Tests.Argument("-oDF"),
     resolvers ++= Deps.resolverList
   )
@@ -78,7 +79,7 @@ object Deps {
     "com.typesafe" % "config" % "1.0.2",
     "org.apache.lucene" % "lucene-expressions" % "4.10.3" % "test",
     "org.codehaus.groovy" % "groovy-all" % "2.3.5" % "test",
-    "org.elasticsearch.client" % "transport" % "5.2.2",
+    "org.elasticsearch.client" % "transport" % "5.4.1",
     "org.mock-server" % "mockserver-maven-plugin" % "3.10.1" % "test"
   )
 

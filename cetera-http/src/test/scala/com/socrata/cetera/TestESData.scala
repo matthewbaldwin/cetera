@@ -1,6 +1,7 @@
 package com.socrata.cetera
 
 import java.io.File
+import org.elasticsearch.common.xcontent.XContentType
 import scala.io.Source
 
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy
@@ -80,7 +81,7 @@ trait TestESData extends TestESDomains with TestESUsers {
     // load domains
     domains.foreach { d =>
       client.client.prepareIndex(testSuiteName, esDomainType)
-        .setSource(JsonUtil.renderJson[Domain](d))
+        .setSource(JsonUtil.renderJson[Domain](d), XContentType.JSON)
         .setId(d.domainId.toString)
         .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
         .execute.actionGet
@@ -89,7 +90,7 @@ trait TestESData extends TestESDomains with TestESUsers {
     // load users
     users.foreach { u =>
       client.client.prepareIndex(testSuiteName, esUserType)
-        .setSource(JsonUtil.renderJson[EsUser](u))
+        .setSource(JsonUtil.renderJson[EsUser](u), XContentType.JSON)
         .setId(u.id)
         .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
         .execute.actionGet
@@ -100,7 +101,7 @@ trait TestESData extends TestESDomains with TestESUsers {
       client.client.prepareIndex(testSuiteName, esDocumentType)
         .setId(d.socrataId.datasetId)
         .setParent(d.socrataId.domainId.toString)
-        .setSource(JsonUtil.renderJson(d))
+        .setSource(JsonUtil.renderJson(d), XContentType.JSON)
         .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
         .execute.actionGet
     }

@@ -360,9 +360,9 @@ object Format {
     val domainIdCnames = domainSet.idMap.map { case (i, d) => i -> d.domainCname }
     val hits = searchResponse.getHits
 
-    val searchResult = hits.hits().flatMap { hit =>
-      val json = JsonReader.fromString(hit.sourceAsString())
-      val score = if (formatParams.showScore) Some(JNumber(hit.score)) else None
+    val searchResult = hits.getHits().flatMap { hit =>
+      val json = JsonReader.fromString(hit.getSourceAsString())
+      val score = if (formatParams.showScore) Some(JNumber(hit.getScore)) else None
       val owner = resultOwner(json)
 
       documentSearchResult(json, user, domainSet, formatParams.locale, score, formatParams.showVisibility, owner)

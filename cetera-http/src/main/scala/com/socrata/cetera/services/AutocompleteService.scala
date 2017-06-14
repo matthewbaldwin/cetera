@@ -49,7 +49,7 @@ class AutocompleteService(
 
     val res = req.execute.actionGet
     val totalHits = res.getHits.totalHits
-    val completions = res.getHits.hits.flatMap { hit =>
+    val completions = res.getHits.getHits.flatMap { hit =>
       try {
         Some(CompletionResult.fromElasticsearchHit(hit))
       }

@@ -37,9 +37,9 @@ class UserClient(esClient: ElasticSearchClient, indexAliasName: String) {
     val res = req.execute.actionGet
     val timing = res.getTookInMillis
 
-    val totalHits = res.getHits.totalHits()
-    val users = res.getHits.hits.flatMap { hit =>
-      try { EsUser(hit.sourceAsString) }
+    val totalHits = res.getHits.getTotalHits()
+    val users = res.getHits.getHits.flatMap { hit =>
+      try { EsUser(hit.getSourceAsString) }
       catch { case e: Exception =>
         logger.info(e.getMessage)
         None

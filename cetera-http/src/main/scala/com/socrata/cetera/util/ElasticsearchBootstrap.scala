@@ -1,5 +1,6 @@
 package com.socrata.cetera.util
 
+import org.elasticsearch.common.xcontent.XContentType
 import scala.io.Source
 
 import com.rojoma.json.v3.ast.JValue
@@ -50,22 +51,22 @@ object ElasticsearchBootstrap {
 
         logger.info(s"creating index $index")
         client.client.admin.indices.prepareCreate(index)
-          .setSettings(indexSettings)
+          .setSettings(indexSettings, XContentType.JSON)
           .execute.actionGet
 
         client.client.admin.indices.preparePutMapping(index)
           .setType(esDocumentType)
-          .setSource(datatypeMappings(esDocumentType))
+          .setSource(datatypeMappings(esDocumentType), XContentType.JSON)
           .execute.actionGet
 
         client.client.admin.indices.preparePutMapping(index)
           .setType(esDomainType)
-          .setSource(datatypeMappings(esDomainType))
+          .setSource(datatypeMappings(esDomainType), XContentType.JSON)
           .execute.actionGet
 
         client.client.admin.indices.preparePutMapping(index)
           .setType(esUserType)
-          .setSource(datatypeMappings(esUserType))
+          .setSource(datatypeMappings(esUserType), XContentType.JSON)
           .execute.actionGet
 
         logger.info(s"aliasing $indexAliasName -> $index")

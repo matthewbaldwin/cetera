@@ -6,6 +6,7 @@ import java.nio.charset.{Charset, CodingErrorAction}
 import java.util.Collections
 import javax.servlet.http.HttpServletRequest
 import org.elasticsearch.index.Index
+import org.elasticsearch.search.{ SearchHit, SearchHits }
 import org.elasticsearch.search.profile.{ ProfileShardResult, SearchProfileShardResults }
 import scala.collection.JavaConverters._
 
@@ -53,7 +54,6 @@ class SearchServiceSpec extends FunSuiteLike
   val domainSet = DomainSet(domains = (0 to 2).map(domains(_)).toSet)
 
   val searchResponse = {
-    val shardTarget = new SearchShardTarget("1", new Index("catalog", "foo"), 1)
     val score = 0.12345f
 
     val resource = "\"resource\":{\"name\": \"Just A Test\", \"I'm\":\"OK\",\"you're\":\"so-so\"}"
@@ -71,31 +71,29 @@ class SearchServiceSpec extends FunSuiteLike
     val datasetSource = new BytesArray("{" + List(resource, datasetDatatype, datasetViewtype, datasetSocrataId).mkString(",") + "}")
     val pageSource = new BytesArray("{" + List(resource, pageDatatype, pageViewtype, pageSocrataId).mkString(",") + "}")
 
-    val datasetHit = new InternalSearchHit(1, "46_3yu6-fka7", new Text("dataset"), emptySearchHitMap)
-    datasetHit.shardTarget(shardTarget)
+    val datasetHit = new SearchHit(1, "46_3yu6-fka7", new Text("dataset"), emptySearchHitMap)
     datasetHit.sourceRef(datasetSource)
     datasetHit.score(score)
 
-    val pageHit = new InternalSearchHit(1, "64_6uy3-7akf", new Text("page"), emptySearchHitMap)
-    pageHit.shardTarget(shardTarget)
+    val pageHit = new SearchHit(1, "64_6uy3-7akf", new Text("page"), emptySearchHitMap)
     pageHit.sourceRef(pageSource)
     pageHit.score(score)
 
-    val hits = Array[InternalSearchHit](datasetHit, pageHit)
-    val internalSearchHits = new InternalSearchHits(hits, 3037, 1.0f)
+    val hits = Array[SearchHit](datasetHit, pageHit)
+    val internalSearchHits = new SearchHits(hits, 3037, 1.0f)
     val internalSearchResponse = new InternalSearchResponse(
       internalSearchHits,
-      new InternalAggregations(List[InternalAggregation]().asJava),
-      new Suggest(),
+      new InternalAggregations(Nil.asJava),
+      new Suggest(Nil.asJava),
       new SearchProfileShardResults(Map.empty[String, ProfileShardResult].asJava),
       false,
-      false)
+      false,
+      0)
 
     new SearchResponse(internalSearchResponse, "", 15, 15, 4, Array[ShardSearchFailure]())
   }
 
   val badSearchResponse = {
-    val shardTarget = new SearchShardTarget("1", new Index("catalog", "foo"), 1)
     val score = 0.54321f
 
     val badResource = "\"badResource\":{\"name\": \"Just A Test\", \"I'm\":\"NOT OK\",\"you'll\":\"never know\"}"
@@ -123,31 +121,29 @@ class SearchServiceSpec extends FunSuiteLike
       + "}")
 
     // A result missing the resource field should get filtered (a bogus doc is often missing expected fields)
-    val badResourceDatasetHit = new InternalSearchHit(1, "46_3yu6-fka7", new Text("dataset"), emptySearchHitMap)
-    badResourceDatasetHit.shardTarget(shardTarget)
+    val badResourceDatasetHit = new SearchHit(1, "46_3yu6-fka7", new Text("dataset"), emptySearchHitMap)
     badResourceDatasetHit.sourceRef(badResourceDatasetSource)
     badResourceDatasetHit.score(score)
 
     // A result with corrupted (unparseable) field should also get skipped (instead of raising)
-    val badSocrataIdDatasetHit = new InternalSearchHit(1, "46_3yu6-fka7", new Text("dataset"), emptySearchHitMap)
-    badSocrataIdDatasetHit.shardTarget(shardTarget)
+    val badSocrataIdDatasetHit = new SearchHit(1, "46_3yu6-fka7", new Text("dataset"), emptySearchHitMap)
     badSocrataIdDatasetHit.sourceRef(badSocrataIdDatasetSource)
     badSocrataIdDatasetHit.score(score)
 
-    val pageHit = new InternalSearchHit(1, "64_6uy3-7akf", new Text("page"), emptySearchHitMap)
-    pageHit.shardTarget(shardTarget)
+    val pageHit = new SearchHit(1, "64_6uy3-7akf", new Text("page"), emptySearchHitMap)
     pageHit.sourceRef(pageSource)
     pageHit.score(score)
 
-    val hits = Array[InternalSearchHit](badResourceDatasetHit, badSocrataIdDatasetHit, pageHit)
-    val internalSearchHits = new InternalSearchHits(hits, 3037, 1.0f)
+    val hits = Array[SearchHit](badResourceDatasetHit, badSocrataIdDatasetHit, pageHit)
+    val internalSearchHits = new SearchHits(hits, 3037, 1.0f)
     val internalSearchResponse = new InternalSearchResponse(
       internalSearchHits,
-      new InternalAggregations(List[InternalAggregation]().asJava),
-      new Suggest(),
+      new InternalAggregations(List.empty.asJava),
+      new Suggest(List.empty.asJava),
       new SearchProfileShardResults(Map.empty[String, ProfileShardResult].asJava),
       false,
-      false)
+      false,
+      0)
 
     new SearchResponse(internalSearchResponse, "", 15, 15, 4, Array[ShardSearchFailure]())
   }
