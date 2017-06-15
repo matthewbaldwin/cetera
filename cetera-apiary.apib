@@ -278,7 +278,7 @@ assets with the given license by specifying this parameter.
 ## Text search [/catalog/v1{?q,min_should_match}]
 
 Assets may be searched by any of the text found in the
-`name, description, category, column names, column fieldnames and column descriptions`.
+`name, description, category, tags, column names, column fieldnames, column descriptions`, and `attribution`.
 The `q` parameter takes arbitrary text and finds assets having some or all of the text.
 The optional `min_should_match` parameter may be used to explicitly specify the number or percent of
 words that must match. See [the Elasticsearch docs](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-minimum-should-match.html)
