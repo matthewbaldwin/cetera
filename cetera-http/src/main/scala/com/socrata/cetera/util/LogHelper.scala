@@ -15,7 +15,7 @@ object LogHelper {
 
   // WARN: changing this will likely break Sumo (regex-based log parser)
   def formatRequest(request: HttpRequest, timings: InternalTimings): String = {
-    List[String](
+    List(
       "[" + request.servletRequest.getMethod + "]",
       request.requestPathStr,
       request.queryStr.getOrElse(""),
@@ -23,6 +23,7 @@ object LogHelper {
       request.servletRequest.getRemoteHost,
       s"extended host = ${request.header(HeaderXSocrataHostKey)}",
       s"request id = ${request.header(HeaderXSocrataRequestIdKey)}",
+      s"user agent = ${request.header(HeaderUserAgent)}",
       s"""TIMINGS ## ESTime : ${timings.searchMillis} ## ServiceTime : ${timings.serviceMillis}"""
     ).mkString(" -- ")
   }

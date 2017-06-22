@@ -7,6 +7,7 @@ package object cetera {
   val HeaderAuthorizationKey = "Authorization"
   val HeaderCookieKey = "Cookie"
   val HeaderSetCookieKey = "Set-Cookie"
+  val HeaderUserAgent = "User-Agent"
   val HeaderXSocrataHostKey = "X-Socrata-Host"
   val HeaderXSocrataRequestIdKey = "X-Socrata-RequestId"
 
