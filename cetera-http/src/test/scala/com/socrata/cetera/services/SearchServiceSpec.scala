@@ -431,6 +431,36 @@ class SearchServiceSpec extends FunSuiteLike
       _.resource.dyn.`type`.!.asInstanceOf[JString].string
     ) should be(List("dataset", "dataset", "dataset", "chart", "chart"))
   }
+
+  test("assets with missing values for a sort key show up last when sorting ascending") {
+    val params = Map("order" -> Seq("domain_category ASC"), "limit" -> Seq("100"))
+    val results = service.doSearch(params, AuthParams(), None, None)._2.results
+
+    val categories = results.toList.map(
+      _.classification.domainCategory.flatMap(_.cast[JString].map(_.string))
+    )
+
+    categories.head should be(Some("Alpha"))
+
+    def lastTwo = categories.drop(categories.length - 2)
+
+    lastTwo should be(List(None, None))
+  }
+
+  test("assets with missing values for a sort key show up last when sorting descending") {
+    val params = Map("order" -> Seq("domain_category DESC"), "limit" -> Seq("100"))
+    val results = service.doSearch(params, AuthParams(), None, None)._2.results
+
+    val categories = results.toList.map(
+      _.classification.domainCategory.flatMap(_.cast[JString].map(_.string))
+    )
+
+    categories.head should be(Some("Science"))
+
+    def lastTwo = categories.drop(categories.length - 2)
+
+    lastTwo should be(List(None, None))
+  }
 }
 
 class SearchServiceSpecWithBrokenES extends FunSuiteLike with Matchers with MockFactory with TestESData {

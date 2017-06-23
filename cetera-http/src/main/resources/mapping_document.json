@@ -51,7 +51,7 @@
       "analyzer": "snowball_en",
       "fields": {
         "raw": { "type": "keyword" },
-        "lowercase": {"type": "text", "analyzer": "case_insensitive_en" },
+        "lowercase": { "type": "text", "analyzer": "case_insensitive_en" },
         "lowercase_alphanumeric": { "type": "text", "analyzer": "lowercase_alphanumeric", "fielddata": true }
       },
       "copy_to": [ "fts_analyzed", "fts_raw" ]

@@ -434,16 +434,23 @@ noting that if you fail to authenticate or lack the permissions to view hidden d
 
 ## Sort order [/catalog/v1{?order}]
 
-The results of all the above filters can be sorted by a number of fields.
-If not specified, the results are sorted by relevance.
-If a sort field is specified that the search service does not recognize, the query will fail.
-For all accepted sort values, either `ASC` or `DESC` can optionally be specified, eg. `name DESC`.
-If `ASC` or `DESC` is not specified, the default is `ASC`, or ascending. Note that spaces
-must be URL-escaped with `+` or `%20`.
+The results of all the above filters can be sorted by a number of fields. If not specified, the
+results are sorted by relevance. If a sort field is specified that the search service does not
+recognize, the query will fail. For all accepted sort values, either `ASC` or `DESC` can optionally
+be specified, eg. `name DESC`. If `ASC` or `DESC` is not specified, the default is `ASC`, or
+ascending. Note that spaces must be URL-escaped with `+` or `%20`.
+
+It is possible for search results to have missing values for some of these sort fields (such as
+`domain_category`, for example). Any assets missing a value altogether for the field being sorted
+on will show up at the end of the results list.
 
 **Accepted Values:**
 - `relevance` (default)
 - `name`
+- `owner`
+- `dataset_id`
+- `datatype`
+- `domain_category`
 - `createdAt`
 - `updatedAt`
 - `page_views_total`
