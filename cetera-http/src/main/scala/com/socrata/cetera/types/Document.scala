@@ -103,7 +103,7 @@ case class Document(
     isRejectedByParentDomain: Boolean,
     isPendingOnParentDomain: Boolean,
     customerTags: Seq[String],
-    customerCategory: String,
+    customerCategory: Option[String],
     // If this comes back empty, it comes back as an empty object, not an empty array
     customerMetadataFlattened: Seq[CustomerMetadataFlattened],
     privateCustomerMetadataFlattened: Seq[CustomerMetadataFlattened],

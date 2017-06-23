@@ -459,7 +459,7 @@ class SearchServiceSpecForAnonymousUsers
       "categories" -> "Alpha"
     ).mapValues(Seq(_))
 
-    val expectedFxfs = anonymousDomain0Docs.filter(_.customerCategory.toLowerCase() == "alpha")
+    val expectedFxfs = anonymousDomain0Docs.filter(_.customerCategory.exists(_.toLowerCase == "alpha"))
       .map(_.socrataId.datasetId)
 
     testCaseInsensitivity(paramsTitleCase, expectedFxfs)
@@ -490,9 +490,9 @@ class SearchServiceSpecForAnonymousUsers
       "categories" -> "Alpha"
     ).mapValues(Seq(_))
 
-    val docsWithPartialMatch = anonymousDomain0Docs.filter(_.customerCategory.contains("Alpha"))
+    val docsWithPartialMatch = anonymousDomain0Docs.filter(_.customerCategory.exists(_.contains("Alpha")))
 
-    val expectedFxfs = anonymousDomain0Docs.filter(_.customerCategory == "Alpha").map(_.socrataId.datasetId)
+    val expectedFxfs = anonymousDomain0Docs.filter(_.customerCategory.exists(_ == "Alpha")).map(_.socrataId.datasetId)
 
     docsWithPartialMatch.size should be > expectedFxfs.size
 
@@ -531,7 +531,7 @@ class SearchServiceSpecForAnonymousUsers
       "q" -> "ALPHA"
     ).mapValues(Seq(_))
 
-    val expectedFxfs = anonymousDomain0Docs.filter(_.customerCategory.toLowerCase().contains("alpha"))
+    val expectedFxfs = anonymousDomain0Docs.filter(_.customerCategory.exists(_.toLowerCase.contains("alpha")))
       .map(_.socrataId.datasetId)
 
     testResultSet(params, expectedFxfs)
