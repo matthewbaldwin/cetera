@@ -110,8 +110,11 @@ object Format {
     user.flatMap { case u: AuthedUser =>
       val ownsIt = extractJString(j.dyn.owner_id.?).exists(_ == u.id)
       val sharesIt = extractJArray(j.dyn.shared_to.?).exists(_.contains(u.id))
-      val hasEnablingRole = u.canViewPrivateMetadata(domainId)
-      if (ownsIt || sharesIt || hasEnablingRole) {
+      // a user may only view private metadata from docs on their authenticating domain,
+      // assuming they are authed to do so for stories or non-stories
+      val isStory = extractJString(j.dyn.datatype.?).exists(_ == StoryDatatype.singular)
+      val canViewIt = u.canViewAllOfSomePrivateMetadata(domainId, isStory)
+      if (ownsIt || sharesIt || canViewIt) {
         j.dyn.private_customer_metadata_flattened.? match {
           case Left(e) => None
           case Right(jv) => Some(jv)

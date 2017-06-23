@@ -2,121 +2,341 @@ package com.socrata.cetera.auth
 
 import org.scalatest.{ShouldMatchers, WordSpec}
 
-import com.socrata.cetera.TestESDomains
+import com.socrata.cetera.TestESUsers
 
-class UserSpec extends WordSpec with ShouldMatchers with TestESDomains {
-  val superAdmin = AuthedUser("", domains(0), roleName = None, rights = None, flags = Some(List("admin")))
-  val customerAdmin = AuthedUser("", domains(8), roleName = Some("administrator"), rights = None, flags = None)
-  val customerEditor = AuthedUser("", domains(8), roleName = Some("editor"), rights = None, flags = None)
-  val customerEditorStories = AuthedUser("", domains(8), roleName = Some("editor_stories"), rights = None, flags = None)
-  val customerPublisher = AuthedUser("", domains(8), roleName = Some("publisher"), rights = None, flags = None)
-  val customerPublisherStories = AuthedUser("", domains(8), roleName = Some("publisher_stories"), rights = None, flags = None)
-  val customerViewer = AuthedUser("", domains(8), roleName = Some("viewer"), rights = None, flags = None)
-  val customerDesigner = AuthedUser("", domains(8), roleName = Some("designer"), rights = None, flags = None)
+class UserSpec extends WordSpec with ShouldMatchers with TestESUsers {
 
   "The authorizedOnDomain method" should {
-    "return false if the user has an authenticating domain but is trying to authenticate on a different domain" in  {
-      customerAdmin.authorizedOnDomain(1) should be(false)
+    val domId = 0
+
+    "return false if the user is trying to authenticate on a different domain" in  {
+      val otherDomainId = 1
+      userWithAllTheRights(domId).authorizedOnDomain(otherDomainId) should be(false)
+      userWithAllTheStoriesRights(domId).authorizedOnDomain(otherDomainId) should be(false)
+      userWithAllTheNonStoriesRights(domId).authorizedOnDomain(otherDomainId) should be(false)
+      userWithAllTheViewRights(domId).authorizedOnDomain(otherDomainId) should be(false)
+      userWithOnlyManageUsersRight(domId).authorizedOnDomain(otherDomainId) should be(false)
+      userWithRoleButNoRights(domId).authorizedOnDomain(otherDomainId) should be(false)
+      userWithNoRoleAndNoRights(domId).authorizedOnDomain(otherDomainId) should be(false)
     }
 
-    "return true if the user has an authenticating domain and is trying to authenticate on that domain" in  {
-      customerAdmin.authorizedOnDomain(8) should be(true)
+    "return true if the user is a super admin" in {
+      domains.foreach { d =>
+        superAdminUser(domId).authorizedOnDomain(d.domainId) should be(true)
+      }
+    }
+
+    "return true if the user is trying to authenticate on that domain" in  {
+      userWithAllTheRights(domId).authorizedOnDomain(domId) should be(true)
+      userWithAllTheStoriesRights(domId).authorizedOnDomain(domId) should be(true)
+      userWithAllTheNonStoriesRights(domId).authorizedOnDomain(domId) should be(true)
+      userWithAllTheViewRights(domId).authorizedOnDomain(domId) should be(true)
+      userWithOnlyManageUsersRight(domId).authorizedOnDomain(domId) should be(true)
+      userWithRoleButNoRights(domId).authorizedOnDomain(domId) should be(true)
+      userWithNoRoleAndNoRights(domId).authorizedOnDomain(domId) should be(true)
     }
   }
 
   "The canViewResource method" should {
-    "return false if the user has an authenticating domain but is trying to authenticate on a different domain" in  {
-      customerAdmin.canViewResource(1, isAuthorized = true) should be(false)
+    val domId = 0
+    "return false if the user is asking about a resource on a domain that is not their authenticating domain" in  {
+      val otherDomainId = 1
+      userWithAllTheRights(domId).canViewResource(otherDomainId, true) should be(false)
+      userWithAllTheStoriesRights(domId).canViewResource(otherDomainId, true) should be(false)
+      userWithAllTheNonStoriesRights(domId).canViewResource(otherDomainId, true) should be(false)
+      userWithAllTheViewRights(domId).canViewResource(otherDomainId, true) should be(false)
+      userWithOnlyManageUsersRight(domId).canViewResource(otherDomainId, true) should be(false)
+      userWithRoleButNoRights(domId).canViewResource(otherDomainId, true) should be(false)
+      userWithNoRoleAndNoRights(domId).canViewResource(otherDomainId, true) should be(false)
     }
 
-    "return false if the user has an authenticating domain and is trying to authenticate on that domain but is not authorized" in  {
-      customerAdmin.canViewResource(8, isAuthorized = false) should be(false)
+    "return false if the user is asking about a resource on a domain that is their authenticating domain, but they aren't authorized" in  {
+      userWithAllTheRights(domId).canViewResource(domId, false) should be(false)
+      userWithAllTheStoriesRights(domId).canViewResource(domId, false) should be(false)
+      userWithAllTheNonStoriesRights(domId).canViewResource(domId, false) should be(false)
+      userWithAllTheViewRights(domId).canViewResource(domId, false) should be(false)
+      userWithOnlyManageUsersRight(domId).canViewResource(domId, false) should be(false)
+      userWithRoleButNoRights(domId).canViewResource(domId, false) should be(false)
+      userWithNoRoleAndNoRights(domId).canViewResource(domId, false) should be(false)
     }
 
     "return true if the user is a super admin" in  {
       domains.foreach { d =>
-        superAdmin.canViewResource(d.domainId, isAuthorized = false) should be(true)
+        superAdminUser(d.domainId).canViewResource(d.domainId, isAuthorized = false) should be(true)
       }
     }
 
-    "return true if the user has an authenticating domain and is trying to authenticate on that domain and is authorized" in  {
-      customerAdmin.canViewResource(8, isAuthorized = true) should be(true)
-    }
-  }
-
-  "The canViewLockedDownCatalog method" should {
-    "return true if the user is a super admin" in {
-      superAdmin.canViewLockedDownCatalog(6) should be(true)
-    }
-
-    "return true if the user has a supported role from the authenticating domain" in {
-      customerAdmin.canViewLockedDownCatalog(8) should be(true)
-      customerEditor.canViewLockedDownCatalog(8) should be(true)
-      customerEditorStories.canViewLockedDownCatalog(8) should be(true)
-      customerPublisher.canViewLockedDownCatalog(8) should be(true)
-      customerPublisherStories.canViewLockedDownCatalog(8) should be(true)
-      customerViewer.canViewLockedDownCatalog(8) should be(true)
-    }
-
-    "return false if the user has a role from the authenticating domain but it isn't supported" in {
-      customerDesigner.canViewLockedDownCatalog(8) should be(false)
-    }
-
-    "return false if the user has a role but it isn't from the authenticating domain" in {
-      customerAdmin.canViewLockedDownCatalog(7) should be(false)
-      customerEditor.canViewLockedDownCatalog(7) should be(false)
-      customerEditorStories.canViewLockedDownCatalog(7) should be(false)
-      customerPublisher.canViewLockedDownCatalog(7) should be(false)
-      customerPublisherStories.canViewLockedDownCatalog(7) should be(false)
-      customerViewer.canViewLockedDownCatalog(7) should be(false)
-      customerDesigner.canViewLockedDownCatalog(7) should be(false)
+    "return true if the user is trying to authenticate on that domain and is authorized" in  {
+      val authingDomainId = 0
+      userWithAllTheRights(authingDomainId).canViewResource(authingDomainId, true) should be(true)
+      userWithAllTheStoriesRights(authingDomainId).canViewResource(authingDomainId, true) should be(true)
+      userWithAllTheNonStoriesRights(authingDomainId).canViewResource(authingDomainId, true) should be(true)
+      userWithAllTheViewRights(authingDomainId).canViewResource(authingDomainId, true) should be(true)
+      userWithOnlyManageUsersRight(authingDomainId).canViewResource(authingDomainId, true) should be(true)
+      userWithRoleButNoRights(authingDomainId).canViewResource(authingDomainId, true) should be(true)
+      userWithNoRoleAndNoRights(authingDomainId).canViewResource(authingDomainId, true) should be(true)
     }
   }
 
   "The canViewAllViews method" should {
+    val domId = 6
+
     "return true if the user is a super admin" in {
-      superAdmin.canViewAllViews(6) should be(true)
+      superAdminUser(domId).canViewAllViews(domId) should be(true)
     }
 
-    "return true if the user has a supported role from the authenticating domain" in {
-      customerAdmin.canViewAllViews(8) should be(true)
-      customerDesigner.canViewAllViews(8) should be(true)
-      customerPublisher.canViewAllViews(8) should be(true)
-      customerPublisherStories.canViewAllViews(8) should be(true)
-      customerViewer.canViewAllViews(8) should be(true)
+    "return true if asking about the user's authenticating domain and the user can view both stories and non-stories" in {
+      userWithAllTheRights(domId).canViewAllViews(domId) should be(true)
+      userWithAllTheViewRights(domId).canViewAllViews(domId) should be(true)
     }
 
-    "return false if the user has a role from the authenticating domain but it isn't supported" in {
-      customerEditor.canViewAllViews(8) should be(false)
-      customerEditorStories.canViewAllViews(8) should be(false)
+    "return false if asking about the user's authenticating domain but the user lacks the rights" in {
+      userWithAllTheStoriesRights(domId).canViewAllViews(domId) should be(false)
+      userWithAllTheNonStoriesRights(domId).canViewAllViews(domId) should be(false)
+      userWithOnlyManageUsersRight(domId).canViewAllViews(domId) should be(false)
+      userWithRoleButNoRights(domId).canViewAllViews(domId) should be(false)
+      userWithNoRoleAndNoRights(domId).canViewAllViews(domId) should be(false)
     }
 
-    "return false if the user has a role but it isn't from the authenticating domain" in {
-      customerAdmin.canViewAllViews(7) should be(false)
-      customerEditor.canViewAllViews(7) should be(false)
-      customerEditorStories.canViewAllViews(7) should be(false)
-      customerPublisher.canViewAllViews(7) should be(false)
-      customerPublisherStories.canViewAllViews(7) should be(false)
-      customerViewer.canViewAllViews(7) should be(false)
-      customerDesigner.canViewAllViews(7) should be(false)
+    "return false if asking about a domain other than the user's authenticating domain" in {
+      val otherDomainId = 1
+      userWithAllTheRights(otherDomainId).canViewAllViews(domId)should be(false)
+      userWithAllTheStoriesRights(otherDomainId).canViewAllViews(domId)should be(false)
+      userWithAllTheNonStoriesRights(otherDomainId).canViewAllViews(domId)should be(false)
+      userWithAllTheViewRights(otherDomainId).canViewAllViews(domId)should be(false)
+      userWithOnlyManageUsersRight(otherDomainId).canViewAllViews(domId)should be(false)
+      userWithRoleButNoRights(otherDomainId).canViewAllViews(domId)should be(false)
+      userWithNoRoleAndNoRights(otherDomainId).canViewAllViews(domId)should be(false)
     }
   }
 
-  "The canViewUsers method" should {
+  "The canViewAllOfSomeViews method" should {
+    val domId = 6
+
+    "return true if the user is a super admin" in {
+      superAdminUser(domId).canViewAllOfSomeViews(domId, isStory = true) should be(true)
+      superAdminUser(domId).canViewAllOfSomeViews(domId, isStory = false) should be(true)
+    }
+
+    "return true if asking about the user's authenticating domain and stories and the user can view stories" in {
+      userWithAllTheRights(domId).canViewAllOfSomeViews(domId, isStory = true) should be(true)
+      userWithAllTheStoriesRights(domId).canViewAllOfSomeViews(domId, isStory = true) should be(true)
+      userWithAllTheViewRights(domId).canViewAllOfSomeViews(domId, isStory = true) should be(true)
+    }
+
+    "return true if asking about the user's authenticating domain and non-stories and the user can view non-stories" in {
+      userWithAllTheRights(domId).canViewAllOfSomeViews(domId, isStory = false) should be(true)
+      userWithAllTheNonStoriesRights(domId).canViewAllOfSomeViews(domId, isStory = false) should be(true)
+      userWithAllTheViewRights(domId).canViewAllOfSomeViews(domId, isStory = false) should be(true)
+    }
+
+    "return false if asking about the user's authenticating domain and stories, but the user lacks the rights" in {
+      userWithAllTheNonStoriesRights(domId).canViewAllOfSomeViews(domId, isStory = true) should be(false)
+      userWithOnlyManageUsersRight(domId).canViewAllOfSomeViews(domId, isStory = true) should be(false)
+      userWithRoleButNoRights(domId).canViewAllOfSomeViews(domId, isStory = true) should be(false)
+      userWithNoRoleAndNoRights(domId).canViewAllOfSomeViews(domId, isStory = true) should be(false)
+    }
+
+    "return false if asking about the user's authenticating domain and non-stories, but the user lacks the rights" in {
+      userWithAllTheStoriesRights(domId).canViewAllOfSomeViews(domId, isStory = false) should be(false)
+      userWithOnlyManageUsersRight(domId).canViewAllOfSomeViews(domId, isStory = false) should be(false)
+      userWithRoleButNoRights(domId).canViewAllOfSomeViews(domId, isStory = false) should be(false)
+      userWithNoRoleAndNoRights(domId).canViewAllOfSomeViews(domId, isStory = false) should be(false)
+    }
+
+    "return false if asking about a domain other than the user's authenticating domain and stories" in {
+      val otherDomainId = 1
+      userWithAllTheRights(otherDomainId).canViewAllOfSomeViews(domId, isStory = true) should be(false)
+      userWithAllTheStoriesRights(otherDomainId).canViewAllOfSomeViews(domId, isStory = true) should be(false)
+      userWithAllTheNonStoriesRights(otherDomainId).canViewAllOfSomeViews(domId, isStory = true) should be(false)
+      userWithAllTheViewRights(otherDomainId).canViewAllOfSomeViews(domId, isStory = true) should be(false)
+      userWithOnlyManageUsersRight(otherDomainId).canViewAllOfSomeViews(domId, isStory = true) should be(false)
+      userWithRoleButNoRights(otherDomainId).canViewAllOfSomeViews(domId, isStory = true) should be(false)
+      userWithNoRoleAndNoRights(otherDomainId).canViewAllOfSomeViews(domId, isStory = true) should be(false)
+    }
+
+    "return false if asking about a domain other than the user's authenticating domain and non-stories" in {
+      val otherDomainId = 1
+      userWithAllTheRights(otherDomainId).canViewAllOfSomeViews(domId, isStory = false) should be(false)
+      userWithAllTheStoriesRights(otherDomainId).canViewAllOfSomeViews(domId, isStory = false) should be(false)
+      userWithAllTheNonStoriesRights(otherDomainId).canViewAllOfSomeViews(domId, isStory = false) should be(false)
+      userWithAllTheViewRights(otherDomainId).canViewAllOfSomeViews(domId, isStory = false) should be(false)
+      userWithOnlyManageUsersRight(otherDomainId).canViewAllOfSomeViews(domId, isStory = false) should be(false)
+      userWithRoleButNoRights(otherDomainId).canViewAllOfSomeViews(domId, isStory = false) should be(false)
+      userWithNoRoleAndNoRights(otherDomainId).canViewAllOfSomeViews(domId, isStory = false) should be(false)
+    }
+  }
+
+  "The canViewAllPrivateMetadata method" should {
+    val domId = 6
+
+    "return true if the user is a super admin" in {
+      superAdminUser(domId).canViewAllPrivateMetadata(domId) should be(true)
+    }
+
+    "return true if asking about the user's authenticating domain and the user can view both stories and non-stories metadata" in {
+      userWithAllTheRights(domId).canViewAllPrivateMetadata(domId) should be(true)
+    }
+
+    "return false if asking about the user's authenticating domain but the user lacks the rights" in {
+      userWithAllTheStoriesRights(domId).canViewAllPrivateMetadata(domId) should be(false)
+      userWithAllTheNonStoriesRights(domId).canViewAllPrivateMetadata(domId) should be(false)
+      userWithAllTheViewRights(domId).canViewAllPrivateMetadata(domId) should be(false)
+      userWithOnlyManageUsersRight(domId).canViewAllPrivateMetadata(domId) should be(false)
+      userWithRoleButNoRights(domId).canViewAllPrivateMetadata(domId) should be(false)
+      userWithNoRoleAndNoRights(domId).canViewAllPrivateMetadata(domId) should be(false)
+    }
+
+    "return false if asking about a domain other than the user's authenticating domain" in {
+      val otherDomainId = 1
+      userWithAllTheRights(otherDomainId).canViewAllPrivateMetadata(domId)should be(false)
+      userWithAllTheStoriesRights(otherDomainId).canViewAllPrivateMetadata(domId)should be(false)
+      userWithAllTheNonStoriesRights(otherDomainId).canViewAllPrivateMetadata(domId)should be(false)
+      userWithAllTheViewRights(otherDomainId).canViewAllPrivateMetadata(domId)should be(false)
+      userWithOnlyManageUsersRight(otherDomainId).canViewAllPrivateMetadata(domId)should be(false)
+      userWithRoleButNoRights(otherDomainId).canViewAllPrivateMetadata(domId)should be(false)
+      userWithNoRoleAndNoRights(otherDomainId).canViewAllPrivateMetadata(domId)should be(false)
+    }
+  }
+
+  "The canViewAllOfSomePrivateMetadata method" should {
+    val domId = 6
+
+    "return true if the user is a super admin" in {
+      superAdminUser(domId).canViewAllOfSomePrivateMetadata(domId, isStory = true) should be(true)
+      superAdminUser(domId).canViewAllOfSomePrivateMetadata(domId, isStory = false) should be(true)
+    }
+
+    "return true if asking about the user's authenticating domain and stories and the user can view stories metadata" in {
+      userWithAllTheRights(domId).canViewAllOfSomePrivateMetadata(domId, isStory = true) should be(true)
+      userWithAllTheStoriesRights(domId).canViewAllOfSomePrivateMetadata(domId, isStory = true) should be(true)
+    }
+
+    "return true if asking about the user's authenticating domain and non-stories and the user can view non-stories metadata" in {
+      userWithAllTheRights(domId).canViewAllOfSomePrivateMetadata(domId, isStory = false) should be(true)
+      userWithAllTheNonStoriesRights(domId).canViewAllOfSomePrivateMetadata(domId, isStory = false) should be(true)
+    }
+
+    "return false if asking about the user's authenticating domain and stories, but the user lacks the rights" in {
+      userWithAllTheViewRights(domId).canViewAllOfSomePrivateMetadata(domId, isStory = true) should be(false)
+      userWithAllTheNonStoriesRights(domId).canViewAllOfSomePrivateMetadata(domId, isStory = true) should be(false)
+      userWithOnlyManageUsersRight(domId).canViewAllOfSomePrivateMetadata(domId, isStory = true) should be(false)
+      userWithRoleButNoRights(domId).canViewAllOfSomePrivateMetadata(domId, isStory = true) should be(false)
+      userWithNoRoleAndNoRights(domId).canViewAllOfSomePrivateMetadata(domId, isStory = true) should be(false)
+    }
+
+    "return false if asking about the user's authenticating domain and non-stories, but the user lacks the rights" in {
+      userWithAllTheViewRights(domId).canViewAllOfSomePrivateMetadata(domId, isStory = false) should be(false)
+      userWithAllTheStoriesRights(domId).canViewAllOfSomePrivateMetadata(domId, isStory = false) should be(false)
+      userWithOnlyManageUsersRight(domId).canViewAllOfSomePrivateMetadata(domId, isStory = false) should be(false)
+      userWithRoleButNoRights(domId).canViewAllOfSomePrivateMetadata(domId, isStory = false) should be(false)
+      userWithNoRoleAndNoRights(domId).canViewAllOfSomePrivateMetadata(domId, isStory = false) should be(false)
+    }
+
+    "return false if asking about a domain other than the user's authenticating domain and stories" in {
+      val otherDomainId = 1
+      userWithAllTheRights(otherDomainId).canViewAllOfSomePrivateMetadata(domId, isStory = true) should be(false)
+      userWithAllTheStoriesRights(otherDomainId).canViewAllOfSomePrivateMetadata(domId, isStory = true) should be(false)
+      userWithAllTheNonStoriesRights(otherDomainId).canViewAllOfSomePrivateMetadata(domId, isStory = true) should be(false)
+      userWithAllTheViewRights(otherDomainId).canViewAllOfSomePrivateMetadata(domId, isStory = true) should be(false)
+      userWithOnlyManageUsersRight(otherDomainId).canViewAllOfSomePrivateMetadata(domId, isStory = true) should be(false)
+      userWithRoleButNoRights(otherDomainId).canViewAllOfSomePrivateMetadata(domId, isStory = true) should be(false)
+      userWithNoRoleAndNoRights(otherDomainId).canViewAllOfSomePrivateMetadata(domId, isStory = true) should be(false)
+    }
+
+    "return false if asking about a domain other than the user's authenticating domain and non-stories" in {
+      val otherDomainId = 1
+      userWithAllTheRights(otherDomainId).canViewAllOfSomeViews(domId, isStory = false) should be(false)
+      userWithAllTheStoriesRights(otherDomainId).canViewAllOfSomeViews(domId, isStory = false) should be(false)
+      userWithAllTheNonStoriesRights(otherDomainId).canViewAllOfSomeViews(domId, isStory = false) should be(false)
+      userWithAllTheViewRights(otherDomainId).canViewAllOfSomeViews(domId, isStory = false) should be(false)
+      userWithOnlyManageUsersRight(otherDomainId).canViewAllOfSomeViews(domId, isStory = false) should be(false)
+      userWithRoleButNoRights(otherDomainId).canViewAllOfSomeViews(domId, isStory = false) should be(false)
+      userWithNoRoleAndNoRights(otherDomainId).canViewAllOfSomeViews(domId, isStory = false) should be(false)
+    }
+  }
+
+  "The canViewAllUsers method" should {
+    val domId = 0
     "return true if the use is a super admin" in {
-      superAdmin.canViewAllUsers should be(true)
+      superAdminUser(domId).canViewAllUsers should be(true)
     }
 
-    "return true if the user is a customer admin" in {
-      customerAdmin.canViewAllUsers should be(true)
+    "return true if the user has the manage_users right" in {
+      userWithAllTheRights(domId).canViewAllUsers should be(true)
+      userWithAllTheViewRights(domId).canViewAllUsers should be(true)
+      userWithOnlyManageUsersRight(domId).canViewAllUsers should be(true)
     }
 
-    "return false if the user has any other role" in {
-      customerEditor.canViewAllUsers should be(false)
-      customerEditorStories.canViewAllUsers should be(false)
-      customerPublisher.canViewAllUsers should be(false)
-      customerPublisherStories.canViewAllUsers should be(false)
-      customerViewer.canViewAllUsers should be(false)
+    "return false if the user lacks the manage_users right" in {
+      userWithAllTheStoriesRights(domId).canViewAllUsers should be(false)
+      userWithAllTheNonStoriesRights(domId).canViewAllUsers should be(false)
+      userWithRoleButNoRights(domId).canViewAllUsers should be(false)
+      userWithNoRoleAndNoRights(domId).canViewAllUsers should be(false)
+    }
+  }
+
+  "The canViewLockedDownCatalog method" should {
+    val lockedDomainId = 8
+
+    "return true if the user is a super admin" in {
+      superAdminUser(lockedDomainId).canViewLockedDownCatalog(lockedDomainId) should be(true)
+    }
+
+    "return true if the user has any role from the authenticating domain" in {
+      userWithAllTheRights(lockedDomainId).canViewLockedDownCatalog(lockedDomainId) should be(true)
+      userWithAllTheStoriesRights(lockedDomainId).canViewLockedDownCatalog(lockedDomainId) should be(true)
+      userWithAllTheNonStoriesRights(lockedDomainId).canViewLockedDownCatalog(lockedDomainId) should be(true)
+      userWithAllTheViewRights(lockedDomainId).canViewLockedDownCatalog(lockedDomainId) should be(true)
+      userWithOnlyManageUsersRight(lockedDomainId).canViewLockedDownCatalog(lockedDomainId) should be(true)
+      userWithRoleButNoRights(lockedDomainId).canViewLockedDownCatalog(lockedDomainId) should be(true)
+    }
+
+    "return false if the user has no role from the authenticating domain" in {
+      userWithNoRoleAndNoRights(lockedDomainId).canViewLockedDownCatalog(lockedDomainId) should be(false)
+    }
+
+    "return false if the user has a role but it isn't from the authenticating domain" in {
+      val otherDomainId = 1
+      userWithAllTheRights(otherDomainId).canViewLockedDownCatalog(lockedDomainId) should be(false)
+      userWithAllTheStoriesRights(otherDomainId).canViewLockedDownCatalog(lockedDomainId) should be(false)
+      userWithAllTheNonStoriesRights(otherDomainId).canViewLockedDownCatalog(lockedDomainId) should be(false)
+      userWithAllTheViewRights(otherDomainId).canViewLockedDownCatalog(lockedDomainId) should be(false)
+      userWithOnlyManageUsersRight(otherDomainId).canViewLockedDownCatalog(lockedDomainId) should be(false)
+      userWithRoleButNoRights(otherDomainId).canViewLockedDownCatalog(lockedDomainId) should be(false)
+      userWithNoRoleAndNoRights(otherDomainId).canViewLockedDownCatalog(lockedDomainId) should be(false)
+    }
+  }
+
+  "The canViewUsersOnDomain method" should {
+    val domId = 0
+
+    "return true if the user is a super admin" in {
+      superAdminUser(domId).canViewLockedDownCatalog(domId) should be(true)
+    }
+
+    "return true if the user has any role from the authenticating domain" in {
+      userWithAllTheRights(domId).canViewLockedDownCatalog(domId) should be(true)
+      userWithAllTheStoriesRights(domId).canViewLockedDownCatalog(domId) should be(true)
+      userWithAllTheNonStoriesRights(domId).canViewLockedDownCatalog(domId) should be(true)
+      userWithAllTheViewRights(domId).canViewLockedDownCatalog(domId) should be(true)
+      userWithOnlyManageUsersRight(domId).canViewLockedDownCatalog(domId) should be(true)
+      userWithRoleButNoRights(domId).canViewLockedDownCatalog(domId) should be(true)
+    }
+
+    "return false if the user has no role from the authenticating domain" in {
+      userWithNoRoleAndNoRights(domId).canViewLockedDownCatalog(domId) should be(false)
+    }
+
+    "return false if the user has a role but it isn't from the authenticating domain" in {
+      val otherDomainId = 1
+      userWithAllTheRights(otherDomainId).canViewLockedDownCatalog(domId) should be(false)
+      userWithAllTheStoriesRights(otherDomainId).canViewLockedDownCatalog(domId) should be(false)
+      userWithAllTheNonStoriesRights(otherDomainId).canViewLockedDownCatalog(domId) should be(false)
+      userWithAllTheViewRights(otherDomainId).canViewLockedDownCatalog(domId) should be(false)
+      userWithOnlyManageUsersRight(otherDomainId).canViewLockedDownCatalog(domId) should be(false)
+      userWithRoleButNoRights(otherDomainId).canViewLockedDownCatalog(domId) should be(false)
+      userWithNoRoleAndNoRights(otherDomainId).canViewLockedDownCatalog(domId) should be(false)
     }
   }
 }

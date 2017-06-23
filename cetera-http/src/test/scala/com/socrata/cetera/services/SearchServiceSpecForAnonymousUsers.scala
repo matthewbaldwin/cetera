@@ -11,6 +11,7 @@ import com.socrata.cetera.auth.AuthParams
 import com.socrata.cetera.errors.DomainNotFoundError
 import com.socrata.cetera.handlers.Params
 import com.socrata.cetera.response.SearchResult
+import com.socrata.cetera.types.ApprovalStatus
 
 class SearchServiceSpecForAnonymousUsers
   extends FunSuiteLike
@@ -261,44 +262,54 @@ class SearchServiceSpecForAnonymousUsers
   // Visibility
   //////////////////////////////////////////////////
 
-  test("searching across all domains when auth is not required returns anonymously viewable views on unlocked domains") {
+  test("searching across all domains when no user is given returns anonymously viewable views on unlocked domains") {
     val res = service.doSearch(allDomainsParams, AuthParams(), None, None)
     fxfs(res._2) should contain theSameElementsAs anonymouslyViewableDocIds
   }
 
   test("private documents should always be hidden") {
-    val expectedFxfs = Set.empty
     val (_, res, _, _) = service.doSearch(Map(
-      Params.domains -> "petercetera.net",
-      Params.searchContext -> "petercetera.net",
-      Params.q -> "private"
+      Params.domains -> domains.map(_.domainCname).mkString(","),
+      Params.public -> "false"
     ).mapValues(Seq(_)), AuthParams(), None, None)
     val actualFxfs = fxfs(res)
-    actualFxfs should contain theSameElementsAs expectedFxfs
+    actualFxfs should contain theSameElementsAs Set.empty
   }
 
   test("unpublished documents should always be hidden") {
-    val expectedFxfs = Set.empty
     val (_, res, _, _) = service.doSearch(Map(
-      Params.domains -> "petercetera.net",
-      Params.searchContext -> "petercetera.net",
-      Params.q -> "unpublished"
+      Params.domains -> domains.map(_.domainCname).mkString(","),
+      Params.published -> "false"
     ).mapValues(Seq(_)), AuthParams(), None, None)
     val actualFxfs = fxfs(res)
-    actualFxfs should contain theSameElementsAs expectedFxfs
+    actualFxfs should contain theSameElementsAs Set.empty
   }
 
-  test("hidden documents should be hidden when auth isn't required") {
-    val hiddenDoc = docs(4)
+  test("hidden documents should always be hidden") {
     val (_, res, _, _) = service.doSearch(Map(
-      Params.ids -> hiddenDoc.socrataId.datasetId
+      Params.domains -> domains.map(_.domainCname).mkString(","),
+      Params.explicitlyHidden -> "true"
     ).mapValues(Seq(_)), AuthParams(), None, None)
     val actualFxfs = fxfs(res)
-    // ensure the hidden doc didn't come back
-    actualFxfs should be('empty)
-    // ensure that's b/c it's hidden and not b/c it is private or unpublished
-    hiddenDoc.isPublic should be(true)
-    hiddenDoc.isPublished should be(true)
+    actualFxfs should contain theSameElementsAs Set.empty
+  }
+
+  test("rejected documents should always be hidden") {
+    val (_, res, _, _) = service.doSearch(Map(
+      Params.domains -> domains.map(_.domainCname).mkString(","),
+      Params.approvalStatus -> ApprovalStatus.rejected.status
+    ).mapValues(Seq(_)), AuthParams(), None, None)
+    val actualFxfs = fxfs(res)
+    actualFxfs should contain theSameElementsAs Set.empty
+  }
+
+  test("pending documents should always be hidden") {
+    val (_, res, _, _) = service.doSearch(Map(
+      Params.domains -> domains.map(_.domainCname).mkString(","),
+      Params.approvalStatus -> ApprovalStatus.pending.status
+    ).mapValues(Seq(_)), AuthParams(), None, None)
+    val actualFxfs = fxfs(res)
+    actualFxfs should contain theSameElementsAs Set.empty
   }
 
   test("not_moderated data federated to a moderated domain should not be in the response") {
@@ -644,7 +655,7 @@ class SearchServiceSpecForAnonymousUsers
 
   test("sorting by name works") {
     val params = Map("order" -> Seq("name"))
-    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)    
+    val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     results.results.head.resource.dyn("name").? should be(Right(JString("")))
     results.results.last.resource.dyn("name").? should be(Right(JString("Three")))
   }

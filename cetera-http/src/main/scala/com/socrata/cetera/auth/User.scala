@@ -10,7 +10,7 @@ import com.socrata.cetera.types.Domain
 case class User(
     id: String,
     roleName: Option[String] = None,
-    rights: Option[Seq[String]] = None,
+    rights: Option[Set[String]] = None,
     flags: Option[Seq[String]] = None) {
 
   val logger = LoggerFactory.getLogger(getClass)
@@ -34,47 +34,57 @@ case class AuthedUser(
     id: String,
     authenticatingDomain: Domain,
     roleName: Option[String] = None,
-    rights: Option[Seq[String]] = None,
+    rights: Option[Set[String]] = None,
     flags: Option[Seq[String]] = None) {
 
-  def hasRole: Boolean = roleName.exists(_.nonEmpty)
-  def hasRole(role: String): Boolean = roleName.exists(r => r.startsWith(role))
-  def hasOneOfRoles(roles: Seq[String]): Boolean = roles.map(hasRole(_)).fold(false)(_ || _)
+  def hasAnyRole: Boolean = roleName.exists(_.nonEmpty)
   def isSuperAdmin: Boolean = flags.exists(_.contains("admin"))
-  def isAdmin: Boolean = hasRole(Administrator) || isSuperAdmin
+  def hasRight(right: String): Boolean = rights.exists(r => r.contains(right))
 
-  def authorizedOnDomain(domainId: Int): Boolean = {
+  def authorizedOnDomain(domainId: Int): Boolean =
     authenticatingDomain.domainId == domainId || isSuperAdmin
-  }
 
   def canViewResource(domainId: Int, isAuthorized: Boolean): Boolean =
     isAuthorized && authorizedOnDomain(domainId) || isSuperAdmin
 
-  def canViewLockedDownCatalog(domainId: Int): Boolean =
-    canViewResource(domainId, hasOneOfRoles(Seq(Editor, Publisher, Viewer, Administrator)))
-
-  def canViewPrivateMetadata(domainId: Int): Boolean =
-    canViewResource(domainId, hasOneOfRoles(Seq(Publisher, Administrator)))
-
+  // permissions based on rights
   def canViewAllViews(domainId: Int): Boolean =
-    canViewResource(domainId, hasOneOfRoles(Seq(Publisher, Designer, Viewer, Administrator)))
+    canViewResource(domainId, hasRight(toViewOthersViews) && hasRight(toViewOthersStories))
+
+  def canViewAllOfSomeViews(domainId: Int, isStory: Boolean): Boolean =
+    if (isStory) {
+      canViewResource(domainId, hasRight(toViewOthersStories))
+    } else {
+      canViewResource(domainId, hasRight(toViewOthersViews))
+    }
+
+  def canViewAllPrivateMetadata(domainId: Int): Boolean =
+    canViewResource(domainId, hasRight(toEditOthersViews) && hasRight(toEditOthersStories))
+
+  def canViewAllOfSomePrivateMetadata(domainId: Int, isStory: Boolean): Boolean =
+    if (isStory) {
+      canViewResource(domainId, hasRight(toEditOthersStories))
+    } else {
+      canViewResource(domainId, hasRight(toEditOthersViews))
+    }
 
   def canViewAllUsers: Boolean =
-    canViewResource(authenticatingDomain.domainId, isAdmin) || isSuperAdmin
+    hasRight(toViewAllUsers) || isSuperAdmin
 
-  def canViewDomainUsers: Boolean =
-    canViewResource(authenticatingDomain.domainId, hasRole) || isSuperAdmin
+  // permissions based on roles (specifically being a domain member)
+  def canViewLockedDownCatalog(domainId: Int): Boolean =
+    canViewResource(domainId, hasAnyRole)
 
-  def canViewUsers(domainId: Int): Boolean =
-    canViewResource(domainId, hasRole)
+  def canViewUsersOnDomain(domainId: Int): Boolean =
+    canViewResource(domainId, hasAnyRole)
 }
 
 object AuthedUser {
   implicit val jCodec = AutomaticJsonCodecBuilder[AuthedUser]
 
-  val Administrator = "administrator"
-  val Designer = "designer"
-  val Editor = "editor"
-  val Publisher = "publisher"
-  val Viewer = "viewer"
+  val toViewOthersViews = "view_others_datasets"
+  val toViewOthersStories = "view_story"
+  val toViewAllUsers = "manage_users"
+  val toEditOthersViews = "edit_others_datasets"
+  val toEditOthersStories = "edit_story"
 }

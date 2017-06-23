@@ -16,7 +16,7 @@
     "parent_fxf": "fxf-0",
     "updated_at": "2016-09-19T10:37:20.857-07:00",
     "created_at": "2016-09-19T10:37:20.933-07:00",
-    "type": "file",
+    "type": "story",
     "id": "fxf-4",
     "name": "One",
     "attribution": null,
@@ -43,7 +43,7 @@
       }
     ]
   },
-  "datatype": "file",
+  "datatype": "story",
   "viewtype": "",
   "indexed_metadata": {
     "name": "One",
@@ -72,8 +72,8 @@
       "value": "Cheetah Corp."
     }
   ],
-  "is_public": true,
-  "is_published": true,
+  "is_public": false,
+  "is_published": false,
   "is_default_view": false,
   "moderation_status": null,
   "approving_domain_ids": [

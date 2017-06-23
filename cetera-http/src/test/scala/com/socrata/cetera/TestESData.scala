@@ -1,18 +1,16 @@
 package com.socrata.cetera
 
 import java.io.File
-import org.elasticsearch.common.xcontent.XContentType
 import scala.io.Source
 
-import org.elasticsearch.action.support.WriteRequest.RefreshPolicy
-
-import com.rojoma.json.v3.interpolation._
 import com.rojoma.json.v3.ast.{JString, JValue}
+import com.rojoma.json.v3.interpolation._
 import com.rojoma.json.v3.io.CompactJsonWriter
 import com.rojoma.json.v3.util.JsonUtil
+import org.elasticsearch.action.support.WriteRequest.RefreshPolicy
+import org.elasticsearch.common.xcontent.XContentType
 import org.mockserver.integration.ClientAndServer._
 import org.mockserver.model.HttpRequest.request
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 
 import com.socrata.cetera.auth.AuthParams
 import com.socrata.cetera.metrics.BalboaClient
@@ -73,7 +71,8 @@ trait TestESData extends TestESDomains with TestESUsers {
   val anonymouslyViewableDocIds = List(
     "fxf-0", "fxf-1", "fxf-8", "fxf-10", "fxf-11", "fxf-12", "fxf-13", "zeta-0001", "zeta-0002",
     "zeta-0005", "zeta-0007", "zeta-0012", "1234-5678", "1234-5679", "1234-5680", "1234-5681", "1234-5682")
-  val anonymouslyViewableDocs = docs.filter(d => anonymouslyViewableDocIds contains(d.socrataId.datasetId))
+  val (anonymouslyViewableDocs, internalDocs) =
+    docs.partition(d => anonymouslyViewableDocIds contains(d.socrataId.datasetId))
 
   def bootstrapData(): Unit = {
     ElasticsearchBootstrap.ensureIndex(client, "yyyyMMddHHmm", testSuiteName)
@@ -119,6 +118,25 @@ trait TestESData extends TestESDomains with TestESUsers {
           "rights" : [ "eat_cookies", "spell_words_starting_with_c" ]
         }"""
   }
+
+  // Regarding roles in the two following methods:
+  //   roles are only relevant in domain search - for including locked domains
+  //   and for user search - to return all roled-domain users.
+  //   roles have no bearing on document search, so rather than test every single combination
+  //   of roles rights, we focus on 2 practical cases here:
+  //     - users with rights, who must then have a role
+  //     - users with neither.
+  def authedUserBodyWithRoleAndRights(rights: Seq[String], id: String = "cook-mons"): JValue = j"""
+    {
+      "id" : $id,
+      "roleName" : "role",
+      "rights" : $rights
+    }"""
+
+  def authedUserBodyWithoutRoleOrRights(id: String = "cook-mons"): JValue = j"""
+    {
+      "id" : $id
+    }"""
 
   def prepareAuthenticatedUser(cookie: String, host: String, userJson: JValue): Unit = {
     val expectedRequest = request()

@@ -6,13 +6,13 @@ import com.rojoma.json.v3.io.JsonReader
 import org.elasticsearch.index.query.{TermQueryBuilder, TermsQueryBuilder}
 import org.scalatest.{ShouldMatchers, WordSpec}
 
-import com.socrata.cetera.TestESDomains
+import com.socrata.cetera.TestESUsers
 import com.socrata.cetera.auth.AuthedUser
 import com.socrata.cetera.errors.UnauthorizedError
 import com.socrata.cetera.handlers.{ScoringParamSet, SearchParamSet}
 import com.socrata.cetera.types._
 
-class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomains {
+class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESUsers {
 
   val context = Some("example.com")
   val queryString = "snuffy"
@@ -212,27 +212,8 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
   }
 
   "the privateMetadataUserRestrictionsFilter" should {
-    "return the expected query when the user doesn't have a blessed role" in {
-      val user = AuthedUser("user-fxf", domains(0))
-      val query = docQuery.privateMetadataUserRestrictionsQuery(user)
-      val expected = JsonReader.fromString(s"""
-      {
-          "bool": {
-              "should": [
-                  {"term": {"owner.id": {"value": "user-fxf", "boost": 1.0}}},
-                  {"term": {"shared_to": {"value": "user-fxf", "boost": 1.0}}}
-              ],
-              $queryDefaults
-          }
-      }
-      """)
-      val actual = JsonReader.fromString(query.toString)
-      actual should be(expected)
-    }
-
-    "return the expected filter when the user does have a blessed role" in {
-      val user = AuthedUser("user-fxf", domains(0), Some("publisher"))
-      val query = docQuery.privateMetadataUserRestrictionsQuery(user)
+    "return the expected filter when using a user with edit rights to both stories and non-stories" in {
+      val query = docQuery.privateMetadataUserRestrictionsQuery(userWithAllTheRights(0))
       val expected = JsonReader.fromString(s"""
       {
           "bool": {
@@ -248,6 +229,72 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
       val actual = JsonReader.fromString(query.toString)
       actual should be(expected)
     }
+
+    "return the expected filter when using a user with edit rights to only stories" in {
+      val query = docQuery.privateMetadataUserRestrictionsQuery(userWithAllTheStoriesRights(0))
+      val expected = JsonReader.fromString(s"""
+      {
+          "bool": {
+              "should": [
+                  {"term": {"owner.id": {"value": "user-fxf", "boost": 1.0}}},
+                  {"term": {"shared_to": {"value": "user-fxf", "boost": 1.0}}},
+                  {"bool" : { "must" : [
+                      {"terms" : {"socrata_id.domain_id" : [ 0 ], "boost" : 1.0 }},
+                      {"term" : { "datatype" : { "value" : "story", "boost" : 1.0 }}}
+                   ], $queryDefaults }}
+              ],
+              $queryDefaults
+          }
+      }
+      """)
+      val actual = JsonReader.fromString(query.toString)
+      actual should be(expected)
+    }
+
+    "return the expected filter when using a user with edit rights to only non-stories" in {
+      val query = docQuery.privateMetadataUserRestrictionsQuery(userWithAllTheNonStoriesRights(0))
+      val expected = JsonReader.fromString(s"""
+      {
+          "bool": {
+              "should": [
+                  {"term": {"owner.id": {"value": "user-fxf", "boost": 1.0}}},
+                  {"term": {"shared_to": {"value": "user-fxf", "boost": 1.0}}},
+                  {"bool" : {
+                    "must" : [{"terms" : {"socrata_id.domain_id" : [ 0 ], "boost" : 1.0 }}],
+                    "must_not": [{"term" : { "datatype" : { "value" : "story", "boost" : 1.0 }}}],
+                    $queryDefaults }}
+              ],
+              $queryDefaults
+          }
+      }
+      """)
+      val actual = JsonReader.fromString(query.toString)
+      actual should be(expected)
+    }
+
+    "return the expected query when using a user with no edit rights" in {
+      val queryForUserWithAllViewRights = docQuery.privateMetadataUserRestrictionsQuery(userWithOnlyManageUsersRight(0))
+      val queryForUserWithManageUserRights = docQuery.privateMetadataUserRestrictionsQuery(userWithAllTheViewRights(0))
+      val queryForUserWithRoleButNoRights = docQuery.privateMetadataUserRestrictionsQuery(userWithRoleButNoRights(0))
+      val queryForUserWithNoRoleOrRights = docQuery.privateMetadataUserRestrictionsQuery(userWithNoRoleAndNoRights(0))
+
+      val expected = JsonReader.fromString(s"""
+      {
+          "bool": {
+              "should": [
+                  {"term": {"owner.id": {"value": "user-fxf", "boost": 1.0}}},
+                  {"term": {"shared_to": {"value": "user-fxf", "boost": 1.0}}}
+              ],
+              $queryDefaults
+          }
+      }
+      """)
+
+      JsonReader.fromString(queryForUserWithAllViewRights.toString) should be(expected)
+      JsonReader.fromString(queryForUserWithManageUserRights.toString) should be(expected)
+      JsonReader.fromString(queryForUserWithRoleButNoRights.toString) should be(expected)
+      JsonReader.fromString(queryForUserWithNoRoleOrRights.toString) should be(expected)
+    }
   }
 
   "the privateDomainMetadataQuery" should {
@@ -256,15 +303,14 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
     }
 
     "return a basic metadata query when the user is a super admin" in {
-      val user = AuthedUser("mooks", domains(0), flags = Some(List("admin")))
       val metadata = Set(("org", "ny"))
-      val actual = JsonReader.fromString(docQuery.privateMetadataQuery(metadata, Some(user)).get.toString)
+      val actual = JsonReader.fromString(docQuery.privateMetadataQuery(metadata, Some(superAdminUser(0))).get.toString)
       val expected = JsonReader.fromString(docQuery.metadataQuery(metadata, public = false).get.toString)
       actual should be(expected)
     }
 
     "return the expected filter when the user is authenticated" in {
-      val user = AuthedUser("mooks", domains(0), Some("publisher"))
+      val user = userWithAllTheRights(0)
       val metadata = Set(("org", "ny"), ("org", "nj"))
       val query = docQuery.privateMetadataQuery(metadata, Some(user))
       val actual = JsonReader.fromString(query.get.toString)
@@ -284,11 +330,10 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
 
   "the combinedMetadataQuery" should {
     "return None if neither public or private metadata queries are created" in {
-      val user = AuthedUser("mooks", domains(0), flags = Some(List("admin")))
-      docQuery.combinedMetadataQuery(Set.empty, Some(user)) should be(None)
+      docQuery.combinedMetadataQuery(Set.empty, Some(userWithAllTheRights(0))) should be(None)
     }
 
-    "return only a public metadata filter if the user isn't authenticated" in {
+    "return only a public metadata filter if no user is given" in {
       val metadata = Set(("org", "ny"))
       val actual = JsonReader.fromString(docQuery.combinedMetadataQuery(metadata, None).get.toString)
       val expected = JsonReader.fromString(docQuery.metadataQuery(metadata, public = true).get.toString)
@@ -296,7 +341,7 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
     }
 
     "return both public and private metadata queries if the user is authenticated" in {
-      val user = AuthedUser("mooks", domains(0), Some("publisher"))
+      val user = userWithAllTheRights(0)
       val metadata = Set(("org", "ny"), ("org", "nj"))
       val query = docQuery.combinedMetadataQuery(metadata, Some(user))
       val actual = JsonReader.fromString(query.get.toString)
@@ -1064,17 +1109,15 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
   "the searchParamsQuery" should {
     "throw an unauthorizedError if there is no authenticated user looking for what is shared to another user" in {
       val searchParams = SearchParamSet(sharedTo = Some("ro-bear"))
-      val user = None
       an[UnauthorizedError] should be thrownBy {
-        docQuery.searchParamsQuery(searchParams, user, DomainSet())
+        docQuery.searchParamsQuery(searchParams, None, DomainSet())
       }
     }
 
     "throw an unauthorizedError if there is an authenticated user is looking for what is shared to another user" in {
       val searchParams = SearchParamSet(sharedTo = Some("ro-bear"))
-      val user = Some(AuthedUser("anna-belle", domains(0), roleName = Some("administrator")))
       an[UnauthorizedError] should be thrownBy {
-        docQuery.searchParamsQuery(searchParams, user, DomainSet())
+        docQuery.searchParamsQuery(searchParams, Some(userWithAllTheRights(0)), DomainSet())
       }
     }
 
@@ -1170,26 +1213,6 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
     }
   }
 
-  "the ownedOrSharedQuery" should {
-    "return the expected query" in {
-      val user = AuthedUser("mooks", domains(0))
-      val query = docQuery.ownedOrSharedQuery(user)
-      val actual = JsonReader.fromString(query.toString)
-      val expected = JsonReader.fromString(s"""
-      {
-          "bool": {
-              "should": [
-                  {"term": {"owner.id": {"value": "mooks", "boost": 1.0}}},
-                  {"term": {"shared_to": {"value": "mooks", "boost": 1.0}}}
-              ],
-              $queryDefaults
-          }
-      }
-      """)
-      actual should be(expected)
-    }
-  }
-
   "the authQuery" should {
     val someDomains = (0 to 4).map(domains(_)).toSet
     val contextWithRA = domains(3)
@@ -1201,18 +1224,61 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
       query should be(None)
     }
 
-    "return anon views (disregarding context), personal views and within-domains views for users who can view everything and do have an authenticating domain" in {
-      val user = AuthedUser("mooks", contextWithRA, roleName = Some("publisher"))
+    "return anon views (disregarding context), personal views and within-domain views for users who can have rights to view everything" in {
+      val user = userWithAllTheViewRights(0)
       val domainSet = DomainSet(someDomains, Some(contextWithRA))
       val query = docQuery.authQuery(Some(user), domainSet)
       val actual = JsonReader.fromString(query.get.toString)
       val anonQuery = JsonReader.fromString(docQuery.anonymousQuery(domainSet, includeContextApproval = false).toString)
-      val personalQuery = JsonReader.fromString(docQuery.ownedOrSharedQuery(user).toString)
-      val withinDomainQuery = JsonReader.fromString(docQuery.domainIdQuery(Set(3)).toString)
+      val ownQuery = JsonReader.fromString(docQuery.userQuery(user.id).toString)
+      val shareQuery = JsonReader.fromString(docQuery.sharedToQuery(user.id).toString)
+      val withinDomainQuery = JsonReader.fromString(docQuery.domainIdQuery(Set(0)).toString)
       val expected = JsonReader.fromString(s"""
       {
           "bool": {
-              "should": [$personalQuery, $anonQuery, $withinDomainQuery],
+              "should": [$ownQuery, $shareQuery, $anonQuery, $withinDomainQuery],
+              $queryDefaults
+          }
+      }
+      """)
+      actual should be(expected)
+    }
+
+    "return anon views (acknowleding context), personal views and within-domain stories for users who " +
+      "have rights to view all stories, but not non-stories" in {
+      val user = userWithAllTheStoriesRights(0)
+      val domainSet = DomainSet(someDomains, Some(contextWithRA))
+      val query = docQuery.authQuery(Some(user), domainSet)
+      val actual = JsonReader.fromString(query.get.toString)
+      val anonQuery = JsonReader.fromString(docQuery.anonymousQuery(domainSet, includeContextApproval = true).toString)
+      val ownQuery = JsonReader.fromString(docQuery.userQuery(user.id).toString)
+      val shareQuery = JsonReader.fromString(docQuery.sharedToQuery(user.id).toString)
+      val withinDomainQuery = JsonReader.fromString(docQuery.notQuiteEverythingOnADomainQuery(0, includeStories = true).toString)
+      val expected = JsonReader.fromString(s"""
+      {
+          "bool": {
+              "should": [$ownQuery, $shareQuery, $anonQuery, $withinDomainQuery],
+              $queryDefaults
+          }
+      }
+      """)
+      actual should be(expected)
+    }
+
+    "return anon views (acknowleding context), personal views and within-domain non-stories for users who " +
+      "have rights to view all non-stories, but not stories" in {
+      val user = userWithAllTheNonStoriesRights(0)
+      val domainSet = DomainSet(someDomains, Some(contextWithRA))
+      val query = docQuery.authQuery(Some(user), domainSet)
+      val actual = JsonReader.fromString(query.get.toString)
+      val anonQuery = JsonReader.fromString(docQuery.anonymousQuery(domainSet, includeContextApproval = true).toString)
+      val ownQuery = JsonReader.fromString(docQuery.userQuery(user.id).toString)
+      val shareQuery = JsonReader.fromString(docQuery.sharedToQuery(user.id).toString)
+      val withinDomainQuery = JsonReader.fromString(docQuery.notQuiteEverythingOnADomainQuery(0, includeStories = false).toString)
+      val expected = JsonReader.fromString(s"""
+      {
+          "bool": {
+              "should": [$ownQuery, $shareQuery, $anonQuery, $withinDomainQuery],
               $queryDefaults
           }
       }
@@ -1221,16 +1287,17 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESDomain
     }
 
     "return anon (acknowleding context) and personal views for users who have logged in but cannot view everything" in {
-      val user = AuthedUser("mooks", contextWithRA, roleName = Some("editor"))
+      val user = userWithRoleButNoRights(0)
       val domainSet = DomainSet(someDomains, Some(contextWithRA))
       val query = docQuery.authQuery(Some(user), domainSet)
       val actual = JsonReader.fromString(query.get.toString)
       val anonQuery = JsonReader.fromString(docQuery.anonymousQuery(domainSet, includeContextApproval = true).toString)
-      val personalQuery = JsonReader.fromString(docQuery.ownedOrSharedQuery(user).toString)
+      val ownQuery = JsonReader.fromString(docQuery.userQuery(user.id).toString)
+      val shareQuery = JsonReader.fromString(docQuery.sharedToQuery(user.id).toString)
       val expected = JsonReader.fromString(s"""
       {
           "bool": {
-              "should": [$personalQuery, $anonQuery],
+              "should": [$ownQuery, $shareQuery, $anonQuery],
               $queryDefaults
           }
       }

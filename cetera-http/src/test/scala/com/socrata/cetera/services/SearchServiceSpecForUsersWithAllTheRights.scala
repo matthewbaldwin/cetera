@@ -8,7 +8,7 @@ import com.socrata.cetera.handlers.Params
 import com.socrata.cetera.types.{Document, DomainSet}
 import com.socrata.cetera.{response => _, _}
 
-class SearchServiceSpecForAdminsAndTheLike
+class SearchServiceSpecForUsersWithAllTheRights
   extends FunSuiteLike
     with Matchers
     with TestESData
@@ -25,10 +25,14 @@ class SearchServiceSpecForAdminsAndTheLike
     httpClient.close()
   }
 
-  test("searching across all domains with an administrator/publisher/designer/viewer" +
-    "a) everything from their domain" +
-    "b) anonymously visible views from unlocked domains" +
-    "c) views they own/share") {
+  def allRights = List("view_others_datasets", "view_story", "edit_others_datasets", "edit_story", "manage_users")
+  val cookieMonsUserBody = authedUserBodyWithRoleAndRights(allRights)
+  val ownerOfNothingUserBody = authedUserBodyWithRoleAndRights(allRights, "user-but-not-owner")
+
+  test("searching across all domains finds " +
+    "a) everything from their domain " +
+    "b) anonymously visible views from unlocked domains " +
+    "c) views they own/share ") {
     val raDisabledDomain = domains(0)
     val withinDomain = docs.filter(d => d.socrataId.domainId == raDisabledDomain.domainId).map(d => d.socrataId.datasetId)
     val ownedByCookieMonster = docs.collect{ case d: Document if d.owner.id == "cook-mons" => d.socrataId.datasetId }
@@ -38,28 +42,12 @@ class SearchServiceSpecForAdminsAndTheLike
     val expectedFxfs = (withinDomain ++ ownedByCookieMonster ++ sharedToCookieMonster ++ anonymouslyViewableDocIds).distinct
 
     val host = raDisabledDomain.domainCname
-    val adminBody = authedUserBodyFromRole("administrator")
-    prepareAuthenticatedUser(cookie, host, adminBody)
-    val adminRes = service.doSearch(allDomainsParams, AuthParams(cookie = Some(cookie)), Some(host), None)
-    fxfs(adminRes._2) should contain theSameElementsAs expectedFxfs
-
-    val publisherBody = authedUserBodyFromRole("publisher")
-    prepareAuthenticatedUser(cookie, host, publisherBody)
-    val publisherRes = service.doSearch(allDomainsParams, AuthParams(cookie = Some(cookie)), Some(host), None)
-    fxfs(publisherRes._2) should contain theSameElementsAs expectedFxfs
-
-    val designerBody = authedUserBodyFromRole("designer")
-    prepareAuthenticatedUser(cookie, host, designerBody)
-    val designerRes = service.doSearch(allDomainsParams, AuthParams(cookie = Some(cookie)), Some(host), None)
-    fxfs(designerRes._2) should contain theSameElementsAs expectedFxfs
-
-    val viewerBody = authedUserBodyFromRole("viewer")
-    prepareAuthenticatedUser(cookie, host, viewerBody)
-    val viewerRes = service.doSearch(allDomainsParams, AuthParams(cookie = Some(cookie)), Some(host), None)
-    fxfs(viewerRes._2) should contain theSameElementsAs expectedFxfs
+    prepareAuthenticatedUser(cookie, host, cookieMonsUserBody)
+    val res = service.doSearch(allDomainsParams, AuthParams(cookie = Some(cookie)), Some(host), None)
+    fxfs(res._2) should contain theSameElementsAs expectedFxfs
   }
 
-  test("searching on a locked domains with an administrator/publisher/viewer shows data") {
+  test("searching on a locked domains shows data from that domain") {
     val lockedDomain = domains(8).domainCname
       val params = Map(
         "domains" -> lockedDomain,
@@ -67,42 +55,18 @@ class SearchServiceSpecForAdminsAndTheLike
       ).mapValues(Seq(_))
     val expectedFxfs = fxfs(docs.filter(d => d.socrataId.domainId == 8))
 
-    val adminBody = authedUserBodyFromRole("administrator")
-    prepareAuthenticatedUser(cookie, lockedDomain, adminBody)
-    val adminRes = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(lockedDomain), None)._2
-    fxfs(adminRes) should contain theSameElementsAs expectedFxfs
-
-    val publisherBody = authedUserBodyFromRole("publisher")
-    prepareAuthenticatedUser(cookie, lockedDomain, publisherBody)
-    val publisherRes = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(lockedDomain), None)._2
-    fxfs(publisherRes) should contain theSameElementsAs expectedFxfs
-
-    val viewerBody = authedUserBodyFromRole("viewer")
-    prepareAuthenticatedUser(cookie, lockedDomain, viewerBody)
-    val viewerRes = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(lockedDomain), None)._2
-    fxfs(viewerRes) should contain theSameElementsAs expectedFxfs
-  }
-
-  test("searching on a locked domains with a designer though, should show nothing") {
-    val lockedDomain = domains(8).domainCname
-    val params = Map(
-      "domains" -> lockedDomain,
-      "search_context" -> lockedDomain
-    ).mapValues(Seq(_))
-
-    val designerBody = authedUserBodyFromRole("designer")
-    prepareAuthenticatedUser(cookie, lockedDomain, designerBody)
+    prepareAuthenticatedUser(cookie, lockedDomain, cookieMonsUserBody)
     val res = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(lockedDomain), None)._2
-    fxfs(res) should be('empty)
+    fxfs(res) should contain theSameElementsAs expectedFxfs
   }
 
-  test("searching for assets owned by another user (robin-hood) when the logged-in user (cook-mons) is an admin returns " +
-    " a) any views that robin-hood owns on cook-mons' domain" +
-    " b) anonymously viewable views on any unlocked domain") {
+  test("searching for assets owned by another user (robin-hood) when the logged-in user is cook-mons returns " +
+    " a) any views that robin-hood owns on cook-mons' domain " +
+    " b) anonymously viewable views that robin-hood owns on any unlocked domain ") {
     // this has cook-mons (admin on domain 0) checking up on robin-hood
     val authenticatingDomain = domains(0).domainCname
     val params = Map("for_user" -> Seq("robin-hood"))
-    prepareAuthenticatedUser(cookie, authenticatingDomain, authedUserBodyFromRole("administrator"))
+    prepareAuthenticatedUser(cookie, authenticatingDomain, cookieMonsUserBody)
 
     val ownedByRobin = docs.collect{ case d: Document if d.owner.id == "robin-hood" => d.socrataId.datasetId }.toSet
     val onDomain0 = docs.collect{ case d: Document if d.socrataId.domainId == 0 => d.socrataId.datasetId}.toSet
@@ -116,17 +80,76 @@ class SearchServiceSpecForAdminsAndTheLike
     fxfs(res._2) should contain theSameElementsAs expectedFxfs
   }
 
-  test("hidden documents should not be hidden to users who can see everything on their domain") {
+  test("hidden documents on the user's domain should be visible") {
     val host = domains(0).domainCname
     val hiddenDoc = docs(4)
-    val userBody = authedUserBodyFromRole("publisher")
-    prepareAuthenticatedUser(cookie, host, userBody)
+    prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
 
     val (_, res, _, _) = service.doSearch(Map(
       Params.ids -> hiddenDoc.socrataId.datasetId
     ).mapValues(Seq(_)), AuthParams(cookie = Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res)
     actualFxfs(0) should be(hiddenDoc.socrataId.datasetId)
+  }
+
+  test("hidden documents on a domain other than the users should be hidden") {
+    val host = domains(1).domainCname
+    val hiddenDoc = docs(4) // belongs to domain 0
+    prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
+
+    val (_, res, _, _) = service.doSearch(Map(
+      Params.ids -> hiddenDoc.socrataId.datasetId
+    ).mapValues(Seq(_)), AuthParams(cookie = Some(cookie)), Some(host), None)
+    val actualFxfs = fxfs(res)
+    actualFxfs should be('empty)
+  }
+
+  test("private documents on the user's domain should be visible") {
+    val host = domains(2).domainCname
+    val privateDoc = docs(16)
+    prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
+
+    val (_, res, _, _) = service.doSearch(Map(
+      Params.ids -> privateDoc.socrataId.datasetId
+    ).mapValues(Seq(_)), AuthParams(cookie = Some(cookie)), Some(host), None)
+    val actualFxfs = fxfs(res)
+    actualFxfs(0) should be(privateDoc.socrataId.datasetId)
+  }
+
+  test("private documents on a domain other than the users should be hidden") {
+    val host = domains(4).domainCname
+    val privateDoc = docs(16) // belongs to domain 2
+    prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
+
+    val (_, res, _, _) = service.doSearch(Map(
+      Params.ids -> privateDoc.socrataId.datasetId
+    ).mapValues(Seq(_)), AuthParams(cookie = Some(cookie)), Some(host), None)
+    val actualFxfs = fxfs(res)
+    actualFxfs should be('empty)
+  }
+
+  test("unpublished documents on the user's domain should be visible") {
+    val host = domains(0).domainCname
+    val unpublishedDoc = docs(19)
+    prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
+
+    val (_, res, _, _) = service.doSearch(Map(
+      Params.ids -> unpublishedDoc.socrataId.datasetId
+    ).mapValues(Seq(_)), AuthParams(cookie = Some(cookie)), Some(host), None)
+    val actualFxfs = fxfs(res)
+    actualFxfs(0) should be(unpublishedDoc.socrataId.datasetId)
+  }
+
+  test("unpublished documents on a domain other than the users should be hidden") {
+    val host = domains(6).domainCname
+    val unpublishedDoc = docs(19) // belongs to domain 0
+    prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
+
+    val (_, res, _, _) = service.doSearch(Map(
+      Params.ids -> unpublishedDoc.socrataId.datasetId
+    ).mapValues(Seq(_)), AuthParams(cookie = Some(cookie)), Some(host), None)
+    val actualFxfs = fxfs(res)
+    actualFxfs should be('empty)
   }
 
   def testApprovalStatusFxfs(domainSet: DomainSet, userBody: JValue, expectedApprovedFxfs: Seq[String],
@@ -153,7 +176,7 @@ class SearchServiceSpecForAdminsAndTheLike
     actualPendingFxfs should contain theSameElementsAs expectedPendingFxfs
   }
 
-  test("searching as an admin on a basic domain (as both search_context & domain), should find the correct set of views for the given approval_status") {
+  test("searching on a basic domain (as both search_context & domain), should find the correct set of views for the given approval_status") {
     // domain 0 has approved/pending/rejected datalenses
     val basicDomain = domains(0)
     val allPossibleResults = getAllPossibleResults()
@@ -169,11 +192,10 @@ class SearchServiceSpecForAdminsAndTheLike
     val expectedPendingFxfs = fxfs(datalenses.filter(d => d.isVmPending))
 
     val domainSet = DomainSet(Set(basicDomain), Some(basicDomain))
-    val userBody = authedUserBodyFromRole("administrator")
-    testApprovalStatusFxfs(domainSet, userBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
+    testApprovalStatusFxfs(domainSet, cookieMonsUserBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
   }
 
-  test("searching as an admin on a moderated domain (as both search_context & domain), should find the correct set of views for the given approval_status") {
+  test("searching on a moderated domain (as both search_context & domain), should find the correct set of views for the given approval_status") {
     val moderatedDomain = domains(1)
     val allPossibleResults = getAllPossibleResults()
     val approvedFxfs = allPossibleResults.filter(isApproved).map(fxfs)
@@ -186,11 +208,10 @@ class SearchServiceSpecForAdminsAndTheLike
     val expectedPendingFxfs = fxfs(domain1Docs.filter(d => d.isVmPending))
 
     val domainSet = DomainSet(Set(moderatedDomain), Some(moderatedDomain))
-    val userBody = authedUserBodyFromRole("administrator")
-    testApprovalStatusFxfs(domainSet, userBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
+    testApprovalStatusFxfs(domainSet, cookieMonsUserBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
   }
 
-  test("searching as an admin on an RA-enabled domain (as both search_context & domain), should find the correct set of views for the given approval_status") {
+  test("searching on an RA-enabled domain (as both search_context & domain), should find the correct set of views for the given approval_status") {
     val raDomain = domains(2)
     val allPossibleResults = getAllPossibleResults()
     val approvedFxfs = allPossibleResults.filter(isApproved).map(fxfs)
@@ -203,11 +224,10 @@ class SearchServiceSpecForAdminsAndTheLike
     val expectedPendingFxfs = fxfs(domain2Docs.filter(d => d.isPendingOnParentDomain || d.isVmPending))
 
     val domainSet = DomainSet(Set(raDomain), Some(raDomain))
-    val userBody = authedUserBodyFromRole("administrator")
-    testApprovalStatusFxfs(domainSet, userBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
+    testApprovalStatusFxfs(domainSet, cookieMonsUserBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
   }
 
-  test("searching as an admin on a moderated & RA-enabled domain (as both search_context & domain), should find the correct set of views for the given approval_status") {
+  test("searching on a moderated & RA-enabled domain (as both search_context & domain), should find the correct set of views for the given approval_status") {
     val raVmDomain = domains(3)
     val allPossibleResults = getAllPossibleResults()
     val approvedFxfs = allPossibleResults.filter(isApproved).map(fxfs)
@@ -220,11 +240,10 @@ class SearchServiceSpecForAdminsAndTheLike
     val expectedPendingFxfs = fxfs(domain3Docs.filter(d => d.isPendingOnParentDomain || d.isVmPending))
 
     val domainSet = DomainSet(Set(raVmDomain), Some(raVmDomain))
-    val userBody = authedUserBodyFromRole("administrator")
-    testApprovalStatusFxfs(domainSet, userBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
+    testApprovalStatusFxfs(domainSet, cookieMonsUserBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
   }
 
-  test("searching as an admin on an unmoderated domain that federates in data from a moderated domain, should find the correct set of views for the given approval_status") {
+  test("searching on an unmoderated domain that federates in data from a moderated domain, should find the correct set of views for the given approval_status") {
     // domain 0 is an unmoderated domain with approved/pending/rejected datalenses
     // domain 1 is a moderated domain
     val unmoderatedDomain = domains(0)
@@ -257,11 +276,10 @@ class SearchServiceSpecForAdminsAndTheLike
     val expectedPendingFxfs = pendingOn0 ++ pendingOn1
 
     val domainSet = DomainSet(Set(unmoderatedDomain, moderatedDomain), Some(unmoderatedDomain))
-    val userBody = authedUserBodyFromRole("administrator")
-    testApprovalStatusFxfs(domainSet, userBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
+    testApprovalStatusFxfs(domainSet, cookieMonsUserBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
   }
 
-  test("searching as an admin on a moderated domain that federates in data from an unmoderated domain, should find the correct set of views for the given approval_status") {
+  test("searching on a moderated domain that federates in data from an unmoderated domain, should find the correct set of views for the given approval_status") {
     // domain 1 is a moderated domain with approved/pending/rejected views
     // domain 0 is an unmoderated domain with approved/pending/rejected datalenses
     val moderatedDomain = domains(1)
@@ -301,11 +319,10 @@ class SearchServiceSpecForAdminsAndTheLike
     val expectedPendingFxfs = pendingOn1 ++ pendingOn0
 
     val domainSet = DomainSet(Set(unmoderatedDomain, moderatedDomain), Some(moderatedDomain))
-    val userBody = authedUserBodyFromRole("administrator")
-    testApprovalStatusFxfs(domainSet, userBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
+    testApprovalStatusFxfs(domainSet, cookieMonsUserBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
   }
 
-  test("searching as an admin on an RA-disabled domain that federates in data from an RA-enabled domain, should find the correct set of views for the given approval_status") {
+  test("searching on an RA-disabled domain that federates in data from an RA-enabled domain, should find the correct set of views for the given approval_status") {
     // domain 0 is an RA-disabled domain
     // domain 2 is an RA-enabled domain
     val raDisabledDomain = domains(0)
@@ -340,11 +357,10 @@ class SearchServiceSpecForAdminsAndTheLike
     val expectedPendingFxfs = pendingOn0 ++ pendingOn2
 
     val domainSet = DomainSet(Set(raDisabledDomain, raEnabledDomain), Some(raDisabledDomain))
-    val userBody = authedUserBodyFromRole("administrator")
-    testApprovalStatusFxfs(domainSet, userBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
+    testApprovalStatusFxfs(domainSet, cookieMonsUserBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
   }
 
-  test("searching as an admin on an RA-enabled domain that federates in data from an RA-disabled domain, should find the correct set of views for the given approval_status") {
+  test("searching on an RA-enabled domain that federates in data from an RA-disabled domain, should find the correct set of views for the given approval_status") {
     // domain 2 is an RA-enabled domain
     // domain 0 is an RA-disabled domain
     val raEnabledDomain = domains(2)
@@ -382,8 +398,7 @@ class SearchServiceSpecForAdminsAndTheLike
     val expectedPendingFxfs = pendingOn2 ++ pendingOn0
 
     val domainSet = DomainSet(Set(raDisabledDomain, raEnabledDomain), Some(raEnabledDomain))
-    val userBody = authedUserBodyFromRole("administrator")
-    testApprovalStatusFxfs(domainSet, userBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
+    testApprovalStatusFxfs(domainSet, cookieMonsUserBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
   }
 
   test("searching with the 'q' param finds all items from the authenticating domain where q matches the private metadata") {
@@ -392,8 +407,7 @@ class SearchServiceSpecForAdminsAndTheLike
     val expectedFxfs = fxfs(docs.filter(d =>
       d.privateCustomerMetadataFlattened.exists(m => m.value == privateValue &&
       d.socrataId.domainId == 0)))
-    val userBody = authedUserBodyFromRole("publisher")
-    prepareAuthenticatedUser(cookie, host, userBody)
+    prepareAuthenticatedUser(cookie, host, cookieMonsUserBody)
     val params = allDomainsParams ++ Map("q" -> privateValue, "min_should_match" -> "100%").mapValues(Seq(_))
     val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
@@ -412,8 +426,7 @@ class SearchServiceSpecForAdminsAndTheLike
     val expectedFxfs = fxfs(docs.filter(d =>
       d.privateCustomerMetadataFlattened.exists(m => m.value == privateValue &&
       d.socrataId.domainId == 0)))
-    val userBody = authedUserBodyFromRole("publisher")
-    prepareAuthenticatedUser(cookie, host, userBody)
+    prepareAuthenticatedUser(cookie, host, cookieMonsUserBody)
     val params = allDomainsParams ++ Map(privateKey -> Seq(privateValue))
     val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
@@ -427,8 +440,7 @@ class SearchServiceSpecForAdminsAndTheLike
 
   test("searching with 'visibility=open' filters away the internal items the user can view") {
     val host = domains(0).domainCname
-    val userBody = authedUserBodyFromRole("editor", "robin-hood")
-    prepareAuthenticatedUser(cookie, host, userBody)
+    prepareAuthenticatedUser(cookie, host, cookieMonsUserBody)
     val params = Map("domains" -> host).mapValues(Seq(_))
     val allRes = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val allFxfs = fxfs(allRes._2)
@@ -445,8 +457,7 @@ class SearchServiceSpecForAdminsAndTheLike
 
   test("searching with 'visibility=internal' filters away the open items the user can view") {
     val host = domains(0).domainCname
-    val userBody = authedUserBodyFromRole("editor", "robin-hood")
-    prepareAuthenticatedUser(cookie, host, userBody)
+    prepareAuthenticatedUser(cookie, host, cookieMonsUserBody)
     val params = Map("domains" -> host).mapValues(Seq(_))
     val allRes = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val allFxfs = fxfs(allRes._2)

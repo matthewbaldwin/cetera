@@ -122,7 +122,8 @@ case class Document(
     license: Option[String]) {
 
   def isSharedOrOwned(userId: String): Boolean = owner.id == userId || sharedTo.contains(userId)
-  def isDatalens: Boolean = datatype.startsWith("datalens")
+  def isDatalens: Boolean = datatype.startsWith(DatalensDatatype.singular)
+  def isStory: Boolean = datatype == StoryDatatype.singular
   def isHiddenFromCatalog: Boolean = hideFromCatalog.getOrElse(false)
 
   def isVmApproved: Boolean = moderationStatus.exists(s => s == ApprovalStatus.approved.status) & !isDefaultView

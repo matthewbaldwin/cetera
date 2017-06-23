@@ -148,7 +148,7 @@ class CoreClientSpec extends WordSpec with ShouldMatchers with BeforeAndAfterAll
     "return the user if core returns a 200 and an empowered user" in {
       setUpMockWithAuthorizedUser()
       val expectedUser = User("boo-bear", roleName = Some("headBear"),
-        rights = Some(List("steal_honey", "scare_tourists")), flags = Some(List("admin")))
+        rights = Some(Set("steal_honey", "scare_tourists")), flags = Some(List("admin")))
 
       val (actualUser, _) = coreClient.authenticateUser(domain, AuthParams(cookie=Some(cookie)), None)
       actualUser.get should be(expectedUser)
@@ -298,7 +298,7 @@ class CoreClientSpec extends WordSpec with ShouldMatchers with BeforeAndAfterAll
       )
 
       val expectedUser = User("boo-bear", roleName = Some("headBear"),
-        rights = Some(List("steal_honey", "scare_tourists")), flags = Some(List("admin")))
+        rights = Some(Set("steal_honey", "scare_tourists")), flags = Some(List("admin")))
 
       val (actualUser, _) = coreClient.fetchUserById(domain, fxf, None)
       actualUser.get should be(expectedUser)

@@ -58,7 +58,12 @@
       "value": "3"
     }
   ],
-  "private_customer_metadata_flattened": [],
+  "private_customer_metadata_flattened": [
+    {
+      "value": "No looky",
+      "key": "Private-Metadata_Thing"
+    }
+  ],
   "is_public": true,
   "is_published": true,
   "is_default_view": true,

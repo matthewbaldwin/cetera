@@ -7,7 +7,7 @@ import com.socrata.cetera.auth.AuthParams
 import com.socrata.cetera.types.{Document, Domain}
 import com.socrata.cetera.{response => _, _}
 
-class SearchServiceSpecForEditorsAndTheLike
+class SearchServiceSpecForUsersWithoutRights
   extends FunSuiteLike
     with Matchers
     with TestESData
@@ -24,7 +24,11 @@ class SearchServiceSpecForEditorsAndTheLike
     httpClient.close()
   }
 
-  test("searching across all domains with an editor shows " +
+  val cookieMonsWithoutRole = authedUserBodyWithoutRoleOrRights()
+  val cookieMonsWithRole = authedUserBodyWithRoleAndRights(List.empty)
+  val robinHoodWithoutRole = authedUserBodyWithoutRoleOrRights("robin-hood")
+
+  test("searching across all domains finds " +
     "a) anonymously visible views from their domain " +
     "b) anonymously visible views from unlocked domains " +
     "c) views they own/share") {
@@ -34,49 +38,31 @@ class SearchServiceSpecForEditorsAndTheLike
     val expectedFxfs = (ownedByCookieMonster ++ sharedToCookieMonster ++ anonymouslyViewableDocIds).distinct
 
     val host = domains(0).domainCname
-    val editorBody = authedUserBodyFromRole("editor")
-    prepareAuthenticatedUser(cookie, host, editorBody)
-    val editorRes = service.doSearch(allDomainsParams, AuthParams(cookie = Some(cookie)), Some(host), None)
-    fxfs(editorRes._2) should contain theSameElementsAs expectedFxfs
+    prepareAuthenticatedUser(cookie, host, cookieMonsWithoutRole)
+    val res = service.doSearch(allDomainsParams, AuthParams(cookie = Some(cookie)), Some(host), None)
+    fxfs(res._2) should contain theSameElementsAs expectedFxfs
   }
 
-  test("searching across all domains when auth is required with a roleless, but logged-in users shows " +
-    "a) anonymously visible views " +
-    "b) views they own/share") {
-    val authenticatingDomain = domains(0)
-    val ownedByCookieMonster = docs.collect{ case d: Document if d.owner.id == "cook-mons" => d.socrataId.datasetId }
-    val sharedToCookieMonster = docs.collect{ case d: Document if d.sharedTo.contains("cook-mons") => d.socrataId.datasetId }
-    val expectedFxfs = (ownedByCookieMonster ++ sharedToCookieMonster ++ anonymouslyViewableDocIds).distinct
-
-    val host = domains(0).domainCname
-    val editorBody = authedUserBodyFromRole("")
-    prepareAuthenticatedUser(cookie, host, editorBody)
-    val editorRes = service.doSearch(allDomainsParams, AuthParams(cookie = Some(cookie)), Some(host), None)
-    fxfs(editorRes._2) should contain theSameElementsAs expectedFxfs
-  }
-
-  test("searching on a locked domains with an editor shows data") {
+  test("searching on a locked domains shows data if the user has a role") {
     val lockedDomain = domains(8).domainCname
     val params = Map(
       "domains" -> lockedDomain,
       "search_context" -> lockedDomain
     ).mapValues(Seq(_))
     val expectedFxfs = fxfs(docs.filter(d => d.socrataId.domainId == 8))
-    val editorBody = authedUserBodyFromRole("editor")
-    prepareAuthenticatedUser(cookie, lockedDomain, editorBody)
+    prepareAuthenticatedUser(cookie, lockedDomain, cookieMonsWithRole)
     val res = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(lockedDomain), None)._2
     fxfs(res) should contain theSameElementsAs expectedFxfs
   }
 
-  test("searching on a locked domains with a roleless user though, should show nothing") {
+  test("searching on a locked domains if the user has no role, should show nothing") {
     val lockedDomain = domains(8).domainCname
     val params = Map(
       "domains" -> lockedDomain,
       "search_context" -> lockedDomain
     ).mapValues(Seq(_))
 
-    val userBody = authedUserBodyFromRole("")
-    prepareAuthenticatedUser(cookie, lockedDomain, userBody)
+    prepareAuthenticatedUser(cookie, lockedDomain, cookieMonsWithoutRole)
     val res = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(lockedDomain), None)._2
     fxfs(res) should be('empty)
   }
@@ -86,8 +72,7 @@ class SearchServiceSpecForEditorsAndTheLike
     // this has robin-hood looking up his own data.
     val authenticatingDomain = domains(0).domainCname
     val params = Map("for_user" -> Seq("robin-hood"))
-    val userBody = j"""{"id" : "robin-hood"}"""
-    prepareAuthenticatedUser(cookie, authenticatingDomain, userBody)
+    prepareAuthenticatedUser(cookie, authenticatingDomain, authedUserBodyWithoutRoleOrRights("robin-hood"))
 
     val docsOwnedByRobin = docs.filter(_.owner.id == "robin-hood")
     val ownedByRobinIds = fxfs(docsOwnedByRobin).toSet
@@ -98,86 +83,53 @@ class SearchServiceSpecForEditorsAndTheLike
     fxfs(res._2) should contain theSameElementsAs ownedByRobinIds
   }
 
-  test("searching for assets shared to logged in user works if a public/published asset is shared") {
-    val host = domains(0).domainCname
-    val authedUserBody =
-      j"""{
-        "id" : "King Richard",
-        "roleName" : "King",
-        "rights" : [ "collect_taxes", "wear_crown" ]
-        }"""
-    val expectedFxfs = Seq("zeta-0007")
+  test("searching for assets shared to a logged in user returns all assets the user shares, " +
+    "regardless of private/public/approval status and regardless of what domain they come from") {
+    // this has little john looking up data shared to him.
+    val authenticatingDomain = domains(0).domainCname
+    val name = "Little John"
+    val params = Map("shared_to" -> Seq(name))
+    prepareAuthenticatedUser(cookie, authenticatingDomain, authedUserBodyWithoutRoleOrRights(name))
 
-    prepareAuthenticatedUser(cookie, host, authedUserBody)
-    val params = Map("domains" -> host, "search_context" -> host, "shared_to" -> "King Richard").mapValues(Seq(_))
-    val res = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(host), None)._2
-    fxfs(res) should contain theSameElementsAs expectedFxfs
-  }
+    val docsSharedToLilJohn = docs.filter(_.sharedTo.contains(name))
+    val sharedToLilJohnIds = fxfs(docsSharedToLilJohn).toSet
+    val res = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(authenticatingDomain), None)
 
-  test("searching for assets shared to logged in user works if a private/unpublished asset is shared") {
-    val host = domains(0).domainCname
-    val authedUserBody =
-      j"""{
-        "id" : "Little John",
-        "roleName" : "secondInCommand",
-        "rights" : [ "rob_from_the_rich", "give_to_the_poor" ]
-        }"""
-    val expectedFxfs = Seq("zeta-0006")
-
-    prepareAuthenticatedUser(cookie, host, authedUserBody)
-    val params = Map("domains" -> host, "search_context" -> host, "shared_to" -> "Little John").mapValues(Seq(_))
-    val res = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(host), None)._2
-    fxfs(res) should contain theSameElementsAs expectedFxfs
+    // confirm that little john shares views on domains other than 0
+    docsSharedToLilJohn.filter(_.socrataId.domainId != 0) should not be('empty)
+    fxfs(res._2) should contain theSameElementsAs sharedToLilJohnIds
   }
 
   test("searching for assets owned by logged in user returns nothing if user owns nothing") {
-    val host = domains(0).domainCname
-    val authedUserBody =
-      j"""{
-        "id" : "No One",
-        "roleName" : "nothing",
-        "rights" : [ "nothing" ]
-        }"""
-    val expectedFxfs = None
+    val authenticatingDomain = domains(0).domainCname
+    val name = "No One"
+    prepareAuthenticatedUser(cookie, authenticatingDomain, authedUserBodyWithoutRoleOrRights(name))
 
-    prepareAuthenticatedUser(cookie, host, authedUserBody)
-    val params = Map("domains" -> host, "search_context" -> host, "shared_to" -> "No One").mapValues(Seq(_))
-    val res = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(host), None)._2
-    fxfs(res) should contain theSameElementsAs expectedFxfs
-  }
-
-  test("searching for assets shared to logged in user returns nothing if nothing is shared") {
-    val host = domains(0).domainCname
-    val authedUserBody =
-      j"""{
-        "id" : "No One",
-        "roleName" : "nothing",
-        "rights" : [ "nothing" ]
-        }"""
-    val expectedFxfs = None
-
-    prepareAuthenticatedUser(cookie, host, authedUserBody)
-    val params = Map("domains" -> host, "search_context" -> host, "shared_to" -> "No One").mapValues(Seq(_))
-    val res = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(host), None)._2
-    fxfs(res) should contain theSameElementsAs expectedFxfs
-  }
-
-  test("searching for assets by sending for_user and shared_to params returns no results") {
-    val host = "petercetera.net"
-    val authedUserBody =
-      j"""{
-        "id" : "robin-hood",
-        "roleName" : "leader",
-        "rights" : [ "rob_from_the_rich", "give_to_the_poor", "get_all_the_glory" ]
-        }"""
-
-    prepareAuthenticatedUser(cookie, host, authedUserBody)
-    val params = Map("domains" -> host, "search_context" -> host, "shared_to" -> "robin-hood", "for_user" -> "robin-hood").mapValues(Seq(_))
-    val res = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(host), None)._2
+    val params = Map("for_user" -> name).mapValues(Seq(_))
+    val res = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(authenticatingDomain), None)._2
     fxfs(res) should be('empty)
   }
 
-  private def testRolelessUserApproval(domain: Domain, userId: String) = {
+  test("searching for assets shared to logged in user returns nothing if nothing is shared") {
+    val authenticatingDomain = domains(0).domainCname
+    val name = "No One"
+    prepareAuthenticatedUser(cookie, authenticatingDomain, authedUserBodyWithoutRoleOrRights(name))
+
+    val params = Map("shared_to" -> name).mapValues(Seq(_))
+    val res = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(authenticatingDomain), None)._2
+    fxfs(res) should be('empty)
+  }
+
+  test("searching for assets by sending for_user and shared_to params returns no results") {
+    val authenticatingDomain = domains(0).domainCname
+    prepareAuthenticatedUser(cookie, authenticatingDomain, authedUserBodyWithoutRoleOrRights("robin-hood"))
+
+    val params = Map("shared_to" -> "robin-hood", "for_user" -> "robin-hood").mapValues(Seq(_))
+    val res = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(authenticatingDomain), None)._2
+    fxfs(res) should be('empty)
+  }
+
+  private def testRightlessUserApproval(domain: Domain, userId: String) = {
     val allPossibleResults = getAllPossibleResults()
     val approvedFxfs = allPossibleResults.filter(isApproved).map(fxfs)
     val visibleDomainsDocs = docs.filter(d =>
@@ -196,8 +148,7 @@ class SearchServiceSpecForEditorsAndTheLike
     expectedPendingFxfs shouldNot be('empty)
 
     val host = domain.domainCname
-    val userBody = authedUserBodyFromRole("", userId)
-    prepareAuthenticatedUser(cookie, host, userBody)
+    prepareAuthenticatedUser(cookie, host, authedUserBodyWithoutRoleOrRights(userId))
 
     val params = Map("search_context" -> host, "domains" -> host).mapValues(Seq(_))
     val actualApprovedFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("approved")),
@@ -212,27 +163,27 @@ class SearchServiceSpecForEditorsAndTheLike
     actualPendingFxfs should contain theSameElementsAs expectedPendingFxfs
   }
 
-  test("searching as a roleless user on a basic domain (as both search_context & domain), should find the correct set of views for the given approval_status") {
+  test("searching on a basic domain (as both search_context & domain), should find the correct set of views for the given approval_status") {
     val basicDomain = domains(0)
-    testRolelessUserApproval(basicDomain, "lil-john")
+    testRightlessUserApproval(basicDomain, "lil-john")
   }
 
-  test("searching as a roleless user on a moderated domain (as both search_context & domain), should find the correct set of views for the given approval_status") {
+  test("searching on a moderated domain (as both search_context & domain), should find the correct set of views for the given approval_status") {
     val moderatedDomain = domains(1)
-    testRolelessUserApproval(moderatedDomain, "maid-marian" )
+    testRightlessUserApproval(moderatedDomain, "maid-marian" )
   }
 
-  test("searching as a roleless user on an RA-enabled domain (as both search_context & domain), should find the correct set of views for the given approval_status") {
+  test("searching on an RA-enabled domain (as both search_context & domain), should find the correct set of views for the given approval_status") {
     val raDomain = domains(2)
-    testRolelessUserApproval(raDomain, "robin-hood")
+    testRightlessUserApproval(raDomain, "robin-hood")
   }
 
-  test("searching as a roleless user on a moderated & RA-enabled domain (as both search_context & domain), should find the correct set of views for the given approval_status") {
+  test("searching on a moderated & RA-enabled domain (as both search_context & domain), should find the correct set of views for the given approval_status") {
     val raVmDomain = domains(3)
-    testRolelessUserApproval(raVmDomain, "prince-john")
+    testRightlessUserApproval(raVmDomain, "prince-john")
   }
 
-  test("searching as a roleless user on an unmoderated domain that federates in data from a moderated domain, should find the correct set of views for the given approval_status") {
+  test("searching on an unmoderated domain that federates in data from a moderated domain, should find the correct set of views for the given approval_status") {
     val unmoderatedDomain = domains(0).domainCname
     val moderatedDomain = domains(3).domainCname
     val userId = "lil-john"  // owns much on domain 0 and is shared a rejected and pending view on domain 3
@@ -262,8 +213,7 @@ class SearchServiceSpecForEditorsAndTheLike
     expectedRejectedFxfs shouldNot be('empty)
     expectedPendingFxfs shouldNot be('empty)
 
-    val userBody = authedUserBodyFromRole("", userId)
-    prepareAuthenticatedUser(cookie, unmoderatedDomain, userBody)
+    prepareAuthenticatedUser(cookie, unmoderatedDomain, authedUserBodyWithoutRoleOrRights(userId))
 
     val params = Map("search_context" -> Seq(unmoderatedDomain), "domains" -> Seq(s"$moderatedDomain,$unmoderatedDomain"))
     val actualApprovedFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("approved")),
@@ -278,7 +228,7 @@ class SearchServiceSpecForEditorsAndTheLike
     actualPendingFxfs should contain theSameElementsAs expectedPendingFxfs
   }
 
-  test("searching as a roleless user on a moderated domain that federates in data from an unmoderated domain, should find the correct set of views for the given approval_status") {
+  test("searching on a moderated domain that federates in data from an unmoderated domain, should find the correct set of views for the given approval_status") {
     val moderatedDomain = domains(1).domainCname
     val unmoderatedDomain = domains(0).domainCname
     val userId = "friar-tuck"
@@ -312,8 +262,7 @@ class SearchServiceSpecForEditorsAndTheLike
     expectedRejectedFxfs shouldNot be('empty)
     expectedPendingFxfs shouldNot be('empty)
 
-    val userBody = authedUserBodyFromRole("", userId)
-    prepareAuthenticatedUser(cookie, moderatedDomain, userBody)
+    prepareAuthenticatedUser(cookie, moderatedDomain, authedUserBodyWithoutRoleOrRights(userId))
 
     val params = Map("search_context" -> Seq(moderatedDomain), "domains" -> Seq(s"$moderatedDomain,$unmoderatedDomain"))
     val actualApprovedFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("approved")),
@@ -328,7 +277,7 @@ class SearchServiceSpecForEditorsAndTheLike
     actualPendingFxfs should contain theSameElementsAs expectedPendingFxfs
   }
 
-  test("searching as a roleless user on an RA-disabled domain that federates in data from an RA-enabled domain, should find the correct set of views for the given approval_status") {
+  test("searching on an RA-disabled domain that federates in data from an RA-enabled domain, should find the correct set of views for the given approval_status") {
     // domain 0 is an RA-disabled domain
     // domain 2 is an RA-enabled domain
     val raDisabledDomain = domains(0).domainCname
@@ -364,8 +313,7 @@ class SearchServiceSpecForEditorsAndTheLike
     expectedRejectedFxfs shouldNot be('empty)
     expectedPendingFxfs shouldNot be('empty)
 
-    val userBody = authedUserBodyFromRole("", userId)
-    prepareAuthenticatedUser(cookie, raDisabledDomain, userBody)
+    prepareAuthenticatedUser(cookie, raDisabledDomain, authedUserBodyWithoutRoleOrRights(userId))
 
     val params = Map("search_context" -> Seq(raDisabledDomain), "domains" -> Seq(s"$raEnabledDomain,$raDisabledDomain"))
     val actualApprovedFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("approved")),
@@ -380,7 +328,7 @@ class SearchServiceSpecForEditorsAndTheLike
     actualPendingFxfs should contain theSameElementsAs expectedPendingFxfs
   }
 
-  test("searching as a roleless user on an RA-enabled domain that federates in data from an RA-disabled domain, should find the correct set of views for the given approval_status") {
+  test("searching on an RA-enabled domain that federates in data from an RA-disabled domain, should find the correct set of views for the given approval_status") {
     // domain 2 is an RA-enabled domain
     // domain 0 is an RA-disabled domain
     val raEnabledDomain = domains(2).domainCname
@@ -413,8 +361,7 @@ class SearchServiceSpecForEditorsAndTheLike
     expectedRejectedFxfs shouldNot be('empty)
     expectedPendingFxfs shouldNot be('empty)
 
-    val userBody = authedUserBodyFromRole("", userId)
-    prepareAuthenticatedUser(cookie, raEnabledDomain, userBody)
+    prepareAuthenticatedUser(cookie, raEnabledDomain, authedUserBodyWithoutRoleOrRights(userId))
 
     val params = Map("search_context" -> Seq(raEnabledDomain), "domains" -> Seq(s"$raEnabledDomain,$raDisabledDomain"))
     val actualApprovedFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("approved")),
@@ -432,8 +379,7 @@ class SearchServiceSpecForEditorsAndTheLike
   test("searching with the 'q' param finds no items where q matches the private metadata if the user doesn't own/share the doc") {
     val host = domains(0).domainCname
     val privateValue = "Cheetah Corp."
-    val userBody = authedUserBodyFromRole("editor")
-    prepareAuthenticatedUser(cookie, host, userBody)
+    prepareAuthenticatedUser(cookie, host, authedUserBodyWithoutRoleOrRights("no-one-we-know-about"))
     val params = allDomainsParams ++ Map("q" -> privateValue).mapValues(Seq(_))
     val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
@@ -450,8 +396,7 @@ class SearchServiceSpecForEditorsAndTheLike
     val expectedFxfs = fxfs(docs.filter(d =>
       d.privateCustomerMetadataFlattened.exists(m => m.value == privateValue &&
       d.owner.id == "robin-hood")))
-    val userBody = authedUserBodyFromRole("editor", "robin-hood")
-    prepareAuthenticatedUser(cookie, host, userBody)
+    prepareAuthenticatedUser(cookie, host, robinHoodWithoutRole)
     val params = allDomainsParams ++ Map("q" -> privateValue).mapValues(Seq(_))
     val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
@@ -462,8 +407,7 @@ class SearchServiceSpecForEditorsAndTheLike
     val host = domains(0).domainCname
     val privateKey = "Secret domain 0 cat organization"
     val privateValue = "Cheetah Corp."
-    val userBody = authedUserBodyFromRole("editor")
-    prepareAuthenticatedUser(cookie, host, userBody)
+    prepareAuthenticatedUser(cookie, host, authedUserBodyWithoutRoleOrRights("no-one-we-know-about"))
     val params = allDomainsParams ++ Map(privateKey -> Seq(privateValue))
     val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
@@ -481,8 +425,7 @@ class SearchServiceSpecForEditorsAndTheLike
     val expectedFxfs = fxfs(docs.filter(d =>
       d.privateCustomerMetadataFlattened.exists(m => m.value == privateValue &&
       d.owner.id == "robin-hood")))
-    val userBody = authedUserBodyFromRole("editor", "robin-hood")
-    prepareAuthenticatedUser(cookie, host, userBody)
+    prepareAuthenticatedUser(cookie, host, robinHoodWithoutRole)
     val params = allDomainsParams ++ Map(privateKey -> Seq(privateValue))
     val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val actualFxfs = fxfs(res._2)
@@ -491,8 +434,7 @@ class SearchServiceSpecForEditorsAndTheLike
 
   test("searching with 'visibility=open' filters away the internal items the user can view") {
     val host = domains(0).domainCname
-    val userBody = authedUserBodyFromRole("editor", "robin-hood")
-    prepareAuthenticatedUser(cookie, host, userBody)
+    prepareAuthenticatedUser(cookie, host, robinHoodWithoutRole)
     val params = Map("domains" -> host).mapValues(Seq(_))
     val allRes = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val allFxfs = fxfs(allRes._2)
@@ -509,8 +451,7 @@ class SearchServiceSpecForEditorsAndTheLike
 
   test("searching with 'visibility=internal' filters away the open items the user can view") {
     val host = domains(0).domainCname
-    val userBody = authedUserBodyFromRole("editor", "robin-hood")
-    prepareAuthenticatedUser(cookie, host, userBody)
+    prepareAuthenticatedUser(cookie, host, robinHoodWithoutRole)
     val params = Map("domains" -> host).mapValues(Seq(_))
     val allRes = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     val allFxfs = fxfs(allRes._2)

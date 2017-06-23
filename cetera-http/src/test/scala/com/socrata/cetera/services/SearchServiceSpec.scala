@@ -246,7 +246,7 @@ class SearchServiceSpec extends FunSuiteLike
       j"""{
         "id" : "lil-john",
         "roleName" : "publisher",
-        "rights" : [ "walk_though_forest", "laugh_back_and_forth", "reminisce" ]
+        "rights" : [ "view_others_datasets", "view_story" ]
         }"""
     val expectedVis = Map(
       "fxf-3" -> false,
@@ -271,7 +271,7 @@ class SearchServiceSpec extends FunSuiteLike
       j"""{
         "id" : "cook-mons",
         "roleName" : "viewer",
-        "rights" : [ "eat_cookies", "spell_words_starting_with_c" ]
+        "rights" : [ "view_others_datasets", "view_story" ]
         }"""
     val expectedVis = Map(
       "fxf-0" -> true,
@@ -431,18 +431,6 @@ class SearchServiceSpec extends FunSuiteLike
       _.resource.dyn.`type`.!.asInstanceOf[JString].string
     ) should be(List("dataset", "dataset", "dataset", "chart", "chart"))
   }
-
-  ignore("es client - min should match") {}
-  ignore("es client - slop") {}
-  ignore("es client - function score") {}
-  ignore("es client - advanced query") {}
-  ignore("es client - score boosts") {}
-  ignore("es client - domain metadata filter") {}
-  ignore("es client - script score functions") {}
-  ignore("es client - query with no filters, maybe?") {}
-  ignore("es client - sort field asc/desc") {}
-  ignore("domain cname unexpected json value") {}
-  ignore("query parameter parser - errors") {}
 }
 
 class SearchServiceSpecWithBrokenES extends FunSuiteLike with Matchers with MockFactory with TestESData {

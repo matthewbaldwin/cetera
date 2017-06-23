@@ -4,13 +4,13 @@ import com.rojoma.json.v3.interpolation._
 import com.rojoma.json.v3.io.JsonReader
 import org.scalatest.{ShouldMatchers, WordSpec}
 
-import com.socrata.cetera.TestESDomains
+import com.socrata.cetera.{TestESDomains, TestESUsers}
 import com.socrata.cetera.auth.{AuthedUser, User}
 import com.socrata.cetera.errors.UnauthorizedError
 import com.socrata.cetera.handlers.{SearchParamSet, UserSearchParamSet}
 import com.socrata.cetera.types.{ApprovalStatus, Domain, DomainSet, SimpleQuery}
 
-class UserQueriesSpec extends WordSpec with ShouldMatchers with TestESDomains {
+class UserQueriesSpec extends WordSpec with ShouldMatchers with TestESUsers {
 
   "the idQuery" should {
     "return the expected query" in {
@@ -81,52 +81,68 @@ class UserQueriesSpec extends WordSpec with ShouldMatchers with TestESDomains {
       }
     }
 
-    "throw an UnauthorizedError if user's domain doesn't match given domain id" in  {
-      val user = AuthedUser("mooks", domains(6), Some("administrator"))
+    "throw an UnauthorizedError if the authorized user can view users but is attempting to do so on a domain they aren't authenticated on" in  {
       an[UnauthorizedError] should be thrownBy {
-        UserQueries.authQuery(Some(user), Some(domains(4)))
+        UserQueries.authQuery(Some(userWithAllTheRights(0)), Some(domains(4)))
       }
     }
 
-    "throw an UnauthorizedError if user hasn't a role to view users" in  {
-      val user = AuthedUser("mooks", domains(6), Some(""))
+    "throw an UnauthorizedError if the authorized user has no role and lacks the manage_user rights" in  {
       an[UnauthorizedError] should be thrownBy {
-        UserQueries.authQuery(Some(user), None)
+        UserQueries.authQuery(Some(userWithNoRoleAndNoRights(0)), None)
       }
     }
 
     "return None for super admins" in {
-      val user = AuthedUser("mooks", domains(0), flags = Some(List("admin")))
-      val query = UserQueries.authQuery(Some(user), None)
+      val query = UserQueries.authQuery(Some(superAdminUser(0)), None)
       query should be(None)
     }
 
     "return None for super admins even if searching for users on a domain that isn't their authenticating domain" in {
-      val user = AuthedUser("mooks", domains(8), flags = Some(List("admin")))
-      val query = UserQueries.authQuery(Some(user), Some(domains(0)))
+      val query = UserQueries.authQuery(Some(superAdminUser(8)), Some(domains(0)))
       query should be(None)
     }
 
-    "return None for admins who aren't snooping around other's domains" in {
-      val user = AuthedUser("mooks", domains(1), Some("administrator"))
-      val query = UserQueries.authQuery(Some(user), None)
-      query should be(None)
+    "return None for those with the manage_users right who aren't snooping around other's domains" in {
+      val queryForUserWithAllRights = UserQueries.authQuery(Some(userWithAllTheRights(0)), None)
+      val queryForUserWithAllViewRights = UserQueries.authQuery(Some(userWithAllTheViewRights(0)), None)
+      val queryForUserWithManageUserRight = UserQueries.authQuery(Some(userWithOnlyManageUsersRight(0)), None)
+
+      queryForUserWithAllRights should be(None)
+      queryForUserWithAllViewRights should be(None)
+      queryForUserWithManageUserRight should be(None)
     }
 
-    "return a nested domainId query for non-admin roled users who aren't querying a specific domain" in {
-      val user = AuthedUser("mooks", domains(1), Some("i-have-a-role-really"))
-      val expected = JsonReader.fromString(UserQueries.nestedRolesQuery(None, Some(1)).get.toString)
-      val query = UserQueries.authQuery(Some(user), None)
-      val actual = JsonReader.fromString(query.get.toString)
-      actual should be(expected)
+    "return a nested domainId query for roled users that lack the manage_user rights and who aren't querying a specific domain" in {
+      val domId = 0
+      val queryForUserWithStoriesRights = UserQueries.authQuery(Some(userWithAllTheStoriesRights(domId)), None)
+      val queryForUserWithNonStoriesRights = UserQueries.authQuery(Some(userWithAllTheNonStoriesRights(domId)), None)
+      val queryForUserWithRoleButNoRights = UserQueries.authQuery(Some(userWithRoleButNoRights(domId)), None)
+
+      val expected = JsonReader.fromString(UserQueries.nestedRolesQuery(None, Some(domId)).get.toString)
+      val actualForUserWithStoriesRights = JsonReader.fromString(queryForUserWithStoriesRights.get.toString)
+      val actualForUserWithNonStoriesRights = JsonReader.fromString(queryForUserWithNonStoriesRights.get.toString)
+      val actualForUserWithRoleButNoRights = JsonReader.fromString(queryForUserWithRoleButNoRights.get.toString)
+
+      actualForUserWithStoriesRights should be(expected)
+      actualForUserWithNonStoriesRights should be(expected)
+      actualForUserWithRoleButNoRights should be(expected)
     }
 
-    "return a nested domainId query for non-admin roled users who are querying a specific domain, but it's their domain" in {
-      val user = AuthedUser("mooks", domains(1), Some("i-have-a-role-really"))
-      val expected = JsonReader.fromString(UserQueries.nestedRolesQuery(None, Some(1)).get.toString)
-      val query = UserQueries.authQuery(Some(user), Some(domains(1)))
-      val actual = JsonReader.fromString(query.get.toString)
-      actual should be(expected)
+    "return a nested domainId query for roled users that lack the manage_user rights and who are querying a specific domain, but it's their domain" in {
+      val domId = 1
+      val queryForUserWithStoriesRights = UserQueries.authQuery(Some(userWithAllTheStoriesRights(domId)), Some(domains(domId)))
+      val queryForUserWithNonStoriesRights = UserQueries.authQuery(Some(userWithAllTheNonStoriesRights(domId)), Some(domains(domId)))
+      val queryForUserWithRoleButNoRights = UserQueries.authQuery(Some(userWithRoleButNoRights(domId)), Some(domains(domId)))
+
+      val expected = JsonReader.fromString(UserQueries.nestedRolesQuery(None, Some(domId)).get.toString)
+      val actualForUserWithStoriesRights = JsonReader.fromString(queryForUserWithStoriesRights.get.toString)
+      val actualForUserWithNonStoriesRights = JsonReader.fromString(queryForUserWithNonStoriesRights.get.toString)
+      val actualForUserWithRoleButNoRights = JsonReader.fromString(queryForUserWithRoleButNoRights.get.toString)
+
+      actualForUserWithStoriesRights should be(expected)
+      actualForUserWithNonStoriesRights should be(expected)
+      actualForUserWithRoleButNoRights should be(expected)
     }
   }
 

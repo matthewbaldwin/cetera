@@ -43,13 +43,16 @@ object UserQueries {
 
   def authQuery(user: Option[AuthedUser], domain: Option[Domain]): Option[NestedQueryBuilder] = {
     user match {
+      // no restrictions are needed for super admins
+      case Some(u) if (u.isSuperAdmin) => None
       // if the user is searching for users on a domain, it must be the domain they are authed on
-      case Some(u) if (domain.exists(d => !u.canViewUsers(d.domainId))) =>
+      case Some(u) if (domain.exists(d => d.domainId != u.authenticatingDomain.domainId)) =>
         throw UnauthorizedError(Some(u.id), s"search for users on domain ${domain.get.domainCname}")
       // if the user can view all users, no restrictions are needed (other than the one above)
       case Some(u) if (u.canViewAllUsers) => None
       // if the user can view domain users, we restrict the user search to user's authenticating domain
-      case Some(u) if (u.canViewDomainUsers) => nestedRolesQuery(None, Some(u.authenticatingDomain.domainId))
+      case Some(u) if (u.canViewUsersOnDomain(u.authenticatingDomain.domainId)) =>
+        nestedRolesQuery(None, Some(u.authenticatingDomain.domainId))
       // if the user can't view users or is not authenticated, we throw
       case _ => throw UnauthorizedError(user.map(_.id), "search users")
     }

@@ -60,6 +60,9 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
   def defaultViewQuery(default: Boolean = true): TermQueryBuilder =
     termQuery(IsDefaultViewFieldType.fieldName, default)
 
+  def isStoryQuery: TermQueryBuilder =
+    termQuery(DatatypeFieldType.fieldName, StoryDatatype.singular)
+
   def publicQuery(public: Boolean = true): TermQueryBuilder =
     termQuery(IsPublicFieldType.fieldName, public)
 
@@ -76,22 +79,6 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
     columnNames.foldLeft(boolQuery().minimumShouldMatch(1)) { (b, q) =>
       b.should(matchQuery(ColumnNameFieldType.lowercaseFieldName, q))
     }
-  // ------------------------------------------------------------------------------------------
-
-  // this query limits documents to those owned/shared to the user
-  // or visible to user based on their domain and role
-  def privateMetadataUserRestrictionsQuery(user: AuthedUser): BoolQueryBuilder = {
-    val userId = user.id
-    val authingDomainId = user.authenticatingDomain.domainId
-    val ownIt = userQuery(userId)
-    val shareIt = sharedToQuery(userId)
-    if (user.canViewPrivateMetadata(authingDomainId)) {
-      val beEnabledToSeeIt = domainIdQuery(Set(authingDomainId))
-      boolQuery().should(ownIt).should(shareIt).should(beEnabledToSeeIt)
-    } else {
-      boolQuery().should(ownIt).should(shareIt)
-    }
-  }
 
   // this query limits documents to those with metadata keys/values that
   // match the given metadata. If public is true, this matches against the public metadata fields,
@@ -130,6 +117,33 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
       None
     }
 
+  // this query limits documents to those owned/shared to the user
+  // or visible to user based on their domain and rights
+  // NOTE: Cetera relies on the `edit_*` user rights as a proxy for the `update_view` right, which is the user/view
+  // combo right that core uses to determine private metadata visibility.
+  def privateMetadataUserRestrictionsQuery(user: AuthedUser): BoolQueryBuilder = {
+    val userId = user.id
+    val authingDomainId = user.authenticatingDomain.domainId
+    val ownIt = userQuery(userId)
+    val sharedIt = sharedToQuery(userId)
+    val beOnUsersDomain = domainIdQuery(Set(authingDomainId))
+    val beAStory = isStoryQuery
+    if (user.canViewAllPrivateMetadata(authingDomainId)) {
+      // if the user can view all private metadata, it's all the private metadata on *their* domain
+      boolQuery().should(ownIt).should(sharedIt).should(beOnUsersDomain)
+    } else if (user.canViewAllOfSomePrivateMetadata(authingDomainId, isStory = false)) {
+      // the user can only view the private metadata of non-stories on their domain
+      val beANonStoryOnUsersDomain = boolQuery().must(beOnUsersDomain).mustNot(beAStory)
+      boolQuery().should(ownIt).should(sharedIt).should(beANonStoryOnUsersDomain)
+    } else if (user.canViewAllOfSomePrivateMetadata(authingDomainId, isStory = true)) {
+      // the user can only view the private metadata of stories on their domain
+      val beAStoryOnUsersDomain = boolQuery().must(beOnUsersDomain).must(beAStory)
+      boolQuery().should(ownIt).should(sharedIt).should(beAStoryOnUsersDomain)
+    } else {
+      boolQuery().should(ownIt).should(sharedIt)
+    }
+  }
+
   // this query limits documents to those that both:
   //  - have private metadata keys/values matching the given metadata
   //  - have private metadata visible to the given user
@@ -140,10 +154,10 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
         case None => None
         // if the user is a superadmin, use a metadata query pointed at the private fields
         case Some(u) if u.isSuperAdmin => metadataQuery(metadata, public = false)
+        // otherwise, restrict the metadata query to those docs where the user can view their private metadata
         case Some(u) =>
           val beAbleToViewPrivateMetadata = privateMetadataUserRestrictionsQuery(u)
-          val dmt = metadataQuery(metadata, public = false)
-          dmt.map(matchMetadataTerms =>
+          metadataQuery(metadata, public = false).map(matchMetadataTerms =>
             boolQuery().must(beAbleToViewPrivateMetadata).must(matchMetadataTerms))
       }
     } else {
@@ -165,6 +179,17 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
       case (None, Some(matchPrivateMetadata)) => Some(matchPrivateMetadata)
       case (Some(matchPublicMetadata), Some(matchPrivateMetadata)) =>
         Some(boolQuery().should(matchPublicMetadata).should(matchPrivateMetadata))
+    }
+  }
+
+  // this query limits results to only stories or non-stories on a domain
+  def notQuiteEverythingOnADomainQuery(domainId: Int, includeStories: Boolean): BoolQueryBuilder = {
+    val beAStory = isStoryQuery
+    val beOnDomain = domainIdQuery(Set(domainId))
+    if (includeStories) {
+      boolQuery().must(beOnDomain).must(beAStory)
+    } else {
+      boolQuery().must(beOnDomain).mustNot(beAStory)
     }
   }
 
@@ -412,37 +437,40 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
       .must(beUnhidden)
   }
 
-  // this will limit results down to those owned or shared to a user
-  def ownedOrSharedQuery(user: AuthedUser): BoolQueryBuilder = {
-    val userId = user.id
-    val ownerQuery = userQuery(userId)
-    val sharedQuery = sharedToQuery(userId)
-    boolQuery().should(ownerQuery).should(sharedQuery)
-  }
-
   // this will limit results to only those the user is allowed to see
   def authQuery(user: Option[AuthedUser], domainSet: DomainSet): Option[BoolQueryBuilder] =
     user match {
-      // if user is super admin, no vis query needed
-      case Some(u) if (u.isSuperAdmin) => None
-      // if the user can view everything, they can only view everything on *their* domain
-      // plus, of course, things they own/share and public/published/approved views from other domains
-      case Some(u) if (u.canViewAllViews(u.authenticatingDomain.domainId)) => {
-        val ownOrShareIt = ownedOrSharedQuery(u)
-        // re: includeContextApproval = false, in order for admins/etc to see views they've rejected from other domains,
-        // we must allow them access to views that are approved on the parent domain, but not on the context.
-        // yes, this is a snow-flaky case and it involves our auth. I am sorry  :(
-        val bePubliclyAvailable = anonymousQuery(domainSet, includeContextApproval = false)
-        val beFromUsersDomain = domainIdQuery(Set(u.authenticatingDomain.domainId))
-        Some(boolQuery().should(ownOrShareIt).should(bePubliclyAvailable).should(beFromUsersDomain))
-      }
-      // if the user isn't a superadmin nor can they view everything, they may only see
-      // things they own/share and public/published/approved views
-      case Some(u) => {
-        val ownOrShareIt = ownedOrSharedQuery(u)
-        val bePubliclyAvailable = anonymousQuery(domainSet)
-        Some(boolQuery().should(ownOrShareIt).should(bePubliclyAvailable))
-      }
+      case Some(u) =>
+        if (u.isSuperAdmin) {
+          // if user is super admin, no vis query needed
+          None
+        } else {
+          val authingDomainId = u.authenticatingDomain.domainId
+          // the user may see everything they own or share
+          val ownIt = userQuery(u.id)
+          val sharedIt = sharedToQuery(u.id)
+          // and the user may see all anonymously viewable docs
+          //   re: includeContextApproval = false, in order for admins/etc to see views they've rejected from other
+          //   domains, we must allow them access to views that are approved on the federated domain, but not on the
+          //   context. yes, this is a snow-flaky case and it involves our auth. I am sorry  :(
+          val bePublicallyAvailable =
+            anonymousQuery(domainSet, includeContextApproval = !u.canViewAllViews(authingDomainId))
+          // the user may be able to see more: all stories, all non-stories or both.
+          // but if so, they can only view those views on *their* domain
+          val otherViewsAvailable =
+            if (u.canViewAllViews(authingDomainId)) {
+              Some(domainIdQuery(Set(authingDomainId))) // allow everything on the domain
+            } else if (u.canViewAllOfSomeViews(authingDomainId, isStory = false)) {
+              Some(notQuiteEverythingOnADomainQuery(authingDomainId, includeStories = false)) // allow all non-stories
+            } else if (u.canViewAllOfSomeViews(authingDomainId, isStory = true)) {
+              Some(notQuiteEverythingOnADomainQuery(authingDomainId, includeStories = true)) // allow all stories
+            } else {
+              None
+            }
+          val query = boolQuery().should(ownIt).should(sharedIt).should(bePublicallyAvailable)
+          otherViewsAvailable.foreach(query.should(_))
+          Some(query)
+        }
       // if the user is anonymous, they can only view anonymously-viewable views
       case None => Some(anonymousQuery(domainSet))
     }

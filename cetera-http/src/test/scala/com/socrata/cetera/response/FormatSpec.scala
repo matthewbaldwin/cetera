@@ -8,14 +8,16 @@ import com.rojoma.json.v3.interpolation._
 import com.rojoma.json.v3.io.JsonReader
 import org.scalatest._
 
-import com.socrata.cetera.TestESDomains
+import com.socrata.cetera.{TestESDomains, TestESUsers}
 import com.socrata.cetera.auth.{AuthedUser, User}
 import com.socrata.cetera.types.{Datatype, DomainSet}
 
-class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
+class FormatSpec extends WordSpec with ShouldMatchers with TestESUsers {
 
   val drewRawString = Source.fromInputStream(getClass.getResourceAsStream("/drewRaw.json")).getLines().mkString("\n")
   val drewRawJson = JsonReader.fromString(drewRawString)
+  val storyRawString = Source.fromInputStream(getClass.getResourceAsStream("/views/fxf-10.json")).getLines().mkString("\n")
+  val storyRawJson = JsonReader.fromString(storyRawString)
 
   "The hyphenize method" should {
     "return a single hyphen if given an empty string" in {
@@ -221,20 +223,33 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
     ))
 
     "return None if no user is provided" in {
-      val metadata = Format.domainPrivateMetadata(drewRawJson, None, viewsDomainId)
-      metadata should be(None)
+      Format.domainPrivateMetadata(drewRawJson, None, viewsDomainId) should be(None)
     }
 
-    "return None if the user has no claim on the private metadata" in {
-      val user = Some(AuthedUser("some-user", domains(0)))  // who isn't a publisher or admin and doesn't own/share the data
-      val metadata = Format.domainPrivateMetadata(drewRawJson, user, viewsDomainId)
-      metadata should be(None)
+    "return None if the user doesn't own/share it and has no edit rights for non-stories" in {
+      Format.domainPrivateMetadata(drewRawJson, Some(userWithAllTheStoriesRights(viewsDomainId)), viewsDomainId) should be(None)
+      Format.domainPrivateMetadata(drewRawJson, Some(userWithAllTheViewRights(viewsDomainId)), viewsDomainId) should be(None)
+      Format.domainPrivateMetadata(drewRawJson, Some(userWithOnlyManageUsersRight(viewsDomainId)), viewsDomainId) should be(None)
+      Format.domainPrivateMetadata(drewRawJson, Some(userWithRoleButNoRights(viewsDomainId)), viewsDomainId) should be(None)
+      Format.domainPrivateMetadata(drewRawJson, Some(userWithNoRoleAndNoRights(viewsDomainId)), viewsDomainId) should be(None)
     }
 
-    "return None if the user has a role, but it isn't on the view's domain" in {
-      val user = Some(AuthedUser("some-user", domains(1), Some("publisher"))) // drewRaw is on domain 0
-      val metadata = Format.domainPrivateMetadata(drewRawJson, user, viewsDomainId)
-      metadata should be(None)
+    "return None if the user doesn't own/share it and has no edit rights for stories" in {
+      Format.domainPrivateMetadata(storyRawJson, Some(userWithAllTheNonStoriesRights(viewsDomainId)), viewsDomainId) should be(None)
+      Format.domainPrivateMetadata(storyRawJson, Some(userWithAllTheViewRights(viewsDomainId)), viewsDomainId) should be(None)
+      Format.domainPrivateMetadata(storyRawJson, Some(userWithOnlyManageUsersRight(viewsDomainId)), viewsDomainId) should be(None)
+      Format.domainPrivateMetadata(storyRawJson, Some(userWithRoleButNoRights(viewsDomainId)), viewsDomainId) should be(None)
+      Format.domainPrivateMetadata(storyRawJson, Some(userWithNoRoleAndNoRights(viewsDomainId)), viewsDomainId) should be(None)
+    }
+
+    "return None if the user has edit rights for non-stories, but it isn't on the view's domain" in {
+      Format.domainPrivateMetadata(drewRawJson, Some(userWithAllTheRights(8)), viewsDomainId) should be(None)
+      Format.domainPrivateMetadata(drewRawJson, Some(userWithAllTheNonStoriesRights(8)), viewsDomainId) should be(None)
+    }
+
+    "return None if the user has edit rights for stories, but it isn't on the view's domain" in {
+      Format.domainPrivateMetadata(storyRawJson, Some(userWithAllTheRights(8)), viewsDomainId) should be(None)
+      Format.domainPrivateMetadata(storyRawJson, Some(userWithAllTheStoriesRights(8)), viewsDomainId) should be(None)
     }
 
     "return the expected JValue if the user owns the view" in {
@@ -250,21 +265,23 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
     }
 
     "return the expected JValue if the user is a super admin" in {
-      val user = Some(AuthedUser("super-user", domains(0), flags = Some(List("admin"))))
-      val metadata = Format.domainPrivateMetadata(drewRawJson, user, viewsDomainId)
+      val metadata = Format.domainPrivateMetadata(drewRawJson, Some(superAdminUser(0)), viewsDomainId)
       metadata should be(Some(privateMetadata))
     }
 
-    "return the expected JValue if the user is an admin on the view's domain" in {
-      val user = Some(AuthedUser("some-user", domains(0), Some("administrator")))
-      val metadata = Format.domainPrivateMetadata(drewRawJson, user, viewsDomainId)
+    "return the expected JValue if the user has both edit rights on the view's domain" in {
+      val metadata = Format.domainPrivateMetadata(drewRawJson, Some(userWithAllTheRights(viewsDomainId)), viewsDomainId)
       metadata should be(Some(privateMetadata))
     }
 
-    "return the expected JValue if the user is a publisher on the view's domain" in {
-      val user = Some(AuthedUser("some-user", domains(0), Some("publisher")))
-      val metadata = Format.domainPrivateMetadata(drewRawJson, user, viewsDomainId)
-      metadata should be(Some(privateMetadata))
+    "return the expected JValue if the user has the non-stories edit right on the view's domain and we are looking at a non-story" in {
+      Format.domainPrivateMetadata(drewRawJson, Some(userWithAllTheRights(viewsDomainId)), viewsDomainId) should be(Some(privateMetadata))
+      Format.domainPrivateMetadata(drewRawJson, Some(userWithAllTheNonStoriesRights(viewsDomainId)), viewsDomainId) should be(Some(privateMetadata))
+    }
+
+    "return the expected JValue if the user has the stories edit right on the view's domain and we are looking at a story" in {
+      Format.domainPrivateMetadata(storyRawJson, Some(userWithAllTheRights(viewsDomainId)), viewsDomainId) should be(Some(privateMetadata))
+      Format.domainPrivateMetadata(storyRawJson, Some(userWithAllTheStoriesRights(viewsDomainId)), viewsDomainId) should be(Some(privateMetadata))
     }
   }
 
@@ -665,9 +682,8 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESDomains {
     }
 
     "return the expected payload if passed good json and a user with rights to see the private metadata" in {
-      val user = Some(AuthedUser("some-user", domains(0), Some("publisher")))
       val unmoderatedUnroutedContext = DomainSet(domains = Set(domains(0)), searchContext = Some(domains(0)))
-      val actualResult = Format.documentSearchResult(drewRawJson, user, unmoderatedUnroutedContext, None, Some(JNumber(.98)), true, None).get
+      val actualResult = Format.documentSearchResult(drewRawJson, Some(userWithAllTheRights(0)), unmoderatedUnroutedContext, None, Some(JNumber(.98)), true, None).get
       val drewFormattedString = Source.fromInputStream(getClass.getResourceAsStream("/drewFormattedWithPrivateMetadata.json")).getLines().mkString("\n")
       val drewFormattedJson = JsonReader.fromString(drewFormattedString)
       val expectedResult = JsonDecode.fromJValue[SearchResult](drewFormattedJson).right.get

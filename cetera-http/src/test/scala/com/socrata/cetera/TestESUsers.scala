@@ -2,9 +2,11 @@ package com.socrata.cetera
 
 import scala.io.Source
 
+import com.socrata.cetera.auth.AuthedUser
+import com.socrata.cetera.auth.AuthedUser._
 import com.socrata.cetera.types.{EsUser, Role}
 
-trait TestESUsers {
+trait TestESUsers extends TestESDomains {
 
   val users = {
     val userTSV = Source.fromInputStream(getClass.getResourceAsStream("/users.tsv"))
@@ -34,4 +36,19 @@ trait TestESUsers {
       }
     )
   }
+
+  def superAdminUser(domainId: Int) = AuthedUser("user-fxf", domains(domainId), roleName = None, rights = None, flags = Some(List("admin")))
+  def userWithAllTheRights(domainId: Int) = AuthedUser("user-fxf", domains(domainId), roleName = Some("administrator"), flags = None,
+    rights = Some(Set(toViewAllUsers, toViewOthersStories, toViewOthersViews, toEditOthersStories, toEditOthersViews)))
+  def userWithAllTheStoriesRights(domainId: Int) = AuthedUser("user-fxf", domains(domainId), roleName = Some("publisher_stories"), flags = None,
+    rights = Some(Set(toViewOthersStories, toEditOthersStories)))
+  def userWithAllTheNonStoriesRights(domainId: Int) = AuthedUser("user-fxf", domains(domainId), roleName = Some("publisher"), flags = None,
+    rights = Some(Set(toViewOthersViews, toEditOthersViews)))
+  def userWithAllTheViewRights(domainId: Int) = AuthedUser("user-fxf", domains(domainId), roleName = Some("designer"), flags = None,
+    rights = Some(Set(toViewAllUsers, toViewOthersStories, toViewOthersViews)))
+  def userWithOnlyManageUsersRight(domainId: Int) = AuthedUser("user-fxf", domains(domainId), roleName = Some("administrator"), flags = None,
+    rights = Some(Set(toViewAllUsers)))
+  def userWithRoleButNoRights(domainId: Int) = AuthedUser("user-fxf", domains(domainId), roleName = Some("editor"), flags = None,
+    rights = Some(Set.empty))
+  def userWithNoRoleAndNoRights(domainId: Int) = AuthedUser("user-fxf", domains(domainId), roleName = None, flags = None, rights = None)
 }
