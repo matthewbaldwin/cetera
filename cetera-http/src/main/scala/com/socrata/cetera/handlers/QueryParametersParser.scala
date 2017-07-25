@@ -22,6 +22,8 @@ sealed trait ValidationError { def message: String }
 
 case class DatatypeError(override val message: String) extends ValidationError
 
+case class UserTypeError(override val message: String) extends ValidationError
+
 // Parses and validates
 object QueryParametersParser { // scalastyle:ignore number.of.methods
   val logger = LoggerFactory.getLogger(getClass)
@@ -29,7 +31,8 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
   val filterDelimiter = "," // to be deprecated
   val limitLimit = 10000
   val maxResultWindow = 10000
-  val allowedFilterTypes = Datatypes.all.flatMap(d => Seq(d.plural, d.singular)).mkString(filterDelimiter)
+  val allowedFilterTypesMsg = Datatypes.all.flatMap(d => Seq(d.plural, d.singular)).mkString(", ")
+  val allowedUserTypesMsg = UserType.all.mkString(", ")
 
   def validated[T](x: Either[ParamConversionFailure, T]): T = x match {
     case Right(v) => v
@@ -112,7 +115,7 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
   def restrictParamFilterDatatype(datatype: String): Either[DatatypeError, Option[Set[String]]] = datatype match {
     case s: String if s.nonEmpty =>
       Datatype(s) match {
-        case None => Left(DatatypeError(s"'${Params.only}' must be one of $allowedFilterTypes; got $s"))
+        case None => Left(DatatypeError(s"'${Params.only}' must be one of $allowedFilterTypesMsg; got $s"))
         case Some(d) => Right(Some(d.names.toSet))
       }
     case _ => Right(None)
@@ -166,6 +169,17 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
       None
     }
   }
+
+  private def restrictParamFilterUserType(userType: String): Either[UserTypeError, Option[UserType]] =
+    userType match {
+      case s: String if s.nonEmpty =>
+        UserType(s) match {
+          case None => Left(UserTypeError(s"'${Params.only}' must be one of $allowedUserTypesMsg; got $s"))
+          case Some(t) => Right(Some(t))
+        }
+      case _ => Right(None)
+    }
+
 
   //////////////////
   // PARAM PREPARERS
@@ -365,6 +379,12 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
   def prepareUserQuery(queryParameters: MultiQueryParams): Option[String] =
     filterNonEmptyStringParams(queryParameters.first(Params.q))
 
+  def prepareUserType(queryParameters: MultiQueryParams): Option[UserType] =
+    filterNonEmptyStringParams(queryParameters.first(Params.only)).map(restrictParamFilterUserType).collect {
+      case Left(err) => throw new IllegalArgumentException(s"Invalid 'only' parameter: ${err.message}")
+      case Right(Some(userType)) => userType
+    }
+
   // shared param preparers
 
   def prepareId(queryParameters: MultiQueryParams): Option[Set[String]] =
@@ -485,6 +505,7 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
       prepareScreenName(queryParameters),
       prepareFlag(queryParameters),
       prepareRole(queryParameters),
+      prepareUserType(queryParameters),
       prepareUserDomain(queryParameters),
       prepareUserQuery(queryParameters)
     )

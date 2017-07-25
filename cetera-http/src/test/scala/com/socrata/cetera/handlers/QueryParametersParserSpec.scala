@@ -505,6 +505,17 @@ class QueryParametersParserSpec extends FunSuiteLike with Matchers {
       QueryParametersParser(Map("order"-> Seq("name"), "scroll_id" -> Seq("abcd-1234")))
     }
   }
+
+  test("the prepareUserType method raises an IllegalArgumentException when given an invalid user type specifier") {
+    intercept[IllegalArgumentException] {
+      QueryParametersParser.prepareUserType(Map("only" -> Seq("foo")))
+    }
+  }
+
+  test("the prepareUserType method returns a user type when given a valid user type specifier") {
+    QueryParametersParser.prepareUserType(Map("only" -> Seq("owner"))) should be(Some(Owner))
+    QueryParametersParser.prepareUserType(Map("only" -> Seq("owners"))) should be(Some(Owner))
+  }
 }
 
 class ParamsSpec extends FunSuiteLike with Matchers {

@@ -90,3 +90,23 @@ object DomainUser {
     )
   }
 }
+
+sealed trait UserType {
+  def singular: String
+  def plural: String
+}
+
+object UserType {
+  val all = List(Owner.singular, Owner.plural)
+
+  def apply(s: String): Option[UserType] =
+    s.toLowerCase match {
+      case Owner.singular | Owner.plural => Some(Owner)
+      case _ => None
+    }
+}
+
+case object Owner extends UserType {
+  override val singular = "owner"
+  override val plural = "owners"
+}

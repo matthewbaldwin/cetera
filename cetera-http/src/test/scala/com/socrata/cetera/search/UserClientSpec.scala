@@ -96,8 +96,8 @@ class UserClientSpec extends FunSuiteLike with Matchers with TestESData with Tes
     val domain = domains(1)
     val params = UserSearchParamSet(domain = Some(domain.domainCname))
     val (userRes, totalCount, _) = userClient.search(params, PagingParamSet(), Some(domain), Some(superAdminUser(domain.domainId)))
-    userRes should contain theSameElementsAs (Seq(users(3), users(4), users(5), users(6)))
-    totalCount should be(4)
+    userRes should contain theSameElementsAs (Seq(users(3), users(4), users(5), users(6), users(7)))
+    totalCount should be(5)
   }
 
   test("search by singular email") {

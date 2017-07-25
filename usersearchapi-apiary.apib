@@ -61,6 +61,7 @@ Successful user searches return user `results` with the following fields:
 - `profile_image_url_small` - The route to the small copy of the user's profile image; only present if the user has chosen a profile picture
 
 ## Request Parameters
+
 The production API endpoint for searching users is `https://api.us.socrata.com/api/catalog/v1/users`.
 When no parameters are passed, the initial set of users available to search will vary based on your role.
 Administrators may search across *all* users. Other roled users may only search across users having a role
@@ -169,6 +170,16 @@ Thus a query using any of those terms will find our user Jack.
 
 + Parameters
     + q (optional, string, `pumpkin`) ... A string for text search.
+
+## Restrict search to owners (users with assets) [/catalog/v1/users{?only=owner}]
+
+In addition to the above-mentioned query parameters, you can restrict your user search to owners
+(ie. users who own assets). This is particularly useful when used in conjunction with the `domain`
+parameter to restrict the search to users owning assets on a particular domain. If a valid `only`
+parameter is specified, but no `domain` parameter is passed, the service will return a 500.
+
++ Parameters
+    + only (optional, string, `owners`) ... A type of user to search for (eg. `owners`).
 
 ### Search by query term API [GET]
 

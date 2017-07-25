@@ -316,7 +316,7 @@ class UserSearchServiceSpec extends FunSuiteLike with Matchers with TestESData
     status should be(OK)
     results.results.headOption should be('defined)
 
-    val expectedUsers = Set(users(3), users(4), users(5), users(6)).map(u => DomainUser(Some(domains(1)), u)).flatten
+    val expectedUsers = Set(users(3), users(4), users(5), users(6), users(7)).map(u => DomainUser(Some(domains(1)), u)).flatten
     results.results should contain theSameElementsAs(expectedUsers)
     results.results.find(u => u.id == "bright-heart").get.roleName.get should be("honorary-bear")  // and not "racoon" as is the role on domain 2
   }
@@ -348,5 +348,38 @@ class UserSearchServiceSpec extends FunSuiteLike with Matchers with TestESData
     val params2 = Map(Params.emails -> "i.heart.canada@marvel.com").mapValues(Seq(_))
     val (status2, results2, _, _) = userService.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
     results.results.map(_.id) should contain theSameElementsAs(results2.results.map(_.id))
+  }
+
+  test("specifying the only=owner parameter restricts the search to those users with assets on the specified domain") {
+    val expectedRequest = request()
+      .withMethod("GET")
+      .withPath("/users.json")
+      .withHeader(HeaderXSocrataHostKey, host)
+      .withHeader(HeaderCookieKey, cookie)
+
+    mockServer.when(
+      expectedRequest
+    ).respond(
+      response()
+        .withStatusCode(200)
+        .withHeader("Content-Type", "application/json; charset=utf-8")
+        .withBody(CompactJsonWriter.toString(adminUserBody))
+    )
+
+    val allDomainUsersParams = Map(Params.domain -> Seq("opendata-demo.socrata.com"))
+    val (_, allDomainUsers, _, _) = userService.doSearch(
+      allDomainUsersParams, AuthParams(cookie=Some(cookie)), Some(host), None)
+
+    val params = Map(Params.domain -> Seq("opendata-demo.socrata.com"), Params.only -> Seq("owner"))
+    val (status, domainUsersWithAssets, _, _) = userService.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
+
+    mockServer.verify(expectedRequest)    
+    status should be(OK)
+
+    val domain = Some(domains(1))
+    val expectedAll = List(users(3), users(4), users(5), users(6), users(7)).map(_.id).toSet
+    val expectedOwners = List(users(7)).map(_.id).toSet
+    allDomainUsers.results.map(_.id).toSet should contain theSameElementsAs(expectedAll)
+    domainUsersWithAssets.results.map(_.id).toSet should contain theSameElementsAs(expectedOwners)
   }
 }
