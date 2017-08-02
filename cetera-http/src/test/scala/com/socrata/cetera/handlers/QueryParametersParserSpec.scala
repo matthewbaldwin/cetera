@@ -52,21 +52,32 @@ class QueryParametersParserSpec extends FunSuiteLike with Matchers {
     }
   }
 
-  test("'visibility' query parameter is not allowed in conjunction with other vis params") {
+  test("'visibility=open' will behave as expected when used in conjunction with other overlapping visibility params") {
+    QueryParametersParser(Map("visibility" -> Seq("open"), "public" -> Seq("true")))
+    QueryParametersParser(Map("visibility" -> Seq("open"), "published" -> Seq("true")))
+    QueryParametersParser(Map("visibility" -> Seq("open"), "explicitly_hidden" -> Seq("false")))
+    QueryParametersParser(Map("visibility" -> Seq("open"), "approval_status" -> Seq("approved")))
+  }
+
+  test("'visibility=open' will raise an exception when used in conjunction with other inconsistent visibility params") {
     intercept[IllegalArgumentException] {
-      QueryParametersParser(Map("visibility" -> Seq("open"), "public" -> Seq("true"))).searchParamSet
+      QueryParametersParser(Map("visibility" -> Seq("open"), "public" -> Seq("false"))).searchParamSet
     }
 
     intercept[IllegalArgumentException] {
-      QueryParametersParser(Map("visibility" -> Seq("open"), "published" -> Seq("true"))).searchParamSet
-    }
-
-    intercept[IllegalArgumentException] {
-      QueryParametersParser(Map("visibility" -> Seq("open"), "approval_status" -> Seq("true"))).searchParamSet
+      QueryParametersParser(Map("visibility" -> Seq("open"), "published" -> Seq("false"))).searchParamSet
     }
 
     intercept[IllegalArgumentException] {
       QueryParametersParser(Map("visibility" -> Seq("open"), "explicitly_hidden" -> Seq("true"))).searchParamSet
+    }
+
+    intercept[IllegalArgumentException] {
+      QueryParametersParser(Map("visibility" -> Seq("open"), "approval_status" -> Seq("rejected"))).searchParamSet
+    }
+
+    intercept[IllegalArgumentException] {
+      QueryParametersParser(Map("visibility" -> Seq("open"), "approval_status" -> Seq("pending"))).searchParamSet
     }
   }
 

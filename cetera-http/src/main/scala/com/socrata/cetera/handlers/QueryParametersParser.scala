@@ -406,16 +406,35 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
   }
 
   def validateSearchParams(searchParams: SearchParamSet): Unit = {
-    if (searchParams.visibility.nonEmpty && (
-          searchParams.public.nonEmpty ||
-          searchParams.published.nonEmpty ||
-          searchParams.approvalStatus.nonEmpty ||
-          searchParams.explicitlyHidden.nonEmpty )
-    ) {
-      val otherVizParams = s"'${Params.public}', '${Params.published}', '${Params.approvalStatus}' or " +
-        s"'${Params.explicitlyHidden}' params"
-      throw new IllegalArgumentException(
-        s"The '${Params.visibility}' parameter may not be used with any of the $otherVizParams")
+    def invalidParameterCombination(visibilityStatus: String, param: String, value: String): String =
+      s"Invalid parameter combination: ${Params.visibility}=$visibilityStatus and ${param}={$value}"
+
+    searchParams.visibility match {
+      case Some(visibility) if (visibility == VisibilityStatus.open) =>
+        if (searchParams.public.exists(_ == false)) {  // scalastyle:ignore simplify.boolean.expression
+          throw new IllegalArgumentException(
+            invalidParameterCombination(VisibilityStatus.open, Params.public, "false"))
+        }
+
+        if (searchParams.published.exists(_ == false)) {  // scalastyle:ignore simplify.boolean.expression
+          throw new IllegalArgumentException(
+            invalidParameterCombination(VisibilityStatus.open, Params.published, "false"))
+        }
+
+        if (searchParams.explicitlyHidden.exists(_ == true)) {  // scalastyle:ignore simplify.boolean.expression
+          throw new IllegalArgumentException(
+            invalidParameterCombination(VisibilityStatus.open, Params.explicitlyHidden, "true"))
+        }
+
+        if (searchParams.approvalStatus.exists(_ != ApprovalStatus.approved)) {
+          throw new IllegalArgumentException(
+            invalidParameterCombination(
+              VisibilityStatus.open, Params.approvalStatus,
+              searchParams.approvalStatus.map(_.status).getOrElse("(pending|rejected)")))
+        }
+      // NOTE: all combinations of visibility=internal with other params is legitimate, except when
+      // all four vis params define visibility=open
+      case _ =>
     }
   }
 
