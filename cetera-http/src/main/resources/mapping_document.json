@@ -1,5 +1,5 @@
 {
-  "_parent": { "type": "domain"},
+  "_parent": { "type": "domain" },
   "_routing": { "required": true },
   "dynamic": "strict",
   "properties": {
@@ -14,7 +14,7 @@
               "analyzer": "snowball_en",
               "fields": {
                 "raw": { "type": "keyword", "store": true },
-                "lowercase": {"type": "text", "analyzer": "case_insensitive_en" }
+                "lowercase": { "type": "text", "analyzer": "case_insensitive_en" }
               },
               "copy_to": [ "fts_analyzed", "fts_raw" ]
             },
@@ -30,7 +30,7 @@
               "analyzer": "snowball_en",
               "fields": {
                 "raw": { "type": "keyword", "store": true },
-                "lowercase": {"type": "text", "analyzer": "case_insensitive_en" }
+                "lowercase": { "type": "text", "analyzer": "case_insensitive_en" }
               },
               "copy_to": [ "fts_analyzed", "fts_raw" ]
             },
@@ -114,7 +114,7 @@
       "analyzer": "snowball_en",
       "fields": {
         "raw": { "type": "keyword" },
-        "lowercase": {"type": "text", "analyzer": "case_insensitive_en" }
+        "lowercase": { "type": "text", "analyzer": "case_insensitive_en" }
       },
       "copy_to": [ "fts_analyzed", "fts_raw" ]
     },
@@ -130,7 +130,7 @@
           "analyzer": "snowball_en",
           "fields": {
             "raw": { "type": "keyword" },
-            "lowercase": {"type": "text", "analyzer": "case_insensitive_en" }
+            "lowercase": { "type": "text", "analyzer": "case_insensitive_en" }
           },
           "copy_to": [ "fts_analyzed", "fts_raw" ]
         },
@@ -139,7 +139,7 @@
           "analyzer": "snowball_en",
           "fields": {
             "raw": { "type": "keyword" },
-            "lowercase": {"type": "text", "analyzer": "case_insensitive_en" }
+            "lowercase": { "type": "text", "analyzer": "case_insensitive_en" }
           },
           "copy_to": [ "fts_analyzed", "fts_raw" ]
         },
@@ -148,7 +148,7 @@
           "analyzer": "snowball_en",
           "fields": {
             "raw": { "type": "keyword" },
-            "lowercase": {"type": "text", "analyzer": "case_insensitive_en" }
+            "lowercase": { "type": "text", "analyzer": "case_insensitive_en" }
           },
           "copy_to": [ "fts_analyzed", "fts_raw" ]
         },
@@ -174,8 +174,8 @@
     },
     "is_public": { "type": "boolean" },
     "is_published": { "type": "boolean" },
-    "hide_from_catalog": { "type": "boolean"},
-    "hide_from_data_json": { "type": "boolean"},
+    "hide_from_catalog": { "type": "boolean" },
+    "hide_from_data_json": { "type": "boolean" },
     "lens_view_type": { "type": "keyword" },
     "lens_display_type": { "type": "keyword" },
     "shared_to": { "type": "keyword" },
@@ -205,6 +205,7 @@
         "attribution": { "type": "keyword", "index": false },
         "columns_description": { "type": "keyword", "index": false },
         "columns_field_name": { "type": "keyword", "index": false },
+        "columns_datatype": { "type": "keyword", "index": false },
         "columns_name": { "type": "keyword", "index": false },
         "createdAt": { "type": "date", "format": "dateOptionalTime" },
         "description": { "type": "keyword", "index": false },

@@ -27,6 +27,7 @@ case class Resource(
     @JsonKey("type") datatype: String,
     id: String,
     columnsFieldName: Seq[String],
+    columnsDatatype: Seq[String],
     columnsDescription: Seq[String],
     columnsName: Seq[String],
     name: String,
