@@ -286,6 +286,12 @@ for the format of arguments to `min_should_match`.
 If `min_should_match` is not specified, the service's default is `3<60%`, meaning that if there are 3 or fewer search terms specified,
 all of them must match; otherwise 60% of the search terms must be found in the fields specified above.
 
+For example, if `min_should_match` is `3<60%`:
+- Searching for `city dog park` will require stemmed matches for all three words; thus, `Western Cities Association Dog Parks` will match,
+  but `New York City Parks` will not.
+- Searching for `trees green spaces new york` will require 60% of the words to match, which is 3 out of 5 words; thus,
+  `New York Tree Map`, and `New Green Spaces Initiative` will both match.
+
 + Parameters
     + q (optional, string, `chicago crime`) ... A string for full text search
     + min_should_match (optional, string, `3<60%` ... The number or percent of words that must match
