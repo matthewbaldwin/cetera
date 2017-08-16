@@ -25,7 +25,7 @@ class SearchServiceSpecForUsersWithAllTheRights
     httpClient.close()
   }
 
-  def allRights = List("view_others_datasets", "view_story", "edit_others_datasets", "edit_story", "manage_users")
+  def allRights = List("view_others_datasets", "view_story", "edit_others_datasets", "edit_others_stories", "manage_users")
   val cookieMonsUserBody = authedUserBodyWithRoleAndRights(allRights)
   val ownerOfNothingUserBody = authedUserBodyWithRoleAndRights(allRights, "user-but-not-owner")
 

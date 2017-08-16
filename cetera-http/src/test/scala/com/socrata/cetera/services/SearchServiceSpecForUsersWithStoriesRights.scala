@@ -26,7 +26,7 @@ class SearchServiceSpecForUsersWithStoriesRights
     httpClient.close()
   }
 
-  def storiesRights = List("view_story", "edit_story")
+  def storiesRights = List("view_story", "edit_others_stories")
   val cookieMonsUserBody = authedUserBodyWithRoleAndRights(storiesRights)
   val ownerOfNothingUserBody = authedUserBodyWithRoleAndRights(storiesRights, "user-but-not-owner")
 

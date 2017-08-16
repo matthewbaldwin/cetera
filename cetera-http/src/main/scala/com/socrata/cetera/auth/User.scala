@@ -86,5 +86,5 @@ object AuthedUser {
   val toViewOthersStories = "view_story"
   val toViewAllUsers = "manage_users"
   val toEditOthersViews = "edit_others_datasets"
-  val toEditOthersStories = "edit_story"
+  val toEditOthersStories = "edit_others_stories"
 }
