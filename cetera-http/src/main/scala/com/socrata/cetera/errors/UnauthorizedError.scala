@@ -4,7 +4,7 @@ case class UnauthorizedError(userId: Option[String], action: String) extends Thr
   override def getMessage: String = {
     userId match {
       case Some(id) => s"User $id is not authorized to $action"
-      case None => s"No user was provided to $action"
+      case None => s"An authorized user was not provided to $action"
     }
   }
 }

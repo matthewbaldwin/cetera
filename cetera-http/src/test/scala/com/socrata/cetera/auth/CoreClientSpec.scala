@@ -224,124 +224,6 @@ class CoreClientSpec extends WordSpec with ShouldMatchers with BeforeAndAfterAll
       coreClient.authenticateUser(domain, AuthParams(cookie=Some(cookie)), None)._1 should be(None)
     }
   }
-
-  "The fetchUserById method" should {
-    "pass along requestid in core request" in {
-      val fxf = "foo-bear"
-      val userBody = j"""["bar"]"""
-      val reqId = "42"
-      val expectedRequest =
-        request()
-          .withMethod("GET")
-          .withPath(s"/users/$fxf")
-          .withHeader(HeaderXSocrataHostKey, domain)
-          .withHeader(HeaderXSocrataRequestIdKey, reqId)
-
-      mockServer.when(
-        expectedRequest
-      ).respond(
-        response()
-          .withStatusCode(200)
-          .withHeader("Content-Type", "application/json; charset=utf-8")
-          .withBody(CompactJsonWriter.toString(userBody))
-      )
-
-      coreClient.fetchUserById(domain, fxf, Some(reqId))
-      mockServer.verify(expectedRequest)
-    }
-
-    "pass back set-cookie from the core response" in {
-      val fxf = "foo-bear"
-      val userBody = j"""["bar"]"""
-      val expectedSetCookie = "everything=awesome"
-
-      mockServer.when(
-        request()
-          .withMethod("GET")
-          .withPath(s"/users/$fxf")
-          .withHeader(HeaderXSocrataHostKey, domain)
-      ).respond(
-        response()
-          .withStatusCode(200)
-          .withHeader("Content-Type", "application/json; charset=utf-8")
-          .withHeader(HeaderSetCookieKey, expectedSetCookie)
-          .withBody(CompactJsonWriter.toString(userBody))
-      )
-
-      val (_, setCookies) = coreClient.fetchUserById(domain, fxf, None)
-      setCookies should contain theSameElementsAs Seq(expectedSetCookie)
-    }
-
-    "return the user if core returns a 200" in {
-      val fxf = "boo-bear"
-      val userBody =
-        j"""{
-        "id" : "boo-bear",
-        "screenName" : "boo bear",
-        "numberOfFollowers" : 1000,
-        "numberOfFriends" : 500,
-        "roleName" : "headBear",
-        "rights" : [ "steal_honey", "scare_tourists"],
-        "flags" : [ "admin" ]
-        }"""
-
-      mockServer.when(
-        request()
-          .withMethod("GET")
-          .withPath(s"/users/$fxf")
-          .withHeader(HeaderXSocrataHostKey, domain)
-      ).respond(
-        response()
-          .withStatusCode(200)
-          .withHeader("Content-Type", "application/json; charset=utf-8")
-          .withBody(CompactJsonWriter.toString(userBody))
-      )
-
-      val expectedUser = User("boo-bear", roleName = Some("headBear"),
-        rights = Some(Set("steal_honey", "scare_tourists")), flags = Some(List("admin")))
-
-      val (actualUser, _) = coreClient.fetchUserById(domain, fxf, None)
-      actualUser.get should be(expectedUser)
-    }
-
-    "return None if the core returns unexpected json" in {
-      val fxf = "oops-bear"
-      val userBody =
-        j"""{
-        "screenName" : "oops bear",
-        "rights" : [ "hibernate"]
-        }"""
-
-      mockServer.when(
-        request()
-          .withMethod("GET")
-          .withPath(s"/users/$fxf")
-          .withHeader(HeaderXSocrataHostKey, domain)
-      ).respond(
-        response()
-          .withStatusCode(200)
-          .withHeader("Content-Type", "application/json; charset=utf-8")
-          .withBody(CompactJsonWriter.toString(userBody))
-      )
-      coreClient.fetchUserById(domain, fxf, None)._1 should be(None)
-    }
-
-    "return None if core returns a 405" in {
-      val fxf = "four-four"
-      mockServer
-        .when(
-          request()
-            .withMethod("GET")
-            .withPath(s"/users/$fxf")
-        )
-        .respond(
-          response()
-            .withStatusCode(405)
-        )
-
-      coreClient.fetchUserById(domain, fxf, None)._1 should be(None)
-    }
-  }
 }
 
 // no mock-server set up for these tests
@@ -356,12 +238,6 @@ class CoreClientlessSpec extends WordSpec with ShouldMatchers {
   "When core is not reachable, the authenticateUser method" should {
     "return None" in {
       coreClient.authenticateUser(domain, AuthParams(cookie=Some(cookie)), None)._1 should be(None)
-    }
-  }
-
-  "When core is not reachable, the fetchUserById method" should {
-    "return None" in {
-      coreClient.fetchUserById(domain, "four-four", None)._1 should be(None)
     }
   }
 }

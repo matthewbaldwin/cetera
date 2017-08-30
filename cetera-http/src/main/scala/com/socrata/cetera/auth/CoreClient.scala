@@ -2,6 +2,7 @@ package com.socrata.cetera.auth
 
 import scala.util.control.NonFatal
 
+import com.rojoma.json.v3.util.AutomaticJsonCodecBuilder
 import com.rojoma.simplearm.v2.{ResourceScope, using}
 import com.socrata.http.client.{HttpClientHttpClient, RequestBuilder}
 import org.apache.http.HttpStatus._
@@ -9,6 +10,11 @@ import org.slf4j.LoggerFactory
 
 import com.socrata.cetera._
 import com.socrata.cetera.util.LogHelper
+
+case class CoreError(message: String)
+object CoreError {
+  implicit val jCodec = AutomaticJsonCodecBuilder[CoreError]
+}
 
 class CoreClient(
     httpClient: HttpClientHttpClient,
@@ -97,56 +103,18 @@ class CoreClient(
               logger.error(s"Could not parse core user data: \n ${err.english}")
               (None, setCookies)
           }
-          case SC_FORBIDDEN | SC_UNAUTHORIZED =>
-            logger.warn(s"User is unauthorized on $domain.")
-            (None, setCookies)
-          case code: Int =>
-            logger.warn(s"Could not validate user with core. Core returned a $code.")
-            (None, setCookies)
+          case code: Int => res.value[CoreError]() match {
+            case Right(m) =>
+              logger.warn(s"Could not validate user. Core returned a $code with the message: ${m.message}")
+              (None, setCookies)
+            case Left(err) =>
+              logger.error(s"Could not validate user. Core returned a $code with no message")
+              (None, setCookies)
+          }
         }
       } catch {
         case NonFatal(e) =>
           logger.error("Cannot reach core to validate user")
-          (None, Seq.empty)
-      }
-    }
-  }
-
-  /**
-   * Fetch a user by ID.
-   *
-   * @param domain the domain of the user to fetch
-   * @param id the unique identifier for the user to fetch
-   * @param requestId a somewhat unique identifier that helps string requests together across services
-   * @return (user if one exists on `domain` with id `id`, client cookies to set)
-   */
-  def fetchUserById(
-      domain: String,
-      id: String,
-      requestId: Option[String])
-    : (Option[User], Seq[String]) = {
-    val req = coreRequest(List("users", id), Map.empty, Some(domain), AuthParams(), requestId)
-
-    logger.info(s"Looking up user $id on domain $domain")
-    logger.debug(LogHelper.formatSimpleHttpRequestBuilderVerbose(req))
-    using(new ResourceScope(s"retrieving user from core")) { rs =>
-      try {
-        val res = httpClient.execute(req.get, rs)
-        val setCookies = res.headers(HeaderSetCookieKey).toSeq
-        res.resultCode match {
-          case SC_OK => res.value[User]() match {
-            case Right(u) => (Some(u), setCookies)
-            case Left(err) =>
-              logger.error(s"Could not parse core data for user $id: \n ${err.english}")
-              (None, setCookies)
-          }
-          case code: Int =>
-            logger.warn(s"Could not fetch user $id from core. Core returned a $code.")
-            (None, setCookies)
-        }
-      } catch {
-        case NonFatal(e) =>
-          logger.error(s"Cannot reach core to fetch user $id")
           (None, Seq.empty)
       }
     }
