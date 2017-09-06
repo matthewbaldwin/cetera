@@ -1,6 +1,6 @@
 package com.socrata.cetera.search
 
-import org.elasticsearch.index.query.QueryBuilders.termsQuery
+import org.elasticsearch.index.query.QueryBuilders.{termQuery, termsQuery}
 import org.elasticsearch.search.sort._
 
 import com.socrata.cetera.handlers.SearchParamSet
@@ -33,12 +33,29 @@ object Sorts {
       .setNestedFilter(termsQuery(rawFieldName, classifications.toSeq: _*))
   }
 
+  def buildNestedUserSort(
+      fieldName: String,
+      domainId: Int,
+      sortOrder: SortOrder)
+  : FieldSortBuilder = {
+
+    // NOTE: the sortMode shouldn't matter as only one nested role should come back from the filter
+    val sortMode = SortMode.MIN
+
+    SortBuilders
+      .fieldSort(fieldName)
+      .order(sortOrder)
+      .sortMode(sortMode)
+      .setNestedPath("roles")
+      .setNestedFilter(termQuery(UserDomainId.fieldName, domainId))
+  }
+
   /** Get the appropriate SortBuilder given a sort parameter string
     *
     * @param sortParam the sort parameter string
     * @return a SortBuilder
     */
-  def mapSortParam(sortParam: String): Option[SortBuilder[_]] = // scalastyle:ignore cyclomatic.complexity
+  def mapSortParam(sortParam: String): Option[SortBuilder[_]] = // scalastyle:ignore cyclomatic.complexity method.length
     sortParam match {
       // Timestamps
       case "createdAt ASC" => Some(sortFieldAsc(CreatedAtFieldType.fieldName))
@@ -85,6 +102,26 @@ object Sorts {
       // Dataset ID
       case "dataset_id" => Some(sortDatasetId)
 
+      // ScreenName (Users)
+      case "screen_name" => Some(sortFieldAsc(UserScreenName.fieldName))
+      case "screen_name ASC" => Some(sortFieldAsc(UserScreenName.fieldName))
+      case "screen_name DESC" => Some(sortFieldDesc(UserScreenName.fieldName))
+
+      // Email (Users)
+      case "email" => Some(sortFieldAsc(UserEmail.fieldName))
+      case "email ASC" => Some(sortFieldAsc(UserEmail.fieldName))
+      case "email DESC" => Some(sortFieldDesc(UserEmail.fieldName))
+
+      // RoleName (Users)
+      case "role_name" => Some(sortFieldAsc(UserRoleName.fieldName))
+      case "role_name ASC" => Some(sortFieldAsc(UserRoleName.fieldName))
+      case "role_name DESC" => Some(sortFieldDesc(UserRoleName.fieldName))
+
+      // LastAuthenticatedAt (Users)
+      case "last_authenticated_at ASC" => Some(sortFieldAsc(UserLastAuthenticatedAt.fieldName))
+      case "last_authenticated_at DESC" => Some(sortFieldDesc(UserLastAuthenticatedAt.fieldName))
+      case "last_authenticated_at" => Some(sortFieldDesc(UserLastAuthenticatedAt.fieldName))
+
       // Otherwise...
       case _ => None
     }
@@ -116,6 +153,23 @@ object Sorts {
         )
 
       // Everything else
+      case _ => Sorts.sortScoreDesc
+    }
+
+  def chooseUserSort(sortString: Option[String], domainId: Int): SortBuilder[_] =
+    sortString match {
+      case Some("email") | Some("email ASC") => sortFieldAsc(UserEmail.lowercaseAlphanumFieldName)
+      case Some("email DESC") => sortFieldDesc(UserEmail.lowercaseAlphanumFieldName)
+      case Some("screen_name") | Some("screen_name ASC") => sortFieldAsc(UserScreenName.lowercaseAlphanumFieldName)
+      case Some("screen_name DESC") => sortFieldDesc(UserScreenName.lowercaseAlphanumFieldName)
+      case Some("last_authenticated_at") | Some("last_authenticated_at ASC") =>
+        buildNestedUserSort(UserLastAuthenticatedAt.fieldName, domainId, SortOrder.ASC)
+      case Some("last_authenticated_at DESC") =>
+        buildNestedUserSort(UserLastAuthenticatedAt.fieldName, domainId, SortOrder.DESC)
+      case Some("role_name") | Some("role_name ASC") =>
+        buildNestedUserSort(UserRoleName.lowercaseAlphanumFieldName, domainId, SortOrder.ASC)
+      case Some("role_name DESC") =>
+        buildNestedUserSort(UserRoleName.lowercaseAlphanumFieldName, domainId, SortOrder.DESC)
       case _ => Sorts.sortScoreDesc
     }
 }

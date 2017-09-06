@@ -6,21 +6,30 @@
       "type": "text",
       "analyzer": "screen_name",
       "fields": {
-        "raw": { "type": "text", "analyzer": "case_insensitive_en" }
+        "raw": { "type": "text", "analyzer": "case_insensitive_en" },
+        "lowercase_alphanumeric": { "type": "text", "analyzer": "lowercase_alphanumeric", "fielddata": true }
       }
     },
     "email": {
       "type": "text",
       "analyzer": "email",
       "fields": {
-        "raw": { "type": "text", "analyzer": "case_insensitive_en" }
+        "raw": { "type": "text", "analyzer": "case_insensitive_en" },
+        "lowercase_alphanumeric": { "type": "text", "analyzer": "lowercase_alphanumeric", "fielddata": true }
       }
     },
     "roles": {
       "type": "nested",
       "properties": {
         "domain_id": { "type": "long" },
-        "role_name": { "type": "keyword" }
+        "role_name": {
+          "type": "keyword",
+          "fields": {
+            "lowercase_alphanumeric": { "type": "text", "analyzer": "lowercase_alphanumeric", "fielddata": true }
+          }
+        },
+        "role_id": { "type": "long" },
+        "last_authenticated_at": { "type": "date", "format": "epoch_second" }
       }
     },
     "flags": { "type": "keyword" },

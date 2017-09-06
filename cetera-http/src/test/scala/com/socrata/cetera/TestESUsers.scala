@@ -18,18 +18,22 @@ trait TestESUsers extends TestESDomains {
         id = tsvLine(0),
         screenName = Option(tsvLine(1)).filter(_.nonEmpty),
         email = Option(tsvLine(2)).filter(_.nonEmpty),
-        roles = Some(Set(Role(tsvLine(3).toInt, tsvLine(4)))),
-        flags = Option(List(tsvLine(5)).filter(_.nonEmpty)),
-        profileImageUrlLarge = Option(tsvLine(6)).filter(_.nonEmpty),
-        profileImageUrlMedium = Option(tsvLine(7)).filter(_.nonEmpty),
-        profileImageUrlSmall = Option(tsvLine(8)).filter(_.nonEmpty)
+        roles = Some(Set(Role(
+          tsvLine(3).toInt,
+          tsvLine(4),
+          Option(tsvLine(5)).filter(_.nonEmpty).map(_.toInt),
+          Option(tsvLine(6)).filter(_.nonEmpty).map(BigInt(_))))),
+        flags = Option(List(tsvLine(7)).filter(_.nonEmpty)),
+        profileImageUrlLarge = Option(tsvLine(8)).filter(_.nonEmpty),
+        profileImageUrlMedium = Option(tsvLine(9)).filter(_.nonEmpty),
+        profileImageUrlSmall = Option(tsvLine(10)).filter(_.nonEmpty)
       )
     }.toSeq
 
     // we want some users to have roles on mulitple domains
     originalUsers.map(u =>
       if (u.id == "bright-heart") {
-        val moreRoles = u.roles.get ++ Some(Role(1, "honorary-bear"))
+        val moreRoles = u.roles.get ++ Some(Role(1, "honorary-bear", Some(20), Some(150415999)))
         u.copy(roles = Some(moreRoles))
       } else {
         u

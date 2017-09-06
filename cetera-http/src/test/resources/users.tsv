@@ -1,9 +1,10 @@
-id	displayName	email	domainId	roleName	flags	imageLarge	imageMedium	imageSmall
-death	death	death@city.org	0	death	symmetrical	""	""	""
-soul-eater	death the kid	death.kid@deathcity.com	0	headmaster		/api/users/soul-eater/profile_images/LARGE	/api/users/soul-eater/profile_images/THUMB	/api/users/soul-eater/profile_images/TINY
-dark-soul	dark-star	dark.star@deathcity.com	0	assasin		/api/users/soul-eater2/profile_images/LARGE	/api/users/soul-eater2/profile_images/THUMB	/api/users/soul-eater2/profile_images/TINY
-fun-shine	Funshine Bear	funshine.bear@care.alot	1	bear	yellow	""	""	""
-good-luck	Goodluck Bear	good.luck.bear@care.alot	1	bear	green	""	""	""
-bright-heart	Brightheart Racoon	bright.heart.racoon@forest.of.feelingst	2	racoon	purple	""	""	""
-northstar	Jean-Paul Beaubier	i.heart.canada@marvel.com	1	speedster	maple leaf	""	""	""
-maid-marian	Lady Marian	maid.marian@nottingham.com	1	love interest	lovely	""	""	""
+id	displayName	email	domainId	roleName	roleId	lastAuthenticatedAt	flags	imageLarge	imageMedium	imageSmall
+death	death	death@city.org	0	death	4	1504156886	symmetrical	""	""	""
+soul-eater	death the kid	death.kid@deathcity.com	0	headmaster		1504156878		/api/users/soul-eater/profile_images/LARGE	/api/users/soul-eater/profile_images/THUMB	/api/users/soul-eater/profile_images/TINY
+dark-soul	dark-star	dark.star@deathcity.com	0	assasin	3	1504156889		/api/users/soul-eater2/profile_images/LARGE	/api/users/soul-eater2/profile_images/THUMB	/api/users/soul-eater2/profile_images/TINY
+fun-shine	Funshine Bear	funshine.bear@care.alot	1	bear	4		yellow	""	""	""
+good-luck	Goodluck Bear	good.luck.bear@care.alot	1	bear	4	1504156881	green	""	""	""
+bright-heart	Brightheart Racoon	bright.heart.racoon@forest.of.feelings	2	racoon	5	1504156262	purple	""	""	""
+northstar	Jean-Paul Beaubier	i.heart.canada@marvel.com	1	speedster	6	1504156483	maple leaf	""	""	""
+maid-marian	Lady Marian	maid.marian@nottingham.com	1	love interest	7	1504156230	lovely	""	""	""
+little-john		lil.john@nottingham.com	1	best friend	8	1504204179	big	""	""	""

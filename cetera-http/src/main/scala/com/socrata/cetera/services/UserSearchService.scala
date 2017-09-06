@@ -37,17 +37,19 @@ class UserSearchService(userClient: UserClient, domainClient: DomainClient, core
 
     val (domainSet, domainSearchTime) =
       domainClient.findDomainSet(None, extendedHost, searchParams.domain.map(Set(_)), false)
-    val authedUser = authorizedUser.map(_.convertToAuthedUser(domainSet.extendedHost))
+    val authedUser = authorizedUser
+      .map(_.convertToAuthedUser(domainSet.extendedHost))
+      .getOrElse(throw UnauthorizedError(None, "search users"))
 
     val (searchDomain, domainForRoles) = domainSet.domains.toList match {
-      case Nil => (None, domainSet.extendedHost)
-      case d :: _ => (Some(d), Some(d))
+      case Nil => (None, authedUser.authenticatingDomain)
+      case d :: _ => (Some(d), d)
     }
 
     val (users, totalCount, userSearchTime) =
-      userClient.search(searchParams, params.pagingParamSet, searchDomain, authedUser)
+      userClient.search(searchParams, params.pagingParamSet, searchDomain, domainForRoles, authedUser)
 
-    val formattedResults = SearchResults(users.flatMap(u => DomainUser(domainForRoles, u)), totalCount)
+    val formattedResults = SearchResults(users.map(u => DomainUser(domainForRoles, u)), totalCount)
     val timings = InternalTimings(Timings.elapsedInMillis(now), Seq(domainSearchTime, userSearchTime))
     (
       OK,

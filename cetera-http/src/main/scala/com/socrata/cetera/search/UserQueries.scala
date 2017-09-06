@@ -24,14 +24,17 @@ object UserQueries {
   def flagQuery(flags: Option[Set[String]]): Option[TermsQueryBuilder] =
     flags.map(r => termsQuery(UserFlag.fieldName, r.toSeq: _*))
 
-  def roleQuery(roles: Option[Set[String]]): Option[TermsQueryBuilder] =
-    roles.map(r => termsQuery(UserRole.fieldName, r.toSeq: _*))
+  def roleNameQuery(roles: Option[Set[String]]): Option[TermsQueryBuilder] =
+    roles.map(r => termsQuery(UserRoleName.fieldName, r.toSeq: _*))
+
+  def roleIdQuery(roleIds: Option[Set[Int]]): Option[TermsQueryBuilder] =
+    roleIds.map(r => termsQuery(UserRoleId.fieldName, r.toSeq: _*))
 
   def domainQuery(domainId: Option[Int]): Option[TermQueryBuilder] =
     domainId.map(d => termQuery(UserDomainId.fieldName, d))
 
-  def nestedRolesQuery(roles: Option[Set[String]], domainId: Option[Int]): Option[NestedQueryBuilder] = {
-    val queries = Seq(domainQuery(domainId), roleQuery(roles)).flatten
+  def nestedRoleQuery(roleQuery: Option[TermsQueryBuilder], domainId: Option[Int]): Option[NestedQueryBuilder] = {
+    val queries = Seq(domainQuery(domainId), roleQuery).flatten
     if (queries.isEmpty) {
       None
     } else {
@@ -41,34 +44,43 @@ object UserQueries {
     }
   }
 
-  def authQuery(user: Option[AuthedUser], domain: Option[Domain]): Option[NestedQueryBuilder] = {
-    user match {
+  def nestedRoleNamesQuery(roleNames: Option[Set[String]], domainId: Option[Int]): Option[NestedQueryBuilder] =
+    nestedRoleQuery(roleNameQuery(roleNames), domainId)
+
+  def nestedRoleIdsQuery(roleIds: Option[Set[Int]], domainId: Option[Int]): Option[NestedQueryBuilder] =
+    nestedRoleQuery(roleIdQuery(roleIds), domainId)
+
+
+  def authQuery(user: AuthedUser, domain: Option[Domain]): Option[NestedQueryBuilder] =
+    if (user.isSuperAdmin) {
       // no restrictions are needed for super admins
-      case Some(u) if (u.isSuperAdmin) => None
+      None
+    } else if (domain.exists(d => d.domainId != user.authenticatingDomain.domainId)) {
       // if the user is searching for users on a domain, it must be the domain they are authed on
-      case Some(u) if (domain.exists(d => d.domainId != u.authenticatingDomain.domainId)) =>
-        throw UnauthorizedError(Some(u.id), s"search for users on domain ${domain.get.domainCname}")
+      throw UnauthorizedError(Some(user.id), s"search for users on domain ${domain.get.domainCname}")
+    } else if (user.canViewAllUsers) {
       // if the user can view all users, no restrictions are needed (other than the one above)
-      case Some(u) if (u.canViewAllUsers) => None
+      None
+    } else if (user.canViewUsersOnDomain(user.authenticatingDomain.domainId)) {
       // if the user can view domain users, we restrict the user search to user's authenticating domain
-      case Some(u) if (u.canViewUsersOnDomain(u.authenticatingDomain.domainId)) =>
-        nestedRolesQuery(None, Some(u.authenticatingDomain.domainId))
-      // if the user can't view users or is not authenticated, we throw
-      case _ => throw UnauthorizedError(user.map(_.id), "search users")
+      nestedRoleQuery(None, Some(user.authenticatingDomain.domainId))
+    } else {
+      // otherwise the user can't veiw any users
+      throw UnauthorizedError(Some(user.id), "search users")
     }
-  }
 
   def compositeQuery(
       searchParams: UserSearchParamSet,
       domain: Option[Domain],
-      authorizedUser: Option[AuthedUser])
+      authorizedUser: AuthedUser)
   : QueryBuilder = {
     val queries = Seq(
       idQuery(searchParams.ids),
       emailQuery(searchParams.emails),
       screenNameQuery(searchParams.screenNames),
       flagQuery(searchParams.flags),
-      nestedRolesQuery(searchParams.roles, domain.map(_.domainId)),
+      nestedRoleNamesQuery(searchParams.roleNames, domain.map(_.domainId)),
+      nestedRoleIdsQuery(searchParams.roleIds, domain.map(_.domainId)),
       authQuery(authorizedUser, domain)
     ).flatten
     if (queries.isEmpty) {
@@ -94,7 +106,7 @@ object UserQueries {
   def userQuery(
       searchParams: UserSearchParamSet,
       domain: Option[Domain],
-      authorizedUser: Option[AuthedUser])
+      authorizedUser: AuthedUser)
   : BoolQueryBuilder = {
     val emailOrNameQuery = emailNameMatchQuery(searchParams.query)
     val userQuery = compositeQuery(searchParams, domain, authorizedUser)

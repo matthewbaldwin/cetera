@@ -3,7 +3,6 @@ package com.socrata.cetera.services
 import com.rojoma.json.v3.interpolation._
 import com.rojoma.json.v3.io.CompactJsonWriter
 import com.socrata.http.server.responses._
-import org.mockserver.integration.ClientAndServer._
 import org.mockserver.model.HttpRequest._
 import org.mockserver.model.HttpResponse._
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, FunSuiteLike, Matchers}
@@ -11,9 +10,9 @@ import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, FunSuiteLike, Match
 import com.socrata.cetera.auth.AuthParams
 import com.socrata.cetera.errors.{DomainNotFoundError, UnauthorizedError}
 import com.socrata.cetera.handlers.Params
-import com.socrata.cetera.search.{DomainClient, UserClient}
+import com.socrata.cetera.search.UserClient
 import com.socrata.cetera.types.DomainUser
-import com.socrata.cetera.{HeaderAuthorizationKey, HeaderCookieKey, HeaderXSocrataHostKey, TestCoreClient, TestESClient, TestESData, TestHttpClient}
+import com.socrata.cetera.{HeaderAuthorizationKey, HeaderCookieKey, HeaderXSocrataHostKey, TestESData}
 
 class UserSearchServiceSpec extends FunSuiteLike with Matchers with TestESData
   with BeforeAndAfterAll with BeforeAndAfterEach {
@@ -24,8 +23,8 @@ class UserSearchServiceSpec extends FunSuiteLike with Matchers with TestESData
   override val cookie = "Traditional = WASD"
   val basicAuth = "Basic cHJvZmVzc29yeDpjZXJlYnJvNGxpZmU="
   val oAuth = "OAuth 123456789"
-  val context = Some(domains(0))
-  val host = context.get.domainCname
+  val context = domains(0)
+  val host = context.domainCname
   val adminUserBody = j"""
     {
       "id" : "boo-bear",
@@ -139,7 +138,7 @@ class UserSearchServiceSpec extends FunSuiteLike with Matchers with TestESData
     status should be(OK)
     results.results.headOption should be('defined)
 
-    val expectedUsers = users.map(u => DomainUser(context, u)).flatten
+    val expectedUsers = users.map(u => DomainUser(context, u))
     results.results should contain theSameElementsAs(expectedUsers)
   }
 
@@ -164,7 +163,7 @@ class UserSearchServiceSpec extends FunSuiteLike with Matchers with TestESData
     status should be(OK)
     results.results.headOption should be('defined)
 
-    val expectedUsers = users.map(u => DomainUser(context, u)).flatten
+    val expectedUsers = users.map(u => DomainUser(context, u))
     results.results should contain theSameElementsAs(expectedUsers)
   }
 
@@ -189,7 +188,7 @@ class UserSearchServiceSpec extends FunSuiteLike with Matchers with TestESData
     status should be(OK)
     results.results.headOption should be('defined)
 
-    val expectedUsers = users.map(u => DomainUser(context, u)).flatten
+    val expectedUsers = users.map(u => DomainUser(context, u))
     results.results should contain theSameElementsAs(expectedUsers)
   }
 
@@ -213,7 +212,7 @@ class UserSearchServiceSpec extends FunSuiteLike with Matchers with TestESData
     status should be(OK)
 
     results.results.headOption should be('defined)
-    val expectedFirstUser = DomainUser(context, users(2)).get
+    val expectedFirstUser = DomainUser(context, users(2))
     results.results.head should be(expectedFirstUser)
   }
 
@@ -237,7 +236,7 @@ class UserSearchServiceSpec extends FunSuiteLike with Matchers with TestESData
     status should be(OK)
 
     results.results.headOption should be('defined)
-    val expectedFirstUser = DomainUser(context, users(1)).get
+    val expectedFirstUser = DomainUser(context, users(1))
     results.results.head should be(expectedFirstUser)
   }
 
@@ -261,7 +260,7 @@ class UserSearchServiceSpec extends FunSuiteLike with Matchers with TestESData
     status should be(OK)
 
     results.results.headOption should be('defined)
-    val expectedFirstUser = DomainUser(context, users(2)).get
+    val expectedFirstUser = DomainUser(context, users(2))
     results.results.head should be(expectedFirstUser)
   }
 
@@ -287,7 +286,7 @@ class UserSearchServiceSpec extends FunSuiteLike with Matchers with TestESData
     status should be(OK)
     results.results.headOption should be('defined)
 
-    val expectedUsers = users.map(u => DomainUser(Some(domains(2)), u)).flatten
+    val expectedUsers = users.map(u => DomainUser(domains(2), u))
     results.results should contain theSameElementsAs(expectedUsers)
     results.results.find(u => u.id == "bright-heart").get.roleName.get should be("racoon")
   }
@@ -316,7 +315,7 @@ class UserSearchServiceSpec extends FunSuiteLike with Matchers with TestESData
     status should be(OK)
     results.results.headOption should be('defined)
 
-    val expectedUsers = Set(users(3), users(4), users(5), users(6), users(7)).map(u => DomainUser(Some(domains(1)), u)).flatten
+    val expectedUsers = users.filter(u => u.roleName(1).nonEmpty).map(u => DomainUser(domains(1), u))
     results.results should contain theSameElementsAs(expectedUsers)
     results.results.find(u => u.id == "bright-heart").get.roleName.get should be("honorary-bear")  // and not "racoon" as is the role on domain 2
   }
@@ -342,7 +341,7 @@ class UserSearchServiceSpec extends FunSuiteLike with Matchers with TestESData
     status should be(OK)
 
     results.results.headOption should be('defined)
-    val expectedFirstUser = DomainUser(context, users(6)).get
+    val expectedFirstUser = DomainUser(context, users(6))
     results.results.head should be(expectedFirstUser)
 
     val params2 = Map(Params.emails -> "i.heart.canada@marvel.com").mapValues(Seq(_))
@@ -373,11 +372,11 @@ class UserSearchServiceSpec extends FunSuiteLike with Matchers with TestESData
     val params = Map(Params.domain -> Seq("opendata-demo.socrata.com"), Params.only -> Seq("owner"))
     val (status, domainUsersWithAssets, _, _) = userService.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
 
-    mockServer.verify(expectedRequest)    
+    mockServer.verify(expectedRequest)
     status should be(OK)
 
     val domain = Some(domains(1))
-    val expectedAll = List(users(3), users(4), users(5), users(6), users(7)).map(_.id).toSet
+    val expectedAll = users.filter(u => u.roleName(1).nonEmpty).map(_.id).toSet
     val expectedOwners = List(users(7)).map(_.id).toSet
     allDomainUsers.results.map(_.id).toSet should contain theSameElementsAs(expectedAll)
     domainUsersWithAssets.results.map(_.id).toSet should contain theSameElementsAs(expectedOwners)

@@ -8,7 +8,11 @@ import org.slf4j.LoggerFactory
 import com.socrata.cetera.errors.JsonDecodeException
 
 @JsonKeyStrategy(Strategy.Underscore)
-case class Role(domainId: Int, roleName: String)
+case class Role(
+    domainId: Int,
+    roleName: String,
+    roleId: Option[Int] = None,
+    lastAuthenticatedAt:Option[BigInt] = None)
 
 object Role {
   implicit val codec = AutomaticJsonCodecBuilder[Role]
@@ -34,16 +38,22 @@ object UserInfo {
 @JsonKeyStrategy(Strategy.Underscore)
 case class EsUser(
     id: String,
-    screenName: Option[String],
-    email: Option[String],
-    roles: Option[Set[Role]],
-    flags: Option[Seq[String]],
-    profileImageUrlLarge: Option[String],
-    profileImageUrlMedium: Option[String],
-    profileImageUrlSmall: Option[String]) {
-  def roleName(domainId: Int): Option[String] = {
-    roles.flatMap(rs => rs.collect { case r: Role if r.domainId == domainId => r.roleName }.headOption)
-  }
+    screenName: Option[String] = None,
+    email: Option[String] = None,
+    roles: Option[Set[Role]] = None,
+    flags: Option[Seq[String]] = None,
+    profileImageUrlLarge: Option[String] = None,
+    profileImageUrlMedium: Option[String] = None,
+    profileImageUrlSmall: Option[String] = None) {
+
+  def roleName(domainId: Int): Option[String] =
+    roles.flatMap(rs => rs.collectFirst { case r: Role if r.domainId == domainId => r.roleName })
+
+  def roleId(domainId: Int): Option[Int] =
+    roles.flatMap(rs => rs.collectFirst { case r: Role if r.domainId == domainId => r.roleId }).flatten
+
+  def lastAuthenticatedAt(domainId: Int): Option[BigInt] =
+    roles.flatMap(rs => rs.collectFirst { case r: Role if r.domainId == domainId => r.lastAuthenticatedAt }).flatten
 }
 
 object EsUser {
@@ -63,32 +73,33 @@ object EsUser {
 
 @JsonKeyStrategy(Strategy.Underscore)
 case class DomainUser(
-  id: String,
-  screenName: Option[String],
-  email: Option[String],
-  roleName: Option[String],
-  flags: Option[Seq[String]],
-  profileImageUrlLarge: Option[String],
-  profileImageUrlMedium: Option[String],
-  profileImageUrlSmall: Option[String])
+    id: String,
+    screenName: Option[String] = None,
+    email: Option[String] = None,
+    roleName: Option[String] = None,
+    roleId: Option[Int] = None,
+    lastAuthenticatedAt: Option[BigInt] = None,
+    flags: Option[Seq[String]] = None,
+    profileImageUrlLarge: Option[String] = None,
+    profileImageUrlMedium: Option[String] = None,
+    profileImageUrlSmall: Option[String] = None)
 
 object DomainUser {
   implicit val codec = AutomaticJsonCodecBuilder[DomainUser]
 
-  def apply(domain: Option[Domain], esUser: EsUser): Option[DomainUser] = {
-    Some(
-      DomainUser(
-        esUser.id,
-        esUser.screenName,
-        esUser.email,
-        domain.flatMap { d: Domain => esUser.roleName(d.domainId) },
-        esUser.flags,
-        esUser.profileImageUrlLarge,
-        esUser.profileImageUrlMedium,
-        esUser.profileImageUrlSmall
-      )
-    )
-  }
+  def apply(domain: Domain, esUser: EsUser): DomainUser =
+    DomainUser(
+      esUser.id,
+      esUser.screenName,
+      esUser.email,
+      esUser.roleName(domain.domainId),
+      esUser.roleId(domain.domainId),
+      esUser.lastAuthenticatedAt(domain.domainId),
+      esUser.flags,
+      esUser.profileImageUrlLarge,
+      esUser.profileImageUrlMedium,
+      esUser.profileImageUrlSmall
+  )
 }
 
 sealed trait UserType {

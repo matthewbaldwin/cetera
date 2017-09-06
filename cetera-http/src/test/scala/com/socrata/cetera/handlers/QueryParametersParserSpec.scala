@@ -363,9 +363,9 @@ class QueryParametersParserSpec extends FunSuiteLike with Matchers {
     QueryParametersParser(Map("custom_metadata" -> Seq(""))).searchParamSet.parentDatasetId shouldNot be('defined)
     QueryParametersParser(Map("license" -> Seq(""))).searchParamSet.license shouldNot be('defined)
     QueryParametersParser(Map("visibility" -> Seq(""))).searchParamSet.license shouldNot be('defined)
-    QueryParametersParser.prepUserParams(Map("role" -> Seq(""))).searchParamSet.roles shouldNot be('defined)
-    QueryParametersParser.prepUserParams(Map("email" -> Seq(""))).searchParamSet.emails shouldNot be('defined)
-    QueryParametersParser.prepUserParams(Map("screen_name" -> Seq(""))).searchParamSet.screenNames shouldNot be('defined)
+    QueryParametersParser.prepUserParams(Map("roles" -> Seq(""))).searchParamSet.roleNames shouldNot be('defined)
+    QueryParametersParser.prepUserParams(Map("emails" -> Seq(""))).searchParamSet.emails shouldNot be('defined)
+    QueryParametersParser.prepUserParams(Map("screen_names" -> Seq(""))).searchParamSet.screenNames shouldNot be('defined)
     QueryParametersParser.prepUserParams(Map("domain" -> Seq(""))).searchParamSet.domain shouldNot be('defined)
   }
 

@@ -370,8 +370,11 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
   def prepareFlag(queryParameters: MultiQueryParams): Option[Set[String]] =
     filterNonEmptySetParams(mergeArrayCommaParams(queryParameters, Params.flags))
 
-  def prepareRole(queryParameters: MultiQueryParams): Option[Set[String]] =
+  def prepareRoleName(queryParameters: MultiQueryParams): Option[Set[String]] =
     filterNonEmptySetParams(mergeArrayCommaParams(queryParameters, Params.roles))
+
+  def prepareRoleId(queryParameters: MultiQueryParams): Option[Set[Int]] =
+    mergeArrayCommaParams(queryParameters, Params.roleIds).map(_.map(roleId => NonNegativeInt(roleId.toInt).value))
 
   def prepareUserDomain(queryParameters: MultiQueryParams): Option[String] =
     filterNonEmptyStringParams(queryParameters.first(Params.domain))
@@ -523,7 +526,8 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
       prepareEmail(queryParameters),
       prepareScreenName(queryParameters),
       prepareFlag(queryParameters),
-      prepareRole(queryParameters),
+      prepareRoleName(queryParameters),
+      prepareRoleId(queryParameters),
       prepareUserType(queryParameters),
       prepareUserDomain(queryParameters),
       prepareUserQuery(queryParameters)
@@ -531,7 +535,9 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
 
     val pagingParams = PagingParamSet(
       prepareOffset(queryParameters),
-      prepareLimit(queryParameters)
+      prepareLimit(queryParameters),
+      None, // scrollId
+      prepareSortOrder(queryParameters)
     )
 
     validatePagingParams(pagingParams)
@@ -572,6 +578,7 @@ object Params {
   val screenNames = "screen_names"
   val flags = "flags"
   val roles = "roles"
+  val roleIds = "role_ids"
   val domain = "domain"
 
   // We allow catalog datatypes to be boosted using the boost{typename}={factor}

@@ -366,11 +366,11 @@ case object CreatedAtFieldType extends DocumentFieldType with Sortable {
 ////////////////
 // U'sarians
 
-case object UserScreenName extends UserFieldType with Rawable {
+case object UserScreenName extends UserFieldType with Rawable with HasLowercaseAlphanumericSubfield {
   val fieldName: String = "screen_name"
 }
 
-case object UserEmail extends UserFieldType with Rawable {
+case object UserEmail extends UserFieldType with Rawable with HasLowercaseAlphanumericSubfield {
   val fieldName: String = "email"
 }
 
@@ -378,10 +378,18 @@ case object UserFlag extends UserFieldType {
   val fieldName: String = "flags"
 }
 
-case object UserRole extends UserFieldType {
+case object UserRoleName extends UserFieldType with HasLowercaseAlphanumericSubfield {
   val fieldName: String = "roles.role_name"
 }
 
 case object UserDomainId extends UserFieldType {
   val fieldName: String = "roles.domain_id"
+}
+
+case object UserRoleId extends UserFieldType {
+  val fieldName: String = "roles.role_id"
+}
+
+case object UserLastAuthenticatedAt extends UserFieldType {
+  val fieldName: String = "roles.last_authenticated_at"
 }

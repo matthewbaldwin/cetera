@@ -1,9 +1,9 @@
 package com.socrata.cetera.search
 
 import scala.collection.JavaConverters._
-import org.slf4j.LoggerFactory
 
 import org.elasticsearch.search.aggregations.bucket.terms.Terms
+import org.slf4j.LoggerFactory
 
 import com.socrata.cetera._
 import com.socrata.cetera.auth.AuthedUser
@@ -55,7 +55,8 @@ class UserClient(esClient: ElasticSearchClient, indexAliasName: String) {
       searchParams: UserSearchParamSet,
       pagingParams: PagingParamSet,
       domain: Option[Domain],
-      authorizedUser: Option[AuthedUser])
+      domainForRoles: Domain,
+      authorizedUser: AuthedUser)
     : (Seq[EsUser], Long, Long) = {
 
     // NOTE: as we add more user types, we will want to modularize this logic for determining the appropriate
@@ -76,6 +77,7 @@ class UserClient(esClient: ElasticSearchClient, indexAliasName: String) {
       .setQuery(userQuery(searchParams.copy(ids=ids), domain, authorizedUser))
       .setFrom(pagingParams.offset)
       .setSize(pagingParams.limit)
+      .addSort(Sorts.chooseUserSort(pagingParams.sortOrder, domainForRoles.domainId))
     logger.info(LogHelper.formatEsRequest(req))
 
     val res = req.execute.actionGet
