@@ -51,14 +51,17 @@ the `limit` and `offset` parameters. An example of using these to page through u
 
 Successful user searches return user `results` with the following fields:
 
-- `id` - The unique identifier for the user, e.g. 'epi9-4k9x'
-- `email` - The user's email address. This is unique since no two accounts may share an email address.
-- `screen_name` - The screen name the user has chosen, e.g. 'Robin Hood'
-- `role_name` - The user's role. Users may have roles on multiple domains, but only the role given by the 
-    authenticating domain will be returned. If missing, the user has no role on the authenticating domain.
-- `profile_image_url_large` - The route to the large copy of the user's profile image; only present if the user has chosen a profile picture
-- `profile_image_url_medium` - The route to the medium copy of the user's profile image; only present if the user has chosen a profile picture
-- `profile_image_url_small` - The route to the small copy of the user's profile image; only present if the user has chosen a profile picture
+| Field                   | Description                                          | 
+|-------------------------|------------------------------------------------------|
+|id                       | The unique identifier for the user, e.g. 'epi9-4k9x' |
+|email                    | The user's email address. This is unique since no two accounts may share an email address. |
+|screen_name              | The screen name the user has chosen, e.g. 'Robin Hood' |
+|role_name                | The user's role. Users may have roles on multiple domains, but only the role given by the authenticating domain will be returned. If missing, the user has no role on the authenticating domain. |
+|role\_id                  | The ID of the role corresponding to the returned `role_name`. |
+|last\_authenticated\_at    | If present, the seconds-since-epoch timestamp of when the user last logged in on the authenticating domain. |
+|profile\_image\_url\_large  | The route to the large copy of the user's profile image; only present if the user has chosen a profile picture |
+|profile\_image\_url\_medium |  The route to the medium copy of the user's profile image; only present if the user has chosen a profile picture |
+|profile\_image\_url\_small  | The route to the small copy of the user's profile image; only present if the user has chosen a profile picture |
 
 ## Request Parameters
 
@@ -80,6 +83,8 @@ of users.
                         "email" : "someone@somewhere.com",
                         "screen_name" : "Screen Name",
                         "role_name" : "publisher",
+                        "role_id" : 5,
+                        "last_authenticated_at": 1504753177,
                         "profile_image_url_large": "/api/users/uniq-uid1/profile_images/LARGE",
                         "profile_image_url_medium": "/api/users/uniq-uid1/profile_images/THUMB",
                         "profile_image_url_small": "/api/users/uniq-uid1/profile_images/TINY"
@@ -95,7 +100,7 @@ found by repeated use of the `ids` param, for example `?ids=uniq-uid1&ids=uniq-u
 + Parameters
     + ids (optional, string, `uniq-uid1`) ... The users unique Socrata ID.
 
-### Search by ID API [GET]
+### Search by ID [GET]
 
 + Response 200
 
@@ -109,7 +114,7 @@ found by repeated use of the `emails` param, for example
 + Parameters
     + emails (optional, string, `someone@somewhere.com`) ... The users email address.
 
-### Search by email API [GET]
+### Search by email [GET]
 
 + Response 200
 
@@ -124,7 +129,7 @@ screen name.
 + Parameters
     + screen_names (optional, string, `Screen%20Name`) ... A screen name.
 
-### Search by screen name API [GET]
+### Search by screen name [GET]
 
 + Response 200
 
@@ -139,11 +144,26 @@ Multiple roles may be searched by repeated use of the `roles` param, for example
 + Parameters
     + roles (optional, string, `publisher`) ... Any Socrata [role](https://support.socrata.com/hc/en-us/articles/202950278-Understanding-user-roles).
 
-### Search by role API [GET]
+### Search by role [GET]
 
 + Response 200
 
     [Search Endpoint][]
+    
+## Find users by role ID [/catalog/v1/users{?role_ids}]
+To search users with a particular role ID, use the `role_ids` param. Per the discussion above in the "User Results"
+section, note that only users with roles on the authenticating domain will be considered.
+Multiple role IDs may be searched by repeated use of the `role_ids` param, for example 
+`?role_ids=3&role_ids=4`. 
+
++ Parameters
+    + role_ids (optional, number, `5`) ... A role ID.
+
+### Search by role ID [GET]
+
++ Response 200
+
+    [Search Endpoint][]    
 
 
 ## Find users by domain [/catalog/v1/users{?domain}]
@@ -154,7 +174,7 @@ have a role on the given domain.
 + Parameters
     + domain (optional, string, `data.ny.gov`) ... Any Socrata domain.
 
-### Search by domain API [GET]
+### Search by domain [GET]
 
 + Response 200
 
@@ -171,7 +191,13 @@ Thus a query using any of those terms will find our user Jack.
 + Parameters
     + q (optional, string, `pumpkin`) ... A string for text search.
 
-## Restrict search to owners (users with assets) [/catalog/v1/users{?only=owner}]
+### Search by query term [GET]
+
++ Response 200
+
+    [Search Endpoint][]
+
+## Restrict search to owners, e.g. users with assets [/catalog/v1/users{?only}]
 
 In addition to the above-mentioned query parameters, you can restrict your user search to owners
 (ie. users who own assets). This is particularly useful when used in conjunction with the `domain`
@@ -181,9 +207,37 @@ parameter is specified, but no `domain` parameter is passed, the service will re
 + Parameters
     + only (optional, string, `owners`) ... A type of user to search for (eg. `owners`).
 
-### Search by query term API [GET]
+### Search for owners [GET]
 
 + Response 200
+
+    [Search Endpoint][]
+
+## Sort order [/catalog/v1{?order}]
+
+The results of all the above filters can be sorted by a number of fields. If not specified, the
+results are sorted by relevance. If a sort field is specified that the search service does not
+recognize, the query will fail. For all accepted sort values, either `ASC` or `DESC` can optionally
+be specified, eg. `email DESC`. If `ASC` or `DESC` is not specified, the default is `ASC`, or
+ascending. Note that spaces must be URL-escaped with `+` or `%20`.
+
+It is possible for search results to have missing values for some of these sort fields (such as
+`last_authenticated_at`, for example). Any assets missing a value altogether for the field being sorted
+on will show up at the end of the results list.
+
+**Accepted Values:**
+- `relevance` (default)
+- `email`
+- `screen_name`
+- `role_name`
+- `last_authenticated_at`
+
++ Parameters
+    + order (optional, string, `email`) ... The sort order of the results
+
+### Sort order [GET]
+
++ response 200
 
     [Search Endpoint][]
 
@@ -195,7 +249,7 @@ By default the search will return 100 results, starting from 0.
     + offset (optional, number, `23`) ... Initial starting point for paging (0 by default).
     + limit (optional, number, `47`) ... Number of results to return (10000 max/100 default).
 
-### Pagination API [GET]
+### Pagination [GET]
 
 + Response 200
 
