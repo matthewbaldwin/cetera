@@ -102,7 +102,7 @@ class DocumentClient(
       }
     }.toList.distinct
 
-  def suggest(
+  def suggest( // scalastyle:ignore method.length
       domainSet: DomainSet,
       searchParams: SearchParamSet,
       scoringParams: ScoringParamSet,
