@@ -366,11 +366,19 @@ case object CreatedAtFieldType extends DocumentFieldType with Sortable {
 ////////////////
 // U'sarians
 
-case object UserScreenName extends UserFieldType with Rawable with HasLowercaseAlphanumericSubfield {
+case object UserScreenName extends UserFieldType
+  with Rawable
+  with HasLowercaseAlphanumericSubfield
+  with Autocompletable {
+
   val fieldName: String = "screen_name"
 }
 
-case object UserEmail extends UserFieldType with Rawable with HasLowercaseAlphanumericSubfield {
+case object UserEmail extends UserFieldType
+  with Rawable
+  with HasLowercaseAlphanumericSubfield
+  with Autocompletable {
+
   val fieldName: String = "email"
 }
 

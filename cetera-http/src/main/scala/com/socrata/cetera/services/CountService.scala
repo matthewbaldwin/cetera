@@ -19,14 +19,15 @@ import com.socrata.cetera.handlers.util._
 import com.socrata.cetera.handlers.{QueryParametersParser, ValidatedQueryParameters}
 import com.socrata.cetera.response.JsonResponses.jsonError
 import com.socrata.cetera.response.{Http, InternalTimings, SearchResults, Timings}
-import com.socrata.cetera.search.{BaseDocumentClient, BaseDomainClient}
+import com.socrata.cetera.search.{DocumentClient, DomainClient}
 import com.socrata.cetera.types._
 import com.socrata.cetera.util.LogHelper
 
 class CountService(
-    documentClient: BaseDocumentClient,
-    domainClient: BaseDomainClient,
+    documentClient: DocumentClient,
+    domainClient: DomainClient,
     coreClient: CoreClient) {
+
   lazy val logger = LoggerFactory.getLogger(classOf[CountService])
   val bucketName = "buckets"
 

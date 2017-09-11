@@ -19,14 +19,15 @@ import com.socrata.cetera.handlers.{QueryParametersParser, ValidatedQueryParamet
 import com.socrata.cetera.handlers.util._
 import com.socrata.cetera.response.JsonResponses._
 import com.socrata.cetera.response.{Http, InternalTimings, Timings}
-import com.socrata.cetera.search.{BaseDocumentClient, BaseDomainClient}
+import com.socrata.cetera.search.{DocumentClient, DomainClient}
 import com.socrata.cetera.types._
 import com.socrata.cetera.util.LogHelper
 
 class FacetService(
-    documentClient: BaseDocumentClient,
-    domainClient: BaseDomainClient,
+    documentClient: DocumentClient,
+    domainClient: DomainClient,
     coreClient: CoreClient) {
+
   lazy val logger = LoggerFactory.getLogger(classOf[FacetService])
 
   def doAggregate( // scalastyle:ignore method.length

@@ -94,6 +94,7 @@ of users.
             }
 
 ## Find users by ID [/catalog/v1/users{?ids}]
+
 To lookup a unique user by their ID, use the `ids` param. Multiple users may be 
 found by repeated use of the `ids` param, for example `?ids=uniq-uid1&ids=uniq-uid2`
 
@@ -107,6 +108,7 @@ found by repeated use of the `ids` param, for example `?ids=uniq-uid1&ids=uniq-u
     [Search Endpoint][]
 
 ## Find users by email [/catalog/v1/users{?emails}]
+
 To look up a unique user by their email, use the `emails` param. Multiple users may be 
 found by repeated use of the `emails` param, for example 
 `?emails=someone@somewhere.com&emails=someone@somewhere.else.com`
@@ -121,6 +123,7 @@ found by repeated use of the `emails` param, for example
     [Search Endpoint][]
     
 ## Find users by screen name [/catalog/v1/users{?screen_names}]
+
 To search for users with a particular screen name, use the `screen_names` param. 
 Multiple screen names may be searched by repeated use of the `screen_names` param, for example 
 `?screen_names=Screen%20Name&screen_names=Pumpkin%20Jack`. Don't forget to URL encode the 
@@ -136,6 +139,7 @@ screen name.
     [Search Endpoint][]
 
 ## Find users by role [/catalog/v1/users{?roles}]
+
 To search users with a particular role, use the `roles` param. Per the discussion above in the "User Results"
 section, note that only users with roles on the authenticating domain will be considered.
 Multiple roles may be searched by repeated use of the `roles` param, for example 
@@ -163,10 +167,11 @@ Multiple role IDs may be searched by repeated use of the `role_ids` param, for e
 
 + Response 200
 
-    [Search Endpoint][]    
+    [Search Endpoint][]
 
 
 ## Find users by domain [/catalog/v1/users{?domain}]
+
 To search for all users on a domain, first understand that users are only linked to a domain
 if they have been given a role on the domain. Thus, this search will find all users who 
 have a role on the given domain.
@@ -181,6 +186,7 @@ have a role on the given domain.
     [Search Endpoint][]
 
 ## Find users by query term [/catalog/v1/users{?q}]
+
 Users matching a given query term can be found using the `q` paramater. Matches are determined by
 whether any of the tokens of the search query match any of the tokens of the user's email and/or 
 screen name. For example if a user Jack has email jack.o.latern@pumpkin.patch.com and screen name 
@@ -242,6 +248,7 @@ on will show up at the end of the results list.
     [Search Endpoint][]
 
 ## Page through users [/catalog/v1/users{?offset,limit}]
+
 Users can be paged with use of the `limit` and `offset` params.  
 By default the search will return 100 results, starting from 0.
 
@@ -254,3 +261,45 @@ By default the search will return 100 results, starting from 0.
 + Response 200
 
     [Search Endpoint][]
+
+## User autocomplete [/catalog/v1/users/autocomplete{?q}]
+
+With the user autocomplete endpoint, you can provide incremental user search suggestions. This API
+supports all the same filtering parameters as the basic user search endpoint. Moreover, the
+response body has the same top-level shape as the user search API, containing `resultSetSize`,
+`results`, and `timings` fields at the root of the response object. The `results` field consists of
+an array of objects, with each object containing `matches` and `user` fields. The `match_data`
+field is an array of objects indicating the name of the fields in the user object that were the
+basis for the match and the corresponding the character offsets of the matches in that field. The
+`user` field contains the matching user object (as described in the "Results" section above).
+
++ Response 200
+
+        {
+          "resultSetSize": 1,
+          "results": [
+            {
+              "matches": [
+                {"field": "screen_name", "offsets": [{"start": 0, "length": 4}, {"start": 5, "length": 3}]},
+                {"field": "email", "offsets": [{"start": 0, "length": 4}, {"start": 5, "length": 3}]}
+              ],
+              "user": {
+                "id": "abcd-1234",
+                "screen_name": "John Doe - Publisher",
+                "email": "john.doe+publisher@gmail.com",
+                "roles": [
+                  {
+                    "domain_id": 1234,
+                    "role_name": "publisher",
+                    "role_id": 5,
+                    "last_authenticated_at": null
+                  }
+                ]
+              }
+            }
+          ],
+          "timings" : {
+            "searchMillis" : [2, 29],
+            "serviceMillis" : 56
+          }
+        }

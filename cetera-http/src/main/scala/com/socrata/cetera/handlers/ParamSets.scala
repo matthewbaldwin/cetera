@@ -69,3 +69,5 @@ case class UserSearchParamSet(
     userType: Option[UserType] = None,
     domain: Option[String] = None,
     query: Option[String] = None)
+
+case class UserScoringParamSet(minShouldMatch: Option[String] = None)

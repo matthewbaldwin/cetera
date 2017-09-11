@@ -12,27 +12,7 @@ import com.socrata.cetera.search.DomainQueries.{cnamesQuery, idQuery, isCustomer
 import com.socrata.cetera.types.{CnamesFieldType, Domain, DomainSet}
 import com.socrata.cetera.util.LogHelper
 
-trait BaseDomainClient {
-  def fetch(id: Int): Option[Domain]
-
-  def findSearchableDomains(
-      searchContextCname: Option[String],
-      extendedHost: Option[String],
-      domainCnames: Option[Set[String]],
-      excludeLockedDomains: Boolean,
-      user: Option[User],
-      requestId: Option[String])
-    : (DomainSet, Long)
-
-  def buildCountRequest(
-      domainSet: DomainSet,
-      searchParams: SearchParamSet,
-      user: Option[AuthedUser])
-  : SearchRequestBuilder
-}
-
-class DomainClient(esClient: ElasticSearchClient, coreClient: CoreClient, indexAliasName: String)
-  extends BaseDomainClient {
+class DomainClient(esClient: ElasticSearchClient, coreClient: CoreClient, indexAliasName: String) {
 
   val logger = LoggerFactory.getLogger(getClass)
 

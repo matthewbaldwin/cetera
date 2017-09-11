@@ -19,11 +19,11 @@ import com.socrata.cetera.handlers.util._
 import com.socrata.cetera.handlers.{QueryParametersParser, ValidatedQueryParameters}
 import com.socrata.cetera.response.JsonResponses.jsonError
 import com.socrata.cetera.response._
-import com.socrata.cetera.search.BaseDomainClient
+import com.socrata.cetera.search.DomainClient
 import com.socrata.cetera.types.Count
 import com.socrata.cetera.util.LogHelper
 
-class DomainCountService(domainClient: BaseDomainClient, coreClient: CoreClient) {
+class DomainCountService(domainClient: DomainClient, coreClient: CoreClient) {
   lazy val logger = LoggerFactory.getLogger(classOf[DomainCountService])
 
   private def extract(json: JValue): Either[DecodeError, Seq[JValue]] = {

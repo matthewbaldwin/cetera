@@ -7,7 +7,7 @@ import org.scalatest.{ShouldMatchers, WordSpec}
 import com.socrata.cetera.{TestESDomains, TestESUsers}
 import com.socrata.cetera.auth.{AuthedUser, User}
 import com.socrata.cetera.errors.UnauthorizedError
-import com.socrata.cetera.handlers.{SearchParamSet, UserSearchParamSet}
+import com.socrata.cetera.handlers.{SearchParamSet, UserScoringParamSet, UserSearchParamSet}
 import com.socrata.cetera.types.{ApprovalStatus, Domain, DomainSet, SimpleQuery}
 
 class UserQueriesSpec extends WordSpec with ShouldMatchers with TestESUsers {
@@ -208,4 +208,131 @@ class UserQueriesSpec extends WordSpec with ShouldMatchers with TestESUsers {
       actual should be(expected)
     }
   }
+
+  "the autocompleteQuery" should {
+    "return the expected query" in {
+      val searchParams = UserSearchParamSet(query = Some("robert v"))
+      val scoringParams = UserScoringParamSet()
+
+      val user = AuthedUser("", domains(0), roleName = None, rights = None, flags = Some(List("admin")))
+      val autocompleteQuery = UserQueries.autocompleteQuery(searchParams, scoringParams, Some(domains(0)), user)
+      val actual = JsonReader.fromString(autocompleteQuery.toString)
+      val expected =j"""
+        {
+          "bool": {
+            "must": [
+              {
+                "bool": {
+                  "should": [
+                    {
+                      "match": {
+                        "email.autocomplete": {
+                          "query": "robert v",
+                          "operator": "OR",
+                          "prefix_length": 0,
+                          "max_expansions": 50,
+                          "minimum_should_match": "100%",
+                          "fuzzy_transpositions": true,
+                          "lenient": false,
+                          "zero_terms_query": "NONE",
+                          "boost": 1.0,
+                          "_name": "email"
+                        }
+                      }
+                    },
+                    {
+                      "match": {
+                        "screen_name.autocomplete": {
+                          "query": "robert v",
+                          "operator": "OR",
+                          "prefix_length": 0,
+                          "max_expansions": 50,
+                          "minimum_should_match": "100%",
+                          "fuzzy_transpositions": true,
+                          "lenient": false,
+                          "zero_terms_query": "NONE",
+                          "boost": 1.0,
+                          "_name": "screen_name"
+                        }
+                      }
+                    }
+                  ],
+                  "disable_coord": false,
+                  "adjust_pure_negative": true,
+                  "boost": 1.0
+                }
+              }
+            ],
+            "filter": [
+              {
+                "bool": {
+                  "must": [
+                    {
+                      "nested": {
+                        "query": {
+                          "bool": {
+                            "must": [
+                              {
+                                "term": {
+                                  "roles.domain_id": {
+                                    "value": 0,
+                                    "boost": 1.0
+                                  }
+                                }
+                              }
+                            ],
+                            "disable_coord": false,
+                            "adjust_pure_negative": true,
+                            "boost": 1.0
+                          }
+                        },
+                        "path": "roles",
+                        "ignore_unmapped": false,
+                        "score_mode": "avg",
+                        "boost": 1.0
+                      }
+                    },
+                    {
+                      "nested": {
+                        "query": {
+                          "bool": {
+                            "must": [
+                              {
+                                "term": {
+                                  "roles.domain_id": {
+                                    "value": 0,
+                                    "boost": 1.0
+                                  }
+                                }
+                              }
+                            ],
+                            "disable_coord": false,
+                            "adjust_pure_negative": true,
+                            "boost": 1.0
+                          }
+                        },
+                        "path": "roles",
+                        "ignore_unmapped": false,
+                        "score_mode": "avg",
+                        "boost": 1.0
+                      }
+                    }
+                  ],
+                  "disable_coord": false,
+                  "adjust_pure_negative": true,
+                  "boost": 1.0
+                }
+              }
+            ],
+            "disable_coord": false,
+            "adjust_pure_negative": true,
+            "boost": 1.0
+          }
+        }
+      """
+
+      actual should be(expected)
+    }
+  }
+
 }

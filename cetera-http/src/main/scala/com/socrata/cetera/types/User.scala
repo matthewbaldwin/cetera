@@ -60,14 +60,12 @@ object EsUser {
   implicit val codec = AutomaticJsonCodecBuilder[EsUser]
   val logger = LoggerFactory.getLogger(getClass)
 
-  def apply(source: String): Option[EsUser] =
-    Option(source).flatMap { s =>
-      JsonUtil.parseJson[EsUser](s) match {
-        case Right(user) => Some(user)
-        case Left(err) =>
+  def fromSource(source: String): EsUser =
+    JsonUtil.parseJson[EsUser](source) match {
+      case Right(user) => user
+      case Left(err) =>
           logger.error(err.english)
           throw new JsonDecodeException(err)
-      }
     }
 }
 

@@ -6,8 +6,8 @@ import org.elasticsearch.index.query._
 import org.elasticsearch.index.query.QueryBuilders._
 
 import com.socrata.cetera.auth.{AuthedUser, User}
-import com.socrata.cetera.errors.UnauthorizedError
-import com.socrata.cetera.handlers.UserSearchParamSet
+import com.socrata.cetera.errors.{MissingRequiredParameterError, UnauthorizedError}
+import com.socrata.cetera.handlers.{UserScoringParamSet, UserSearchParamSet}
 import com.socrata.cetera.types._
 import com.socrata.cetera.esUserType
 
@@ -73,7 +73,8 @@ object UserQueries {
       searchParams: UserSearchParamSet,
       domain: Option[Domain],
       authorizedUser: AuthedUser)
-  : QueryBuilder = {
+    : QueryBuilder = {
+
     val queries = Seq(
       idQuery(searchParams.ids),
       emailQuery(searchParams.emails),
@@ -83,6 +84,7 @@ object UserQueries {
       nestedRoleIdsQuery(searchParams.roleIds, domain.map(_.domainId)),
       authQuery(authorizedUser, domain)
     ).flatten
+
     if (queries.isEmpty) {
       matchAllQuery()
     } else {
@@ -107,9 +109,36 @@ object UserQueries {
       searchParams: UserSearchParamSet,
       domain: Option[Domain],
       authorizedUser: AuthedUser)
-  : BoolQueryBuilder = {
+    : BoolQueryBuilder = {
+
     val emailOrNameQuery = emailNameMatchQuery(searchParams.query)
     val userQuery = compositeQuery(searchParams, domain, authorizedUser)
     boolQuery.filter(userQuery).must(emailOrNameQuery)
+  }
+
+  def namedEmailQuery(query: String): MatchQueryBuilder =
+    matchQuery(UserEmail.autocompleteFieldName, query).queryName("email")
+
+  def namedScreenNameQuery(query: String): MatchQueryBuilder =
+    matchQuery(UserScreenName.autocompleteFieldName, query).queryName("screen_name")
+
+  def autocompleteQuery(
+      searchParams: UserSearchParamSet,
+      scoringParams: UserScoringParamSet,
+      domain: Option[Domain],
+      authorizedUser: AuthedUser)
+    : BoolQueryBuilder = {
+
+    val msm = scoringParams.minShouldMatch.getOrElse("100%")
+
+    val emailOrNameQuery = searchParams.query match {
+      case Some(q) =>
+        boolQuery()
+          .should(namedEmailQuery(q).minimumShouldMatch(msm))
+          .should(namedScreenNameQuery(q).minimumShouldMatch(msm))
+      case _ => throw new MissingRequiredParameterError("q", "search query")
+    }
+
+    boolQuery.filter(compositeQuery(searchParams, domain, authorizedUser)).must(emailOrNameQuery)
   }
 }

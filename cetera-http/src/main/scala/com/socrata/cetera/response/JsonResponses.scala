@@ -15,7 +15,7 @@ import com.socrata.http.server.responses.{Json, StatusResponse, Unauthorized}
 import org.elasticsearch.common.text.Text
 import org.elasticsearch.search.SearchHit
 
-import com.socrata.cetera.types.{TitleFieldType, UserInfo}
+import com.socrata.cetera.types.{DomainUser, TitleFieldType, UserInfo}
 
 object JsonResponses {
   def jsonError(error: String): HttpResponse = {
@@ -157,4 +157,18 @@ object CompletionResult {
 
     CompletionResult(title, displayTitle, spans)
   }
+}
+
+@JsonKeyStrategy(Strategy.Underscore)
+case class CompletionMatch(field: String, offsets: Seq[MatchSpan])
+
+object CompletionMatch {
+  implicit val jCodec = AutomaticJsonCodecBuilder[CompletionMatch]
+}
+
+@JsonKeyStrategy(Strategy.Underscore)
+case class UserCompletionResult(matches: Seq[CompletionMatch], user: DomainUser)
+
+object UserCompletionResult {
+  implicit val jCodec = AutomaticJsonCodecBuilder[UserCompletionResult]
 }

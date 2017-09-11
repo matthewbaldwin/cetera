@@ -29,13 +29,12 @@ class EsUserJsonSpec extends FunSuiteLike with Matchers {
         |   { "domain_id": 0, "role_name": "janitor" }
         |  ]
         |}""".stripMargin
-    val user = EsUser(source)
+    val user = EsUser.fromSource(source)
 
-    user should be('defined)
-    user.get.id should be("abcd-1234")
-    user.get.screenName should be(Some("Aardvark"))
-    user.get.email should be(Some("aardvark@socrata.com"))
-    user.get.roles should be(Some(Set(Role(0, "janitor"))))
+    user.id should be("abcd-1234")
+    user.screenName should be(Some("Aardvark"))
+    user.email should be(Some("aardvark@socrata.com"))
+    user.roles should be(Some(Set(Role(0, "janitor"))))
   }
 
   test("decode user from elasticsearch json, having no roles") {
@@ -46,13 +45,12 @@ class EsUserJsonSpec extends FunSuiteLike with Matchers {
         |  "screen_name": "Aardvark",
         |  "roles": []
         |}""".stripMargin
-    val user = EsUser(source)
+    val user = EsUser.fromSource(source)
 
-    user should be('defined)
-    user.get.id should be("abcd-1234")
-    user.get.screenName should be(Some("Aardvark"))
-    user.get.email should be(Some("aardvark@socrata.com"))
-    user.get.roles should be(Some(Set.empty[Role]))
+    user.id should be("abcd-1234")
+    user.screenName should be(Some("Aardvark"))
+    user.email should be(Some("aardvark@socrata.com"))
+    user.roles should be(Some(Set.empty[Role]))
   }
 
   test("decode user from elasticsearch json, missing roles") {
@@ -62,12 +60,11 @@ class EsUserJsonSpec extends FunSuiteLike with Matchers {
         |  "email": "aardvark@socrata.com",
         |  "screen_name": "Aardvark"
         |}""".stripMargin
-    val user = EsUser(source)
+    val user = EsUser.fromSource(source)
 
-    user should be('defined)
-    user.get.id should be("abcd-1234")
-    user.get.screenName should be(Some("Aardvark"))
-    user.get.email should be(Some("aardvark@socrata.com"))
-    user.get.roles should be(None)
+    user.id should be("abcd-1234")
+    user.screenName should be(Some("Aardvark"))
+    user.email should be(Some("aardvark@socrata.com"))
+    user.roles should be(None)
   }
 }

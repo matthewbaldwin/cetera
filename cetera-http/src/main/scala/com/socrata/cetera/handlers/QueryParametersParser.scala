@@ -16,6 +16,7 @@ case class ValidatedQueryParameters(
 
 case class ValidatedUserQueryParameters(
     searchParamSet: UserSearchParamSet,
+    scoringParamSet: UserScoringParamSet,
     pagingParamSet: PagingParamSet)
 
 sealed trait ValidationError { def message: String }
@@ -533,6 +534,8 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
       prepareUserQuery(queryParameters)
     )
 
+    val scoringParams = UserScoringParamSet(prepareMinShouldMatch(queryParameters))
+
     val pagingParams = PagingParamSet(
       prepareOffset(queryParameters),
       prepareLimit(queryParameters),
@@ -542,7 +545,7 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
 
     validatePagingParams(pagingParams)
 
-    ValidatedUserQueryParameters(searchParams, pagingParams)
+    ValidatedUserQueryParameters(searchParams, scoringParams, pagingParams)
   }
 }
 

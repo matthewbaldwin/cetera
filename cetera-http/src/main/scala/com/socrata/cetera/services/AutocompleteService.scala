@@ -15,13 +15,10 @@ import com.socrata.cetera.handlers._
 import com.socrata.cetera.handlers.util._
 import com.socrata.cetera.response.JsonResponses._
 import com.socrata.cetera.response._
-import com.socrata.cetera.search.{BaseDocumentClient, BaseDomainClient}
+import com.socrata.cetera.search.{DocumentClient, DomainClient}
 import com.socrata.cetera.util.LogHelper
 
-class AutocompleteService(
-    documentClient: BaseDocumentClient,
-    domainClient: BaseDomainClient,
-    coreClient: CoreClient) extends SimpleResource {
+class AutocompleteService(documentClient: DocumentClient, domainClient: DomainClient, coreClient: CoreClient) {
   lazy val logger = LoggerFactory.getLogger(classOf[AutocompleteService])
 
   def doSearch(
@@ -42,26 +39,11 @@ class AutocompleteService(
     val domainSet = domains.addDomainBoosts(scoringParams.domainBoosts)
     val authedUser = authorizedUser.map(_.convertToAuthedUser(domainSet.extendedHost))
 
-    val req = documentClient.buildAutocompleteSearchRequest(
-      domainSet, searchParams, scoringParams, pagingParams, authedUser)
+    val (completions, totalCount, suggestTime) =
+      documentClient.suggest(domainSet, searchParams, scoringParams, pagingParams, authedUser)
 
-    logger.info(LogHelper.formatEsRequest(req))
-
-    val res = req.execute.actionGet
-    val totalHits = res.getHits.totalHits
-    val completions = res.getHits.getHits.flatMap { hit =>
-      try {
-        Some(CompletionResult.fromElasticsearchHit(hit))
-      }
-      catch {
-        case e: Exception =>
-          logger.info(e.getMessage)
-          None
-      }
-    }.toList.distinct
-
-    val formattedResults = SearchResults(completions, totalHits)
-    val timings = InternalTimings(Timings.elapsedInMillis(now), Seq(domainSearchTime, res.getTookInMillis))
+    val formattedResults = SearchResults(completions, totalCount)
+    val timings = InternalTimings(Timings.elapsedInMillis(now), Seq(domainSearchTime, suggestTime))
 
     (OK, formattedResults.copy(timings = Some(timings)), timings, setCookies)
   }

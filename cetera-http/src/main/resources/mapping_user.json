@@ -7,7 +7,8 @@
       "analyzer": "screen_name",
       "fields": {
         "raw": { "type": "text", "analyzer": "case_insensitive_en" },
-        "lowercase_alphanumeric": { "type": "text", "analyzer": "lowercase_alphanumeric", "fielddata": true }
+        "lowercase_alphanumeric": { "type": "text", "analyzer": "lowercase_alphanumeric", "fielddata": true },
+        "autocomplete": { "type": "text", "analyzer": "autocomplete", "term_vector": "with_positions_offsets", "search_analyzer": "screen_name" }
       }
     },
     "email": {
@@ -15,7 +16,8 @@
       "analyzer": "email",
       "fields": {
         "raw": { "type": "text", "analyzer": "case_insensitive_en" },
-        "lowercase_alphanumeric": { "type": "text", "analyzer": "lowercase_alphanumeric", "fielddata": true }
+        "lowercase_alphanumeric": { "type": "text", "analyzer": "lowercase_alphanumeric", "fielddata": true },
+        "autocomplete": { "type": "text", "analyzer": "autocomplete", "term_vector": "with_positions_offsets", "search_analyzer": "email" }
       }
     },
     "roles": {

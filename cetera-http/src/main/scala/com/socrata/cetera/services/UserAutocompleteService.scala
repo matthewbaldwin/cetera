@@ -1,5 +1,6 @@
 package com.socrata.cetera.services
 
+import com.socrata.cetera.types.DomainUser
 import scala.util.control.NonFatal
 
 import com.socrata.http.server.implicits._
@@ -13,59 +14,45 @@ import com.socrata.cetera.auth.{AuthParams, CoreClient}
 import com.socrata.cetera.errors.{DomainNotFoundError, ElasticsearchError, UnauthorizedError}
 import com.socrata.cetera.handlers._
 import com.socrata.cetera.handlers.util._
-import com.socrata.cetera.metrics.BalboaClient
 import com.socrata.cetera.response.JsonResponses._
-import com.socrata.cetera.response.SearchResults._
 import com.socrata.cetera.response._
-import com.socrata.cetera.search.{DocumentClient, DomainClient}
-import com.socrata.cetera.types._
+import com.socrata.cetera.search.{DomainClient, UserClient}
 import com.socrata.cetera.util.LogHelper
 
-class SearchService(
-    documentClient: DocumentClient,
-    domainClient: DomainClient,
-    balboaClient: BalboaClient,
-    coreClient: CoreClient) extends SimpleResource {
-  lazy val logger = LoggerFactory.getLogger(classOf[SearchService])
-
-  def logSearchTerm(domain: Option[Domain], query: QueryType): Unit = {
-    domain.foreach { d =>
-      query match {
-        case NoQuery => // nothing to log to balboa
-        case SimpleQuery(q) => balboaClient.logQuery(d.domainId, q)
-        case AdvancedQuery(q) => balboaClient.logQuery(d.domainId, q)
-      }
-    }
-  }
+class UserAutocompleteService(userClient: UserClient, domainClient: DomainClient, coreClient: CoreClient) {
+  lazy val logger = LoggerFactory.getLogger(classOf[AutocompleteService])
 
   def doSearch(
       queryParameters: MultiQueryParams,
       authParams: AuthParams,
       extendedHost: Option[String],
       requestId: Option[String])
-    : (StatusResponse, SearchResults[SearchResult], InternalTimings, Seq[String]) = {
+    : (StatusResponse, SearchResults[UserCompletionResult], InternalTimings, Seq[String]) = {
 
     val now = Timings.now()
     val (authorizedUser, setCookies) = coreClient.optionallyAuthenticateUser(extendedHost, authParams, requestId)
-    val ValidatedQueryParameters(searchParams, scoringParams, pagingParams, formatParams) =
-      QueryParametersParser(queryParameters)
+    val params = QueryParametersParser.prepUserParams(queryParameters)
+    val searchParams = params.searchParamSet
 
-    val (domains, domainSearchTime) = domainClient.findSearchableDomains(
-      searchParams.searchContext, extendedHost, searchParams.domains,
-      excludeLockedDomains = true, authorizedUser, requestId
-    )
-    val domainSet = domains.addDomainBoosts(scoringParams.domainBoosts)
-    val authedUser = authorizedUser.map(_.convertToAuthedUser(domainSet.extendedHost))
+    val (domainSet, domainSearchTime) =
+      domainClient.findDomainSet(None, extendedHost, searchParams.domain.map(Set(_)), false)
 
-    val req = documentClient.buildSearchRequest(
-      domainSet, searchParams, scoringParams, pagingParams, authedUser)
+    val authedUser = authorizedUser
+      .map(_.convertToAuthedUser(domainSet.extendedHost))
+      .getOrElse(throw UnauthorizedError(None, "search users"))
 
-    logger.info(LogHelper.formatEsRequest(req))
+    val (searchDomain, domainForRoles) = domainSet.domains.toList match {
+      case Nil => (None, authedUser.authenticatingDomain)
+      case d :: _ => (Some(d), d)
+    }
 
-    val res = req.execute.actionGet
-    val formattedResults = Format.formatDocumentResponse(res, authedUser, domainSet, formatParams)
-    val timings = InternalTimings(Timings.elapsedInMillis(now), Seq(domainSearchTime, res.getTookInMillis))
-    logSearchTerm(domainSet.searchContext, searchParams.searchQuery)
+    val scoringParams = params.scoringParamSet
+    val pagingParams = params.pagingParamSet
+    val (completions, totalCount, userSearchTime) =
+      userClient.suggest(searchParams, scoringParams, pagingParams, searchDomain, domainForRoles, authedUser)
+
+    val formattedResults = SearchResults(completions, totalCount)
+    val timings = InternalTimings(Timings.elapsedInMillis(now), Seq(domainSearchTime, userSearchTime))
 
     (OK, formattedResults.copy(timings = Some(timings)), timings, setCookies)
   }
@@ -78,11 +65,9 @@ class SearchService(
     val requestId = req.header(HeaderXSocrataRequestIdKey)
 
     try {
-      val (status, formattedResults, timings, setCookies) =
-        doSearch(req.multiQueryParams, authParams, extendedHost, requestId)
-
+      val (status, results, timings, setCookies) = doSearch(req.multiQueryParams, authParams, extendedHost, requestId)
       logger.info(LogHelper.formatRequest(req, timings))
-      Http.decorate(Json(formattedResults, pretty = true), status, setCookies)
+      Http.decorate(Json(results, pretty = true), status, setCookies)
     } catch {
       case e: IllegalArgumentException =>
         logger.error(e.getMessage)

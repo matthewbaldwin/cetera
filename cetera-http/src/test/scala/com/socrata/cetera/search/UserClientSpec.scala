@@ -20,16 +20,6 @@ class UserClientSpec extends FunSuiteLike with Matchers with TestESData with Tes
     super.beforeAll()
   }
 
-  test("fetch user by non-existent id, get a None") {
-    val userRes = userClient.fetch("dead-beef")
-    userRes should be('empty)
-  }
-
-  test("fetch user by id") {
-    val userRes = userClient.fetch("soul-eater")
-    userRes should be(Some(users(1)))
-  }
-
   test("an UnauthorizedError should be thrown if the authorized user has no role and lacks the manage_user rights") {
     intercept[UnauthorizedError] {
       userClient.search(UserSearchParamSet(), PagingParamSet(), None, domainForRoles, userWithNoRoleAndNoRights(0))

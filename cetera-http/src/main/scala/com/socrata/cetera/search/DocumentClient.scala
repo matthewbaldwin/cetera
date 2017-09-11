@@ -1,62 +1,34 @@
 package com.socrata.cetera.search
 
+import org.slf4j.LoggerFactory
 import scala.language.existentials
 
 import org.elasticsearch.action.search.SearchRequestBuilder
 import org.elasticsearch.search.aggregations.AggregationBuilders
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder
 import org.elasticsearch.search.fetch.subphase.highlight.SearchContextHighlight.FieldOptions
+import org.elasticsearch.search.SearchHits
 import org.elasticsearch.search.sort.SortBuilder
 
 import com.socrata.cetera.auth.AuthedUser
 import com.socrata.cetera.errors.MissingRequiredParameterError
 import com.socrata.cetera.esDocumentType
 import com.socrata.cetera.handlers.{AgeDecayParamSet, PagingParamSet, ScoringParamSet, SearchParamSet}
+import com.socrata.cetera.response.CompletionResult
 import com.socrata.cetera.search.DocumentAggregations.chooseAggregation
 import com.socrata.cetera.types._
-
-trait BaseDocumentClient {
-  def buildSearchRequest(
-      domainSet: DomainSet,
-      searchParams: SearchParamSet,
-      scoringParams: ScoringParamSet,
-      pagingParams: PagingParamSet,
-      user: Option[AuthedUser])
-    : SearchRequestBuilder
-
-  def buildAutocompleteSearchRequest(
-      domainSet: DomainSet,
-      searchParams: SearchParamSet,
-      scoringParams: ScoringParamSet,
-      pagingParams: PagingParamSet,
-      user: Option[AuthedUser])
-    : SearchRequestBuilder
-
-  def buildCountRequest(
-      field: DocumentFieldType with Countable with Rawable,
-      domainSet: DomainSet,
-      searchParams: SearchParamSet,
-      pagingParams: PagingParamSet,
-      user: Option[AuthedUser])
-    : SearchRequestBuilder
-
-  def buildFacetRequest(
-      domainSet: DomainSet,
-      searchParams: SearchParamSet,
-      pagingParams: PagingParamSet,
-      user: Option[AuthedUser])
-    : SearchRequestBuilder
-}
+import com.socrata.cetera.util.LogHelper
 
 class DocumentClient(
     esClient: ElasticSearchClient,
-    domainClient: BaseDomainClient,
+    domainClient: DomainClient,
     indexAliasName: String,
     defaultTitleBoost: Option[Float],
     defaultMinShouldMatch: Option[String],
     scriptScoreFunctions: Set[ScriptScoreFunction],
-    defaultAgeDecay: Option[AgeDecayParamSet])
-  extends BaseDocumentClient {
+    defaultAgeDecay: Option[AgeDecayParamSet]) {
+
+  val logger = LoggerFactory.getLogger(getClass)
 
   private def mergeDefaultScoringParams(scoringParams: ScoringParamSet) = {
     val requestedBoosts = scoringParams.fieldBoosts
@@ -118,13 +90,26 @@ class DocumentClient(
         Sorts.chooseSort(domainSet.searchContext, searchParams)
     }
 
-  def buildAutocompleteSearchRequest(
+  private def completionResultsFromSearchHits(hits: SearchHits): List[CompletionResult] =
+    hits.getHits.flatMap { hit =>
+      try {
+        Some(CompletionResult.fromElasticsearchHit(hit))
+      }
+      catch {
+        case e: Exception =>
+          logger.info(e.getMessage)
+          None
+      }
+    }.toList.distinct
+
+  def suggest(
       domainSet: DomainSet,
       searchParams: SearchParamSet,
       scoringParams: ScoringParamSet,
       pagingParams: PagingParamSet,
       user: Option[AuthedUser])
-    : SearchRequestBuilder = {
+    : (List[CompletionResult], Long, Long) = {
+
     // Construct basic match query against title autocomplete field
     val matchQuery = searchParams.searchQuery match {
       case SimpleQuery(queryString) => DocumentQuery().autocompleteQuery(queryString)
@@ -159,10 +144,18 @@ class DocumentClient(
       .setFetchSource(Array(TitleFieldType.fieldName), Array.empty[String])
       .highlighter(highlighter)
 
-    pagingParams.scrollId match {
+    val req = pagingParams.scrollId match {
       case Some(id) if (!id.isEmpty) => request.searchAfter(Array(id))
       case _ => request
     }
+
+    logger.info(LogHelper.formatEsRequest(req))
+
+    val res = req.execute.actionGet
+    val timing = res.getTookInMillis
+    val totalHits = res.getHits.getTotalHits()
+
+    (completionResultsFromSearchHits(res.getHits), totalHits, timing)
   }
 
   def buildSearchRequest(

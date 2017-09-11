@@ -19,7 +19,8 @@ class Router(
     facetResource: String => HttpService,
     domainCountResource: => HttpService,
     countResource: DocumentFieldType with Countable with Rawable => HttpService,
-    userSearchResource: => HttpService) {
+    userSearchResource: => HttpService,
+    userAutocompleteResource: => HttpService) {
 
   val routes = Routes(
     // /version is for internal use
@@ -32,6 +33,10 @@ class Router(
     // general user search
     Route("/catalog/users", userSearchResource),
     Route("/catalog/v1/users", userSearchResource),
+
+    // user autocomplete
+    Route("/catalog/users/autocomplete", userAutocompleteResource),
+    Route("/catalog/v1/users/autocomplete", userAutocompleteResource),
 
     // document counts for queries grouped by domain
     Route("/catalog/domains", domainCountResource),
