@@ -36,7 +36,11 @@ trait TestESData extends TestESDomains with TestESUsers {
 
   val domainClient = new DomainClient(client, coreClient, testSuiteName)
   val documentClient = new DocumentClient(client, domainClient, testSuiteName, None, None, Set.empty, None)
-  val balboaDir = new File("/tmp/metrics")
+
+  val balboaDir = new File(s"/tmp/metrics/cetera/$testSuiteName")
+  balboaDir.delete()
+  balboaDir.mkdirs()
+
   val balboaClient = new BalboaClient(balboaDir.getAbsolutePath)
 
   val service = new SearchService(documentClient, domainClient, balboaClient, coreClient)
