@@ -112,7 +112,7 @@ class DocumentClient(
 
     // Construct basic match query against title autocomplete field
     val matchQuery = searchParams.searchQuery match {
-      case SimpleQuery(queryString) => DocumentQuery().autocompleteQuery(queryString)
+      case SimpleQuery(queryString) => DocumentQuery().autocompleteQuery(queryString, scoringParams)
       case _ => throw new MissingRequiredParameterError("q", "search query")
     }
 

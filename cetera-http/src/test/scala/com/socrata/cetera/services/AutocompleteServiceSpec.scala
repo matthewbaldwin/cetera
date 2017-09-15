@@ -71,4 +71,34 @@ class AutocompleteServiceSpec
     val expectedCompletions = List("A Multiword Title", "Three", "Two")
     actualCompletions.map(_.title) should contain theSameElementsInOrderAs expectedCompletions
   }
+
+  test("by default, autocomplete requires that all specified terms match") {
+    val params = Map("domains" -> domains.map(_.domainCname).mkString(","), "q" -> "latest foo")
+      .mapValues(Seq(_))
+
+    val SearchResults(actualCompletions1, _, _) = autocompleteService.doSearch(
+      params, AuthParams(), None, None)._2
+
+    actualCompletions1.map(_.title) should contain theSameElementsInOrderAs List.empty[String]
+
+    val SearchResults(actualCompletions2, _, _) = autocompleteService.doSearch(
+      params + ("q" -> Seq("latest data")), AuthParams(), None, None)._2
+
+    actualCompletions2.map(_.title) should contain theSameElementsInOrderAs List("My Latest and Greatest Dataset")
+  }
+
+  test("autocomplete honors the min_should_match parameter") {
+    val params = Map("domains" -> domains.map(_.domainCname).mkString(","), "q" -> "latest foo")
+      .mapValues(Seq(_))
+
+    val SearchResults(actualCompletions1, _, _) = autocompleteService.doSearch(
+      params, AuthParams(), None, None)._2
+
+    actualCompletions1.map(_.title) should contain theSameElementsInOrderAs List.empty[String]
+
+    val SearchResults(actualCompletions2, _, _) = autocompleteService.doSearch(
+      params ++ Map("q" -> Seq("latest foo"), "min_should_match" -> Seq("1")), AuthParams(), None, None)._2
+
+    actualCompletions2.map(_.title) should contain theSameElementsInOrderAs List("My Latest and Greatest Dataset")
+  }
 }

@@ -582,8 +582,10 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
       .should(hasParentQuery(esDomainType, domainQuery, false))
   }
 
-  def autocompleteQuery(queryString: String): MatchQueryBuilder =
-    matchQuery(TitleFieldType.autocompleteFieldName, queryString)
+  def autocompleteQuery(queryString: String, scoringParams: ScoringParamSet): MatchQueryBuilder = {
+    val msm = scoringParams.minShouldMatch.getOrElse("100%")
+    matchQuery(TitleFieldType.autocompleteFieldName, queryString).minimumShouldMatch(msm)
+  }
 
   // TODO: rename; most queries are composites and thus this isn't very descriptive and on top of
   // that, this is no longer a filteredQuery (which no longer exists in Elasticsearch 5.x)
