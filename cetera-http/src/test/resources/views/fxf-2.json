@@ -62,7 +62,7 @@
   "is_public": true,
   "is_published": true,
   "is_default_view": false,
-  "moderation_status": "pending",
+  "moderation_status": null,
   "approving_domain_ids": [],
   "rejecting_domain_ids": [
     3
@@ -86,8 +86,8 @@
   "attribution": null,
   "preview_image_id": null,
   "grants": [],
-  "hide_from_catalog": false,
-  "hide_from_data_json": false,
+  "hide_from_catalog": true,
+  "hide_from_data_json": true,
   "provenance": "community",
   "owner": {
     "id": "robin-hood"

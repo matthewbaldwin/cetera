@@ -5,11 +5,11 @@
     "dataset_id": "zeta-0011",
     "parent_dataset_id": [],
     "domain_id": 0,
-    "nbe_id": "zeta-0011",
-    "obe_id": null
+    "nbe_id": null,
+    "obe_id": "zeta-0011"
   },
   "resource": {
-    "description": "rejected datalens",
+    "description": "hidden datalens",
     "parent_fxf": null,
     "updatedAt": "2016-09-19T10:37:21.143-07:00",
     "createdAt": "2016-09-19T10:37:21.143-07:00",
@@ -46,12 +46,10 @@
   "is_public": true,
   "is_published": true,
   "is_default_view": false,
-  "moderation_status": "rejected",
+  "moderation_status": null,
   "approving_domain_ids": [],
   "rejecting_domain_ids": [],
-  "pending_domain_ids": [
-    2
-  ],
+  "pending_domain_ids": [2],
   "is_approved_by_parent_domain": false,
   "is_rejected_by_parent_domain": false,
   "is_pending_on_parent_domain": false,
@@ -68,8 +66,8 @@
   "attribution": null,
   "preview_image_id": null,
   "grants": [],
-  "hide_from_catalog": false,
-  "hide_from_data_json": false,
+  "hide_from_catalog": true,
+  "hide_from_data_json": true,
   "provenance": "community",
   "owner": {
     "id": "lil-john"

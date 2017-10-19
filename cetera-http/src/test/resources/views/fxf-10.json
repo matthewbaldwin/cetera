@@ -68,7 +68,7 @@
   "is_public": true,
   "is_published": true,
   "is_default_view": true,
-  "moderation_status": "",
+  "moderation_status": null,
   "approving_domain_ids": [
     2,
     3

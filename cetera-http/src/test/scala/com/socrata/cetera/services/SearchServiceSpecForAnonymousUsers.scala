@@ -147,7 +147,7 @@ class SearchServiceSpecForAnonymousUsers
     )
     val res = service.doSearch(params.mapValues(Seq(_)), AuthParams(), None, None)._2.results
     res.length should be(1)
-    val expectedMetadata = Metadata("robert.demo.socrata.com",None,Some(true),Some(true),Some(false),None,None,None,None,None,Some(true),None,None,None,None,None,None)
+    val expectedMetadata = Metadata("robert.demo.socrata.com", None, Some(true), Some(true), Some(false), None, None, None, None, Some(true), None, None, None, None, None, None)
     res(0).metadata should be(expectedMetadata)
   }
 
@@ -159,10 +159,10 @@ class SearchServiceSpecForAnonymousUsers
     )
     val res = service.doSearch(params.mapValues(Seq(_)), AuthParams(), None, None)._2.results
     res.length should be(1)
-    val expectedMetadata = Metadata("petercetera.net",None,Some(true),Some(true),Some(false),None,None,None,None,None,
-      Some(true),None,None,None,None,None,
-      Some(Vector(FlattenedApproval("publicize","rejected","2017-10-31T12:00:00.000Z","robin-hood","Robin Hood", None,
-        Some(false),Some("2017-11-01T12:00:00.000Z"),Some("honorable.sheriff"),Some("The Honorable Sheriff of Nottingham"), None))))
+    val expectedMetadata = Metadata("petercetera.net", None, Some(true), Some(true), Some(false), None, None, None, None,
+      Some(true), None, None, None, None, None,
+      Some(Vector(FlattenedApproval("publicize", "rejected", "2017-10-31T12:00:00.000Z", "robin-hood", "Robin Hood", None,
+        Some(false), Some("2017-11-01T12:00:00.000Z"), Some("honorable.sheriff"), Some("The Honorable Sheriff of Nottingham"), None))))
     res(0).metadata should be(expectedMetadata)
   }
 

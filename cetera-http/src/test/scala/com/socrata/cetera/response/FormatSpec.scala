@@ -229,51 +229,6 @@ class FormatSpec extends WordSpec with ShouldMatchers with TestESData {
     }
   }
 
-
-  "the datalensStatus method" should {
-    val datalens = docs(2)
-
-    "return None if the view isn't a datalens" in {
-      Format.datalensStatus(docs(0)) should be(None)
-    }
-
-    "return rejected if the datalens is rejected" in {
-      Format.datalensStatus(datalens.copy(moderationStatus = Some("rejected"))) should be(Some("rejected"))
-    }
-
-    "return pending if the datalens is pending" in {
-      Format.datalensStatus(datalens.copy(moderationStatus = Some("pending"))) should be(Some("pending"))
-    }
-
-    "return approved if the datalens is approved (for all datalens types)" in {
-      Format.datalensStatus(datalens.copy(moderationStatus = Some("approved"))) should be(Some("approved"))
-      Format.datalensStatus(datalens.copy(moderationStatus = Some("approved"), datatype = "datalens_chart")) should be(Some("approved"))
-      Format.datalensStatus(datalens.copy(moderationStatus = Some("approved"), datatype = "datalens_map")) should be(Some("approved"))
-    }
-  }
-
-  "the datalensApproved method" should {
-    val datalens = docs(2)
-
-    "return None if the view isn't a datalens" in {
-      Format.datalensApproved(docs(0)) should be(None)
-    }
-
-    "return false if the datalens is rejected" in {
-      Format.datalensApproved(datalens.copy(moderationStatus = Some("rejected"))) should be(Some(false))
-    }
-
-    "return false if the datalens is pending" in {
-      Format.datalensApproved(datalens.copy(moderationStatus = Some("pending"))) should be(Some(false))
-    }
-
-    "return true if the datalens is approved (for all datalens types)" in {
-      Format.datalensApproved(datalens.copy(moderationStatus = Some("approved"))) should be(Some(true))
-      Format.datalensApproved(datalens.copy(moderationStatus = Some("approved"), datatype = "datalens_chart")) should be(Some(true))
-      Format.datalensApproved(datalens.copy(moderationStatus = Some("approved"), datatype = "datalens_map")) should be(Some(true))
-    }
-  }
-
   "the moderationStatus method" should {
     "return None if the domain does not have moderation enabled" in {
       val unmoderatedDomain = domains(0)

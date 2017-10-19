@@ -63,7 +63,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "fxf-0").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(false)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(false)
@@ -77,7 +76,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "fxf-4").get
       doc.isPublic should be(false)
       doc.isPublished should be(false)
-      doc.isDatalens should be(false)
       doc.isStory should be(true)
       doc.isHiddenFromCatalog should be(true)
       doc.isDefaultView should be(false)
@@ -91,7 +89,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "fxf-8").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(false)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(true)
@@ -105,7 +102,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "zeta-0001").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(false)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(false)
@@ -119,14 +115,12 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "zeta-0004").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(true)
       doc.isStory should be(false)
-      doc.isHiddenFromCatalog should be(false)
+      doc.isHiddenFromCatalog should be(true)
       doc.isDefaultView should be(false)
       doc.isSharedOrOwned("lil-john") should be(true)
       doc.isSharedOrOwned("cook-mons") should be(true)
       doc.isSharedOrOwned("maid-marian") should be(true)
-      verifyVmPending(doc)  // b/c is a datalens
       verifyRaMissing(doc, 0)
       verifyRaPending(doc, 2)
     }
@@ -135,7 +129,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "zeta-0006").get
       doc.isPublic should be(true)
       doc.isPublished should be(false)
-      doc.isDatalens should be(false)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(true)
       doc.isDefaultView should be(true)
@@ -150,7 +143,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "zeta-0007").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(false)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(true)
@@ -165,13 +157,11 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "zeta-0011").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(true)
       doc.isStory should be(false)
-      doc.isHiddenFromCatalog should be(false)
+      doc.isHiddenFromCatalog should be(true)
       doc.isDefaultView should be(false)
       doc.isSharedOrOwned("lil-john") should be(true)
       doc.isSharedOrOwned("maid-marian") should be(true)
-      verifyVmRejected(doc)  // b/c is a datalens
       verifyRaMissing(doc, 0)
       verifyRaPending(doc, 2)
     }
@@ -180,12 +170,10 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "zeta-0012").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(true)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(false)
       doc.isSharedOrOwned("lil-john") should be(true)
-      verifyVmApproved(doc)  // b/c is a datalens
       verifyRaMissing(doc, 0)
       verifyRaApproved(doc, 2)
     }
@@ -196,7 +184,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "fxf-1").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(false)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(false)
@@ -209,7 +196,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "fxf-5").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(false)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(false)
@@ -223,7 +209,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "fxf-9").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(false)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(false)
@@ -240,12 +225,10 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "fxf-2").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(true)
       doc.isStory should be(false)
-      doc.isHiddenFromCatalog should be(false)
+      doc.isHiddenFromCatalog should be(true)
       doc.isDefaultView should be(false)
       doc.isSharedOrOwned("robin-hood") should be(true)
-      verifyVmPending(doc)  // b/c is a datalens
       verifyRaPending(doc, 2)
       verifyRaMissing(doc, 0)
       verifyRaRejected(doc, 3)
@@ -255,7 +238,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "fxf-6").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(false)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(false)
@@ -270,7 +252,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "fxf-10").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(false)
       doc.isStory should be(true)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(true)
@@ -285,7 +266,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "zeta-0003").get
       doc.isPublic should be(false)
       doc.isPublished should be(true)
-      doc.isDatalens should be(false)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(true)
@@ -301,7 +281,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "zeta-0005").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(false)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(false)
@@ -316,7 +295,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "zeta-0010").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(false)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(true)
       doc.isDefaultView should be(false)
@@ -326,6 +304,32 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaMissing(doc, 0)
       verifyRaRejected(doc, 3)
     }
+
+    "have the expected statuses for zeta-0017" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "zeta-0017").get
+      doc.isPublic should be(true)
+      doc.isPublished should be(true)
+      doc.isStory should be(false)
+      doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(false)
+      doc.isSharedOrOwned("maid-marian") should be(true)
+      doc.isSharedOrOwned("lil-john") should be(true)
+      verifyVmMissing(doc)
+      verifyRaRejected(doc, 2)
+    }
+
+    "have the expected statuses for zeta-0018" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "zeta-0018").get
+      doc.isPublic should be(true)
+      doc.isPublished should be(true)
+      doc.isStory should be(false)
+      doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(false)
+      doc.isSharedOrOwned("maid-marian") should be(true)
+      doc.isSharedOrOwned("lil-john") should be(true)
+      verifyVmMissing(doc)
+      verifyRaPending(doc, 2)
+    }
   }
 
   "domain 3 is a customer domain with both VM & RA that does not federate anywhere" should {
@@ -333,7 +337,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "fxf-3").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(true)
       doc.isSharedOrOwned("prince-john") should be(true)
@@ -345,7 +348,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "fxf-7").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(false)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(false)
@@ -358,7 +360,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "fxf-11").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(false)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isPublic should be(true)
@@ -371,7 +372,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "fxf-12").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(false)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(true)
@@ -384,7 +384,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "zeta-0002").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(false)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(false)
@@ -397,7 +396,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "zeta-0009").get
       doc.isPublic should be(false)
       doc.isPublished should be(true)
-      doc.isDatalens should be(false)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isPublic should be(false)
@@ -410,7 +408,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "zeta-0013").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(false)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(false)
@@ -424,7 +421,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "zeta-0014").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(true)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(false)
@@ -433,6 +429,34 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyVmApproved(doc)
       verifyRaRejected(doc, 3)
     }
+
+    "have the expected statuses for zeta-0015" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "zeta-0015").get
+      doc.isPublic should be(true)
+      doc.isPublished should be(true)
+      doc.isStory should be(false)
+      doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(false)
+      doc.isSharedOrOwned("maid-marian") should be(true)
+      doc.isSharedOrOwned("lil-john") should be(true)
+      verifyVmRejected(doc)
+      verifyRaRejected(doc, 3)
+      verifyRaPending(doc, 2)
+    }
+
+    "have the expected statuses for zeta-0016" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "zeta-0016").get
+      doc.isPublic should be(true)
+      doc.isPublished should be(true)
+      doc.isStory should be(false)
+      doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(false)
+      doc.isSharedOrOwned("maid-marian") should be(true)
+      doc.isSharedOrOwned("lil-john") should be(true)
+      verifyVmMissing(doc)
+      verifyRaRejected(doc, 3)
+      verifyRaPending(doc, 2)
+    }
   }
 
   "domain 8 is locked-down customer domain with both VM & RA that does not federate anywhere" should {
@@ -440,7 +464,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "zeta-0008").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(true)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(false)
@@ -455,7 +478,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "1234-5678").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(false)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(true)
@@ -466,7 +488,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "1234-5679").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(false)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(true)
@@ -477,7 +498,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "1234-5680").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(false)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(true)
@@ -489,7 +509,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
-      doc.isDatalens should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(true)
       doc.isSharedOrOwned("honorable.sheriff") should be(true)
@@ -499,7 +518,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       val doc = docs.find(d => d.socrataId.datasetId == "1234-5682").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
-      doc.isDatalens should be(false)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(true)
@@ -507,4 +525,3 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
     }
   }
 }
-

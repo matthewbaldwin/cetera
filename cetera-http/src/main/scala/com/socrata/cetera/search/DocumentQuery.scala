@@ -255,20 +255,6 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
         boolQuery().must(beFromModeratedDomain).must(beDerived).must(haveGivenStatus)
     }
 
-  def datalensStatusQuery(status: ApprovalStatus): BoolQueryBuilder = {
-    val beADatalens = datatypeQuery(DatalensDatatype.allVarieties)
-    status match {
-      case ApprovalStatus.approved =>
-        // limit results to those that are not unapproved datalens
-        val beUnapproved = boolQuery().mustNot(modStatusQuery(status))
-        boolQuery().mustNot(boolQuery().must(beADatalens).must(beUnapproved))
-      case _ =>
-        // limit results to those with the given status
-        val haveGivenStatus = modStatusQuery(status)
-        boolQuery().must(beADatalens).must(haveGivenStatus)
-    }
-  }
-
   // this limits results to those with the given R&A status on their parent domain
   def raStatusQuery(
       status: ApprovalStatus,
@@ -297,11 +283,10 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
     }
 
   // this limits results to those with a given approval status
-  // - approved views must pass all 4 processes:
+  // - approved views must pass all 3 processes:
   //   1. viewModeration (if enabled on the domain)
-  //   2. datalens moderation (if a datalens)
-  //   3. R&A on the parent domain (if enabled on the parent domain)
-  //   4. R&A on the context (if enabled on the context and you choose to include contextApproval)
+  //   2. R&A on the parent domain (if enabled on the parent domain)
+  //   3. R&A on the context (if enabled on the context and you choose to include contextApproval)
   // - rejected/pending views need be rejected/pending by 1 or more processes
   def approvalStatusQuery(
       status: ApprovalStatus,
@@ -309,19 +294,18 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
       includeContextApproval: Boolean = true)
     : BoolQueryBuilder = {
     val haveGivenVMStatus = moderationStatusQuery(status, domainSet)
-    val haveGivenDLStatus = datalensStatusQuery(status)
     val haveGivenRAStatus = raStatusQuery(status, domainSet)
     val haveGivenRAStatusOnContext = raStatusOnContextQuery(status, domainSet)
 
     status match {
       case ApprovalStatus.approved =>
-        // if we are looking for approvals, a view must be approved according to all 3 or 4 processes
-        val query = boolQuery().must(haveGivenVMStatus).must(haveGivenDLStatus).must(haveGivenRAStatus)
+        // if we are looking for approvals, a view must be approved according to all 3 processes
+        val query = boolQuery().must(haveGivenVMStatus).must(haveGivenRAStatus)
         if (includeContextApproval) haveGivenRAStatusOnContext.foreach(query.must)
         query
       case _ =>
-        // otherwise, a view can fail due to any of the 3 or 4 processes
-        val query = boolQuery().should(haveGivenVMStatus).should(haveGivenDLStatus).should(haveGivenRAStatus)
+        // otherwise, a view can fail due to any of the 3 processes
+        val query = boolQuery().should(haveGivenVMStatus).should(haveGivenRAStatus)
         if (includeContextApproval) haveGivenRAStatusOnContext.foreach(query.should)
         query
     }

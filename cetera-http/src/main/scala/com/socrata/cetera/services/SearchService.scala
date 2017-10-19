@@ -44,7 +44,6 @@ class SearchService(
       extendedHost: Option[String],
       requestId: Option[String])
     : (StatusResponse, SearchResults[SearchResult], InternalTimings, Seq[String]) = {
-
     val now = Timings.now()
     val (authorizedUser, setCookies) = coreClient.optionallyAuthenticateUser(extendedHost, authParams, requestId)
     val ValidatedQueryParameters(searchParams, scoringParams, pagingParams, formatParams) =

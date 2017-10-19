@@ -157,10 +157,6 @@ class SearchServiceSpecForUsersWithAllTheRights
     val context = domainSet.searchContext.get.domainCname
     val doms = domainSet.domains.map(_.domainCname).mkString(",")
 
-    expectedApprovedFxfs shouldNot be('empty)
-    expectedRejectedFxfs shouldNot be('empty)
-    expectedPendingFxfs shouldNot be('empty)
-
     prepareAuthenticatedUser(cookie, context, userBody)
 
     val params = Map("search_context" -> Seq(context), "domains" -> Seq(doms))
@@ -177,22 +173,19 @@ class SearchServiceSpecForUsersWithAllTheRights
   }
 
   test("searching on a basic domain (as both search_context & domain), should find the correct set of views for the given approval_status") {
-    // domain 0 has approved/pending/rejected datalenses
+    // domain 0 has no R&A and no view moderation
     val basicDomain = domains(0)
     val allPossibleResults = getAllPossibleResults()
     val domain0Docs = docs.filter(d => d.socrataId.domainId == 0)
     val approvedFxfs = allPossibleResults.filter(isApproved).map(fxfs)
-    val datalenses = domain0Docs.filter(d => d.datatype.startsWith("datalens"))
 
     // approved views are views that pass all 3 types of approval (though in this case, only two are relevant)
     val expectedApprovedFxfs = fxfs(domain0Docs.filter(d => approvedFxfs.contains(d.socrataId.datasetId)))
-    // rejected views can only be rejected datalens, since there is no mechanism to reject anything else (TODO: change when introduce RA)
-    val expectedRejectedFxfs = fxfs(datalenses.filter(d => d.isVmRejected))
-    // pending views can only be pending datalens, since there is no means for anything else to be pending (TODO: change when introduce RA)
-    val expectedPendingFxfs = fxfs(datalenses.filter(d => d.isVmPending))
 
     val domainSet = DomainSet(Set(basicDomain), Some(basicDomain))
-    testApprovalStatusFxfs(domainSet, cookieMonsUserBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
+    testApprovalStatusFxfs(domainSet, cookieMonsUserBody, expectedApprovedFxfs,
+      // Since view moderation isn't on on this domain, don't filter out pending and rejected views
+      List.empty, List.empty)
   }
 
   test("searching on a moderated domain (as both search_context & domain), should find the correct set of views for the given approval_status") {
@@ -244,13 +237,12 @@ class SearchServiceSpecForUsersWithAllTheRights
   }
 
   test("searching on an unmoderated domain that federates in data from a moderated domain, should find the correct set of views for the given approval_status") {
-    // domain 0 is an unmoderated domain with approved/pending/rejected datalenses
+    // domain 0 is an unmoderated domain
     // domain 1 is a moderated domain
     val unmoderatedDomain = domains(0)
     val moderatedDomain = domains(1)
     val domain0Docs = docs.filter(d => d.socrataId.domainId == 0)
     val domain1Docs = docs.filter(d => d.socrataId.domainId == 1)
-    val domain0Datalenses = domain0Docs.filter(d => d.datatype.startsWith("datalens"))
     val allPossibleResults = getAllPossibleResults()
     val approvedFxfs = allPossibleResults.filter(isApproved).map(fxfs)
 
@@ -259,29 +251,23 @@ class SearchServiceSpecForUsersWithAllTheRights
     val approvedOn1 = fxfs(domain1Docs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId)))
     val expectedApprovedFxfs = approvedOn0 ++ approvedOn1
 
-    // on 0, b/c it's unmoderated, the only rejected views can be datalenses
-    val rejectedOn0 = fxfs(domain0Datalenses.filter(d => d.isVmRejected))
     // on 1, nothing should come back rejected, b/c an admin on domain 0 doesn't have the rights to see rejected views on domain 1
     val rejectedOn1 = List.empty
     // confirm there are rejected views on domain 1 that could have come back:
     domain1Docs.filter(d => d.isVmRejected) shouldNot be('empty)
-    val expectedRejectedFxfs = rejectedOn0 ++ rejectedOn1
 
-    // on 0, b/c it's unmoderated, the only pending views can be datalenses
-    val pendingOn0 = fxfs(domain0Datalenses.filter(d => d.isVmPending))
     // on 1, nothing should come back pending, b/c an admin on domain 0 doesn't have the rights to see pendings views on domain 1
     val pendingOn1 = List.empty
     // confirm there are pending views on domain 1 that could have come back:
     domain1Docs.filter(d => d.isVmPending) shouldNot be('empty)
-    val expectedPendingFxfs = pendingOn0 ++ pendingOn1
 
     val domainSet = DomainSet(Set(unmoderatedDomain, moderatedDomain), Some(unmoderatedDomain))
-    testApprovalStatusFxfs(domainSet, cookieMonsUserBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
+    testApprovalStatusFxfs(domainSet, cookieMonsUserBody, expectedApprovedFxfs, rejectedOn1, pendingOn1)
   }
 
   test("searching on a moderated domain that federates in data from an unmoderated domain, should find the correct set of views for the given approval_status") {
     // domain 1 is a moderated domain with approved/pending/rejected views
-    // domain 0 is an unmoderated domain with approved/pending/rejected datalenses
+    // domain 0 is an unmoderated domain
     val moderatedDomain = domains(1)
     val unmoderatedDomain = domains(0)
     val domain1Docs = docs.filter(d => d.socrataId.domainId == 1)
@@ -289,8 +275,8 @@ class SearchServiceSpecForUsersWithAllTheRights
     val allPossibleResults = getAllPossibleResults()
     val approvedFxfs = allPossibleResults.filter(isApproved).map(fxfs)
 
-    // on 1, approved views are those that pass all 3 types of approval
-    val approvedOn1 = fxfs(domain1Docs.filter(d => approvedFxfs.contains(d.socrataId.datasetId)))
+    // domain 1 only has view moderation on
+    val approvedOn1 = fxfs(domain1Docs.filter(d => d.isVmApproved))
     // on 0, b/c federating in unmoderated data to a moderated domain removes all derived views, only default views are approved
     val approvedOn0 = fxfs(domain0Docs.filter(d => d.isDefaultView &&
       (anonymouslyViewableDocIds.contains(d.socrataId.datasetId) || d.isSharedOrOwned("cook-mons"))))
@@ -302,10 +288,7 @@ class SearchServiceSpecForUsersWithAllTheRights
     //   1) b/c an admin on domain 1 doesn't have the rights to see rejected views on domain 0
     //   2) b/c federating in unmoderated data to a moderated domain removes all derived views
     //   note though, that cook-mons could own/share a rejected view on 0, but this isn't the case
-    val rejectedOn0 = List.empty
-    // confirm there are rejected views on domain 0 that could have come back:
-    domain0Docs.filter(d => d.isVmRejected) shouldNot be('empty)
-    val expectedRejectedFxfs = rejectedOn1 ++ rejectedOn0
+    val expectedRejectedFxfs = rejectedOn1
 
     // on 1, b/c it's moderated, pending views are just that - pending views
     val pendingOn1 = fxfs(domain1Docs.filter(d => d.isVmPending))
@@ -313,23 +296,19 @@ class SearchServiceSpecForUsersWithAllTheRights
     //   1) b/c an admin on domain 1 doesn't have the rights to see pending views on domain 0
     //   2) b/c federating in unmoderated data to a moderated domain removes all derived views
     //   note though, that cook-mons could own/share a pending view on 0, but this isn't the case
-    val pendingOn0 = List.empty
-    // confirm there are pending views on domain 0 that could have come back:
-    domain0Docs.filter(d => d.isVmPending) shouldNot be('empty)
-    val expectedPendingFxfs = pendingOn1 ++ pendingOn0
+    val expectedPendingFxfs = pendingOn1
 
     val domainSet = DomainSet(Set(unmoderatedDomain, moderatedDomain), Some(moderatedDomain))
     testApprovalStatusFxfs(domainSet, cookieMonsUserBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
   }
 
   test("searching on an RA-disabled domain that federates in data from an RA-enabled domain, should find the correct set of views for the given approval_status") {
-    // domain 0 is an RA-disabled domain
-    // domain 2 is an RA-enabled domain
+    // domain 0, an RA-disabled domain, is federating in data from...
+    // domain 2, an RA-enabled domain
     val raDisabledDomain = domains(0)
     val raEnabledDomain = domains(2)
     val domain0Docs = docs.filter(d => d.socrataId.domainId == 0)
     val domain2Docs = docs.filter(d => d.socrataId.domainId == 2)
-    val domain0Datalenses = domain0Docs.filter(d => d.datatype.startsWith("datalens"))
     val allPossibleResults = getAllPossibleResults()
     val approvedFxfs = allPossibleResults.filter(isApproved).map(fxfs)
 
@@ -338,31 +317,25 @@ class SearchServiceSpecForUsersWithAllTheRights
     val approvedOn2 = fxfs(domain2Docs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId)))
     val expectedApprovedFxfs = approvedOn0 ++ approvedOn2
 
-    // on 0, b/c it's RA-disabled, the only rejected views can be from 0's domain and since there is no view-moderation in place
-    // can only be rejected datalenses
-    val rejectedOn0 = fxfs(domain0Datalenses.filter(d => d.isVmRejected))
     // on 2, nothing should come back rejected, b/c an admin on domain 0 doesn't have the rights to see rejected views on domain 2
     val rejectedOn2 = List.empty
     // confirm there are rejected views on domain 2 that could have come back
     domain2Docs.filter(d => d.isRejectedByParentDomain) shouldNot be('empty)
-    val expectedRejectedFxfs = rejectedOn0 ++ rejectedOn2
+    val expectedRejectedFxfs = rejectedOn2
 
-    // on 0, b/c it's RA-disabled, the only pending views can be from 0's domain and since there is no view-moderation in place
-    // can only be pending datalenses
-    val pendingOn0 = fxfs(domain0Datalenses.filter(d => d.isVmPending))
     // on 1, nothing should come back pending, b/c an admin on domain 0 doesn't have the rights to see pendings views on domain 1
     val pendingOn2 = List.empty
     // confirm there are pending views on domain 1 that could have come back:
     domain2Docs.filter(d => d.isPendingOnParentDomain) shouldNot be('empty)
-    val expectedPendingFxfs = pendingOn0 ++ pendingOn2
+    val expectedPendingFxfs = pendingOn2
 
     val domainSet = DomainSet(Set(raDisabledDomain, raEnabledDomain), Some(raDisabledDomain))
     testApprovalStatusFxfs(domainSet, cookieMonsUserBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
   }
 
   test("searching on an RA-enabled domain that federates in data from an RA-disabled domain, should find the correct set of views for the given approval_status") {
-    // domain 2 is an RA-enabled domain
-    // domain 0 is an RA-disabled domain
+    // domain 2 is an RA-enabled domain with no view moderation
+    // domain 0 is an RA-disabled domain with no view moderation
     val raEnabledDomain = domains(2)
     val raDisabledDomain = domains(0)
     val domain2Docs = docs.filter(d => d.socrataId.domainId == 2)
@@ -379,16 +352,16 @@ class SearchServiceSpecForUsersWithAllTheRights
       approvedFxfs.contains(d.socrataId.datasetId) && d.isRaApproved(2)))
     val expectedApprovedFxfs = approvedOn2 ++ approvedOn0
 
-    // on 2, rejected views those rejected by R&A or rejected as datalenses (domain 2 has no view-moderation)
-    val rejectedOn2 = fxfs(domain2Docs.filter(d => d.isRejectedByParentDomain || d.isVmRejected))
+    // on 2, rejected views are those rejected by R&A only
+    val rejectedOn2 = fxfs(domain2Docs.filter(d => d.isRejectedByParentDomain))
     // on 0, despite the fact that an admin on domain 2 doesn't have the rights to see rejected views on domain 0
     // there can be views that are approved on 0, but rejected by domain 2's R&A process.
     val rejectedOn0 = fxfs(domain0Docs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId) && d.isRaRejected(2)))
     rejectedOn0 shouldNot be('empty)
     val expectedRejectedFxfs = rejectedOn2 ++ rejectedOn0
 
-    // on 2, pending views those pending by R&A or pending as datalenses (domain 2 has no view-moderation)
-    val pendingOn2 = fxfs(domain2Docs.filter(d => d.isVmPending))
+    // on 2, pending views those pending by R&A only
+    val pendingOn2 = fxfs(domain2Docs.filter(d => d.isPendingOnParentDomain))
     // on 0, despite the fact that an admin on domain 2 doesn't have the rights to see pending views on domain 0
     // there can be views that are approved on 0, but pending by domain 2's R&A process.
     // heh, also an admin on 2 can see pending views on 0, if they've been shared the view, as is the case with zeta-0004

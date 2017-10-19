@@ -80,12 +80,6 @@ object Format {
   private def approvalsContainId(doc: Document, id: Int): Boolean =
     doc.approvingDomainIds.exists(_.contains(id))
 
-  def datalensStatus(doc: Document): Option[String] =
-    if (doc.isDatalens) doc.moderationStatus else None
-
-  def datalensApproved(doc: Document): Option[Boolean] =
-    if (doc.isDatalens) Some(literallyApproved(doc)) else None
-
   def moderationStatus(doc: Document, viewsDomain: Domain): Option[String] = {
     viewsDomain.moderationEnabled match {
       case true => if (doc.isDefaultView) Some(ApprovalStatus.approved.status) else doc.moderationStatus
@@ -155,14 +149,12 @@ object Format {
     val contextDomainId = domainSet.searchContext.map(d => d.domainId).getOrElse(0)
     val routingApproval = routingApproved(doc, viewsDomain)
     val moderationApproval = moderationApproved(doc, viewsDomain)
-    val datalensApproval = datalensApproved(doc)
     val(moderationApprovalOnContext, routingApprovalOnContext) = contextApprovals(doc, viewsDomain, domainSet)
     val viewGrants = if (doc.grants.isEmpty) None else Some(doc.grants)
     val anonymousVis =
       doc.isPublic & doc.isPublished & !doc.isHiddenFromCatalog &
       routingApproval.getOrElse(true) & routingApprovalOnContext.getOrElse(true) &
-      moderationApproval.getOrElse(true) & moderationApprovalOnContext.getOrElse(true) &
-      datalensApproval.getOrElse(true)
+      moderationApproval.getOrElse(true) & moderationApprovalOnContext.getOrElse(true)
 
     Metadata(
       domain = viewsDomain.domainCname,
@@ -174,11 +166,9 @@ object Format {
       isModerationApprovedOnContext = moderationApprovalOnContext,
       isRoutingApproved = routingApproval,
       isRoutingApprovedOnContext = routingApprovalOnContext,
-      isDatalensApproved = datalensApproval,
       visibleToAnonymous = Some(anonymousVis),
       moderationStatus = moderationStatus(doc, viewsDomain),
       routingStatus = routingStatus(doc, viewsDomain),
-      datalensStatus = datalensStatus(doc),
       grants = viewGrants,
       approvals = doc.approvals.map(_.map(_.removeEmails)) // not bothering with auth to show emails
     )

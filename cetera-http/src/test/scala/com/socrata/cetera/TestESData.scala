@@ -57,7 +57,7 @@ trait TestESData extends TestESDomains with TestESUsers {
     // we used to construct them in commit 1442a6b08.
     val series1DocFiles = (0 to 13).map(i => s"/views/fxf-$i.json")
     val series2DocFiles = (1 to 9).map(i => s"/views/zeta-000$i.json") ++
-      (10 to 14).map(i => s"/views/zeta-00$i.json") ++
+      (10 to 18).map(i => s"/views/zeta-00$i.json") ++
       (1 to 5).map(i => s"/views/domain-9-view-$i.json")
 
     val series1Docs = series1DocFiles.map { f =>
@@ -173,7 +173,7 @@ trait TestESData extends TestESDomains with TestESUsers {
   def fxfs(searchResults: SearchResults[SearchResult]): Seq[String] =
     searchResults.results.map(fxfs)
 
-  def fxfs(docs: Seq[Document]): Seq[String] = docs.map(_.socrataId.datasetId)
+  def fxfs(docs: Seq[Document]): Seq[String] = docs.map(_.socrataId.datasetId).toSet.toSeq
 
   def emptyAndRemoveDir(dir: File): Unit = {
     if (dir.isDirectory) {
@@ -185,7 +185,6 @@ trait TestESData extends TestESDomains with TestESUsers {
   def isApproved(res: SearchResult): Boolean = {
     val raApproved = res.metadata.isRoutingApproved.map(identity(_)).getOrElse(true) // None implies not relevant (so approved by default)
     val vmApproved = res.metadata.isModerationApproved.map(identity(_)).getOrElse(true)
-    val dlApproved = res.metadata.isDatalensApproved.map(identity(_)).getOrElse(true)
-    raApproved && vmApproved && dlApproved
+    raApproved && vmApproved
   }
 }

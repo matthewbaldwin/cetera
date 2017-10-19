@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream
 import java.nio.charset.{Charset, CodingErrorAction}
 import java.util.Collections
 import javax.servlet.http.HttpServletRequest
+import org.apache.commons.io.FileUtils
 import scala.collection.JavaConverters._
 
 import com.rojoma.json.v3.interpolation._
@@ -36,7 +37,11 @@ class SearchServiceSpec extends FunSuiteLike
   with BeforeAndAfterAll
   with BeforeAndAfterEach {
 
-  override protected def beforeAll(): Unit = bootstrapData()
+  override protected def beforeAll(): Unit = {
+    // Remove the contents of /tmp/metrics
+    FileUtils.cleanDirectory(balboaDir)
+    bootstrapData()
+  }
 
   override def beforeEach(): Unit = mockServer.reset()
 
@@ -205,7 +210,9 @@ class SearchServiceSpec extends FunSuiteLike
       "zeta-0002" -> true,
       "zeta-0009" -> false,
       "zeta-0013" -> false,
-      "zeta-0014" -> false
+      "zeta-0014" -> false,
+      "zeta-0015" -> false,
+      "zeta-0016" -> false
     )
 
     prepareAuthenticatedUser(cookie, host, authedUserBody)

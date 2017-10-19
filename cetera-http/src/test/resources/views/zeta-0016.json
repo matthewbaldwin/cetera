@@ -2,19 +2,20 @@
   "created_at": "2016-09-19T10:37:20.933-07:00",
   "updated_at": "2016-09-19T10:37:20.857-07:00",
   "socrata_id": {
-    "dataset_id": "zeta-0004",
+    "dataset_id": "zeta-0016",
     "parent_dataset_id": [],
-    "domain_id": 0,
-    "nbe_id": null,
-    "obe_id": "zeta-0004"
+    "domain_id": 3,
+    "nbe_id": "zeta-0016",
+    "obe_id": null
   },
   "resource": {
-    "description": "standalone visualization",
+    "description": "R&A rejected dataset",
+    "nbe_fxf": "zeta-0004",
     "parent_fxf": null,
     "updatedAt": "2016-09-19T10:37:21.143-07:00",
     "createdAt": "2016-09-19T10:37:21.143-07:00",
-    "type": "datalens_chart",
-    "id": "zeta-0004",
+    "type": "dataset",
+    "id": "zeta-0016",
     "name": "",
     "attribution": null,
     "provenance": "community",
@@ -27,7 +28,7 @@
     "categories": [],
     "tags": []
   },
-  "datatype": "datalens_chart",
+  "datatype": "dataset",
   "viewtype": "",
   "indexed_metadata": {
     "name": "",
@@ -48,12 +49,10 @@
   "is_default_view": false,
   "moderation_status": null,
   "approving_domain_ids": [],
-  "rejecting_domain_ids": [],
-  "pending_domain_ids": [
-    2
-  ],
+  "rejecting_domain_ids": [3],
+  "pending_domain_ids": [2],
   "is_approved_by_parent_domain": false,
-  "is_rejected_by_parent_domain": false,
+  "is_rejected_by_parent_domain": true,
   "is_pending_on_parent_domain": false,
   "page_views": {
     "page_views_total": 42,
@@ -63,24 +62,15 @@
   "customer_category": "Standalone",
   "customer_tags": [],
   "shared_to": [
-    "cook-mons",
     "maid-marian"
   ],
   "attribution": null,
   "preview_image_id": null,
   "grants": [],
-  "hide_from_catalog": true,
-  "hide_from_data_json": true,
+  "hide_from_catalog": false,
+  "hide_from_data_json": false,
   "provenance": "community",
   "owner": {
     "id": "lil-john"
-  },
-  "approvals" : [ {
-    "outcome" : "publicize",
-    "state" : "pending",
-    "submitted_at" : "2017-10-31T12:00:00.000Z",
-    "submitter_id" : "robin-hood",
-    "submitter_name" : "Robin Hood",
-    "submitter_email" : "robin-hood@nottingham.com"
-  } ]
+  }
 }

@@ -131,7 +131,7 @@ class SearchServiceSpecForSuperAdmins
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
 
-  test("searching across all domains as a superadmin with explicity_hidden=false, should find all not-hidden views") {
+  test("searching across all domains as a superadmin with explicitly_hidden=false, should find all not-hidden views") {
     val expectedFxfs = fxfs(docs.filter(d => !d.isHiddenFromCatalog))
 
     val host = "annabelle.island.net"
@@ -219,8 +219,12 @@ class SearchServiceSpecForSuperAdmins
 
   test("searching across all domains as a superadmin with approval_status=pending and no context should find all pending results") {
     val moderatedDomainIds = domains.filter(_.moderationEnabled).map(_.domainId)
-    val canbeModeratedDocs = docs.filter(d => d.datatype.startsWith("datalens") || moderatedDomainIds.contains(d.socrataId.domainId))
-    val expectedFxfs = fxfs(canbeModeratedDocs.filter(_.isVmPending))
+    val raDomainIds = domains.filter(_.routingApprovalEnabled).map(_.domainId)
+    val canbeModeratedDocs = docs.filter(d => moderatedDomainIds.contains(d.socrataId.domainId))
+    val canbeRaDocs = docs.filter(d => raDomainIds.contains(d.socrataId.domainId))
+    val vmPendingFxfs = fxfs(canbeModeratedDocs.filter(_.isVmPending))
+    val raPendingFxfs = fxfs(canbeRaDocs.filter(d => d.isRaPending(d.socrataId.domainId.toInt)))
+    val expectedFxfs = (vmPendingFxfs ++ raPendingFxfs).toSet
 
     val host = "annabelle.island.net"
     prepareAuthenticatedUser(cookie, host, superAdminBody)
@@ -233,8 +237,12 @@ class SearchServiceSpecForSuperAdmins
   test("searching across all domains as a superadmin with approval_status=pending and a basic context should find all pending results") {
     val basicDomain = domains(0).domainCname
     val moderatedDomainIds = domains.filter(_.moderationEnabled).map(_.domainId)
-    val canbeModeratedDocs = docs.filter(d => d.datatype.startsWith("datalens") || moderatedDomainIds.contains(d.socrataId.domainId))
-    val expectedFxfs = fxfs(canbeModeratedDocs.filter(_.isVmPending))
+    val raDomainIds = domains.filter(_.routingApprovalEnabled).map(_.domainId)
+    val canbeModeratedDocs = docs.filter(d => moderatedDomainIds.contains(d.socrataId.domainId))
+    val canbeRaDocs = docs.filter(d => raDomainIds.contains(d.socrataId.domainId))
+    val vmPendingFxfs = fxfs(canbeModeratedDocs.filter(_.isVmPending))
+    val raPendingFxfs = fxfs(canbeRaDocs.filter(d => d.isRaPending(d.socrataId.domainId.toInt)))
+    val expectedFxfs = (vmPendingFxfs ++ raPendingFxfs).toSet
 
     prepareAuthenticatedUser(cookie, basicDomain, superAdminBody)
     val params = allDomainsParams ++ Map("approval_status" -> Seq("pending"), "search_context" -> Seq(basicDomain))
@@ -244,8 +252,6 @@ class SearchServiceSpecForSuperAdmins
   }
 
   test("searching across all domains as a superadmin with approval_status=pending and a moderated context should find all pending results from moderated domains") {
-    // Note that pending DL from unmoderated domains should not show here, b/c the moderated search context removes all
-    // derived views from unmoderated domains
     val moderatedDomainIds = domains.filter(_.moderationEnabled).map(_.domainId)
     val fromModeratedDomainDocs = docs.filter(d => moderatedDomainIds.contains(d.socrataId.domainId))
     val expectedFxfs = fxfs(fromModeratedDomainDocs.filter(_.isVmPending))
@@ -258,7 +264,8 @@ class SearchServiceSpecForSuperAdmins
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
 
-  test("searching across all domains as a superadmin with approval_status=pending and an RA-enabled context should find only pending views that have been in the contexts RA queue") {
+  test("searching across all domains as a superadmin with approval_status=pending and an RA-enabled context should find " +
+    "only pending views that have been in the contexts RA queue") {
     val host = domains(2)
     val docsInContextsQueue = docs.filter(_.isInRaQueue(host.domainId))
     val expectedFxfs = fxfs(docsInContextsQueue.filter(d =>
@@ -271,7 +278,8 @@ class SearchServiceSpecForSuperAdmins
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
 
-  test("searching across all domains as a superadmin with approval_status=pending and a moderated & RA-enabled context should find only pending views that have been in the contexts RA queue and that aren't derived views from unmoderated domains") {
+  test("searching across all domains as a superadmin with approval_status=pending and a moderated & RA-enabled context " +
+    "should find only pending views that have been in the contexts RA queue and that aren't derived views from unmoderated domains") {
     val host = domains(3)
     val docsInContextsQueue = docs.filter(_.isInRaQueue(host.domainId))
     val unmoderatedDomainIds = domains.filter(!_.moderationEnabled).map(_.domainId)
@@ -289,7 +297,7 @@ class SearchServiceSpecForSuperAdmins
 
   test("searching across all domains as a superadmin with approval_status=rejected and no context should find all rejected results") {
     val moderatedDomainIds = domains.filter(_.moderationEnabled).map(_.domainId)
-    val canbeModeratedDocs = docs.filter(d => d.datatype.startsWith("datalens") || moderatedDomainIds.contains(d.socrataId.domainId))
+    val canbeModeratedDocs = docs.filter(d => moderatedDomainIds.contains(d.socrataId.domainId))
     val rejectedByVM = canbeModeratedDocs.filter(_.isVmRejected)
     val rejectedByRA = docs.filter(_.isRejectedByParentDomain)
     val expectedFxfs = fxfs(rejectedByVM ++ rejectedByRA)
@@ -305,7 +313,7 @@ class SearchServiceSpecForSuperAdmins
   test("searching across all domains as a superadmin with approval_status=rejected and a basic context should find all rejected results") {
     val basicDomain = domains(0).domainCname
     val moderatedDomainIds = domains.filter(_.moderationEnabled).map(_.domainId)
-    val canbeModeratedDocs = docs.filter(d => d.datatype.startsWith("datalens") || moderatedDomainIds.contains(d.socrataId.domainId))
+    val canbeModeratedDocs = docs.filter(d => moderatedDomainIds.contains(d.socrataId.domainId))
     val rejectedByVM = canbeModeratedDocs.filter(_.isVmRejected)
     val rejectedByRA = docs.filter(_.isRejectedByParentDomain)
     val expectedFxfs = fxfs(rejectedByVM ++ rejectedByRA)
@@ -345,7 +353,8 @@ class SearchServiceSpecForSuperAdmins
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
 
-  test("searching across all domains as a superadmin with approval_status=rejected and a moderated & RA-enabled context should find only rejected views that have been in the contexts RA queue and that aren't derived views from unmoderated domains") {
+  test("searching across all domains as a superadmin with approval_status=rejected and a moderated & RA-enabled context " +
+    "should find only rejected views that have been in the contexts RA queue and that aren't derived views from unmoderated domains") {
     val host = domains(3)
     val docsInContextsQueue = docs.filter(_.isInRaQueue(host.domainId))
     val unmoderatedDomainIds = domains.filter(!_.moderationEnabled).map(_.domainId)
@@ -359,30 +368,6 @@ class SearchServiceSpecForSuperAdmins
     val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host.domainCname), None)
     val actualFxfs = fxfs(res._2)
     actualFxfs should contain theSameElementsAs expectedFxfs
-  }
-
-  def testApprovalStatusFxfs(domainSet: DomainSet, userBody: JValue, expectedApprovedFxfs: Seq[String],
-      expectedRejectedFxfs: Seq[String], expectedPendingFxfs: Seq[String]): Unit = {
-    val context = domainSet.searchContext.get.domainCname
-    val doms = domainSet.domains.map(_.domainCname).mkString(",")
-
-    expectedApprovedFxfs shouldNot be('empty)
-    expectedRejectedFxfs shouldNot be('empty)
-    expectedPendingFxfs shouldNot be('empty)
-
-    prepareAuthenticatedUser(cookie, context, userBody)
-
-    val params = Map("search_context" -> Seq(context), "domains" -> Seq(context))
-    val actualApprovedFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("approved")),
-      AuthParams(cookie=Some(cookie)), Some(context), None)._2)
-    val actualRejectedFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("rejected")),
-      AuthParams(cookie=Some(cookie)), Some(context), None)._2)
-    val actualPendingFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("pending")),
-      AuthParams(cookie=Some(cookie)), Some(context), None)._2)
-
-    actualApprovedFxfs should contain theSameElementsAs expectedApprovedFxfs
-    actualRejectedFxfs should contain theSameElementsAs expectedRejectedFxfs
-    actualPendingFxfs should contain theSameElementsAs expectedPendingFxfs
   }
 
   test("searching with the 'q' param finds all items where q matches the private metadata") {

@@ -37,7 +37,7 @@ class SearchServiceSpecForUsersWithoutRights
     val sharedToCookieMonster = docs.collect{ case d: Document if d.sharedTo.contains("cook-mons") => d.socrataId.datasetId }
     val expectedFxfs = (ownedByCookieMonster ++ sharedToCookieMonster ++ anonymouslyViewableDocIds).distinct
 
-    val host = domains(0).domainCname
+    val host = authenticatingDomain.domainCname
     prepareAuthenticatedUser(cookie, host, cookieMonsWithoutRole)
     val res = service.doSearch(allDomainsParams, AuthParams(cookie = Some(cookie)), Some(host), None)
     fxfs(res._2) should contain theSameElementsAs expectedFxfs
@@ -79,7 +79,7 @@ class SearchServiceSpecForUsersWithoutRights
     val res = service.doSearch(params, AuthParams(cookie = Some(cookie)), Some(authenticatingDomain), None)
 
     // confirm that robin owns view on domains other than 0
-    docsOwnedByRobin.filter(_.socrataId.domainId !=0) should not be('empty)
+    docsOwnedByRobin.filter(_.socrataId.domainId !=0) shouldNot be('empty)
     fxfs(res._2) should contain theSameElementsAs ownedByRobinIds
   }
 
@@ -134,7 +134,7 @@ class SearchServiceSpecForUsersWithoutRights
     val approvedFxfs = allPossibleResults.filter(isApproved).map(fxfs)
     val visibleDomainsDocs = docs.filter(d =>
       (anonymouslyViewableDocIds.contains(d.socrataId.datasetId) || d.isSharedOrOwned(userId)) &&
-      d.socrataId.domainId == domain.domainId)
+      d.socrataId.domainId.toInt == domain.domainId)
 
     // approved views are views that pass all 3 types of approval
     val expectedApprovedFxfs = fxfs(visibleDomainsDocs.filter(d => approvedFxfs.contains(d.socrataId.datasetId)))
@@ -142,10 +142,6 @@ class SearchServiceSpecForUsersWithoutRights
     val expectedRejectedFxfs = fxfs(visibleDomainsDocs.filter(d => d.isVmRejected || d.isRaRejected(domain.domainId)))
     // pending views can't generally be seen by roleless users, unless they own/share the pending view.
     val expectedPendingFxfs = fxfs(visibleDomainsDocs.filter(d => d.isVmPending || d.isRaPending(domain.domainId)))
-
-    expectedApprovedFxfs shouldNot be('empty)
-    expectedRejectedFxfs shouldNot be('empty)
-    expectedPendingFxfs shouldNot be('empty)
 
     val host = domain.domainCname
     prepareAuthenticatedUser(cookie, host, authedUserBodyWithoutRoleOrRights(userId))
@@ -192,9 +188,9 @@ class SearchServiceSpecForUsersWithoutRights
     val ownedSharedOn0 = domain0Docs.filter(d => d.isSharedOrOwned(userId))
     val ownedSharedOn3 = domain3Docs.filter(d => d.isSharedOrOwned(userId))
 
-    // on both 0 and 1, approved views are those that pass all 3 types of approval
-    val approvedOn0 = fxfs(domain0Docs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId)))
-    val approvedOn3 = fxfs(domain3Docs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId)))
+    // on 0, views need not pass any approval. On 2, views must be view-moderated AND routing-approved
+    val approvedOn0 = fxfs(domain0Docs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId)) ++ ownedSharedOn0)
+    val approvedOn3 = fxfs(domain3Docs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId)) ++ ownedSharedOn3.filter(d => d.isVmApproved && d.isRaApproved(3)))
     val expectedApprovedFxfs = approvedOn0 ++ approvedOn3
 
     // on 0, rejected views can't be seen by roleless users unless they own/share the rejected view.
@@ -245,18 +241,12 @@ class SearchServiceSpecForUsersWithoutRights
     // on 1, rejected views can't be seen by roleless users unless they own/share the rejected view
     val rejectedOn1 = fxfs(ownedSharedOn1.filter(d => d.isVmRejected))
     // on 0, nothing should come back rejected b/c federating in unmoderated data to a moderated domain removes all derived views
-    val rejectedOn0 = List.empty
-    // confirm there are rejected views on domain 0 that could have come back:
-    domain0Docs.filter(d => d.isVmRejected) shouldNot be('empty)
-    val expectedRejectedFxfs = rejectedOn1 ++ rejectedOn0
+    val expectedRejectedFxfs = rejectedOn1
 
     // on 1, pending views can't be seen by roleless users unless they own/share the pending view
     val pendingOn1 = fxfs(ownedSharedOn1.filter(d => d.isVmPending))
-    // on 0, nothing should come back pending b/c federating in unmoderated data to a moderated domain removes all derived views,
-    val pendingOn0 = List.empty
-    // confirm there are pending views on domain 0 that could have come back:
-    domain0Docs.filter(d => d.isVmPending) shouldNot be('empty)
-    val expectedPendingFxfs = pendingOn1 ++ pendingOn0
+    // on 0, nothing should come back pending b/c federating in unmoderated data to a moderated domain removes all derived views
+    val expectedPendingFxfs = pendingOn1
 
     expectedApprovedFxfs shouldNot be('empty)
     expectedRejectedFxfs shouldNot be('empty)
@@ -280,48 +270,47 @@ class SearchServiceSpecForUsersWithoutRights
   test("searching on an RA-disabled domain that federates in data from an RA-enabled domain, should find the correct set of views for the given approval_status") {
     // domain 0 is an RA-disabled domain
     // domain 2 is an RA-enabled domain
-    val raDisabledDomain = domains(0).domainCname
-    val raEnabledDomain = domains(2).domainCname
+    val raDisabledDomain = domains(0)
+    val raEnabledDomain = domains(2)
+    val raDisabledDomainCname = domains(0).domainCname
+    val raEnabledDomainCname = domains(2).domainCname
     val userId = "maid-marian"
     val domain0Docs = docs.filter(d => d.socrataId.domainId == 0)
     val domain2Docs = docs.filter(d => d.socrataId.domainId == 2)
     val ownedSharedOn0 = domain0Docs.filter(d => d.isSharedOrOwned(userId))
     val ownedSharedOn2 = domain2Docs.filter(d => d.isSharedOrOwned(userId))
 
-    // on both 0 and 2, approved views are those that pass all 3 types of approval
-    val approvedOn0 = fxfs(domain0Docs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId)))
-    val approvedOn2 = fxfs(domain2Docs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId)))
+    val approvedOn0 = fxfs(domain0Docs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId)) ++ ownedSharedOn0)
+    val approvedOn2 = fxfs(domain2Docs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId)) ++ ownedSharedOn2.filter(d => d.isRaApproved(2)))
     val expectedApprovedFxfs = approvedOn0 ++ approvedOn2
 
-    // on 0, rejected views can't be seen by roleless users unless they own/share the rejected view
-    val rejectedOn0 = fxfs(ownedSharedOn0.filter(d => d.datatype.startsWith("datalens") && d.isVmRejected))
+    // domain 0 has no rejected views because it has no form of moderation, so nothing is rejected
     // on 2, rejected views can't be seen by roleless users unless they own/share the rejected view
     val rejectedOn2 = fxfs(ownedSharedOn2.filter(d => d.isVmRejected || d.isRaRejected(2)))
     // confirm there are rejected views on domain 2 that could have come back
     domain2Docs.filter(d => d.isRejectedByParentDomain) shouldNot be('empty)
-    val expectedRejectedFxfs = rejectedOn0 ++ rejectedOn2
+    val expectedRejectedFxfs = rejectedOn2
 
-    // on 0, pending views can't be seen by roleless users unless they own/share the pending view
-    val pendingOn0 = fxfs(ownedSharedOn0.filter(d => d.datatype.startsWith("datalens") && d.isVmPending))
+    // domain 0 has no pending views, as it has no form of moderation
     // on 1, pending views can't be seen by roleless users unless they own/share the pending view
     val pendingOn2 = fxfs(ownedSharedOn2.filter(d => d.isVmPending || d.isRaPending(2)))
     // confirm there are pending views on domain 1 that could have come back:
     domain2Docs.filter(d => d.isPendingOnParentDomain) shouldNot be('empty)
-    val expectedPendingFxfs = pendingOn0 ++ pendingOn2
+    val expectedPendingFxfs = pendingOn2
 
     expectedApprovedFxfs shouldNot be('empty)
     expectedRejectedFxfs shouldNot be('empty)
     expectedPendingFxfs shouldNot be('empty)
 
-    prepareAuthenticatedUser(cookie, raDisabledDomain, authedUserBodyWithoutRoleOrRights(userId))
+    prepareAuthenticatedUser(cookie, raDisabledDomainCname, authedUserBodyWithoutRoleOrRights(userId))
 
-    val params = Map("search_context" -> Seq(raDisabledDomain), "domains" -> Seq(s"$raEnabledDomain,$raDisabledDomain"))
+    val params = Map("search_context" -> Seq(raDisabledDomainCname), "domains" -> Seq(s"$raEnabledDomainCname,$raDisabledDomainCname"))
     val actualApprovedFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("approved")),
-      AuthParams(cookie=Some(cookie)), Some(raDisabledDomain), None)._2)
+      AuthParams(cookie=Some(cookie)), Some(raDisabledDomainCname), None)._2)
     val actualRejectedFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("rejected")),
-      AuthParams(cookie=Some(cookie)), Some(raDisabledDomain), None)._2)
+      AuthParams(cookie=Some(cookie)), Some(raDisabledDomainCname), None)._2)
     val actualPendingFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("pending")),
-      AuthParams(cookie=Some(cookie)), Some(raDisabledDomain), None)._2)
+      AuthParams(cookie=Some(cookie)), Some(raDisabledDomainCname), None)._2)
 
     actualApprovedFxfs should contain theSameElementsAs expectedApprovedFxfs
     actualRejectedFxfs should contain theSameElementsAs expectedRejectedFxfs

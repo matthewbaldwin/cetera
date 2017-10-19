@@ -609,71 +609,6 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESUsers 
     }
   }
 
-  "the datalensStatusQuery" should {
-    val datalensQuery = j"""{"terms": {"datatype": ["datalens", "datalens_chart", "datalens_map"], "boost": 1.0}}"""
-
-    "include all views that are not unapproved datalens if looking for approved" in {
-      val query = docQuery.datalensStatusQuery(ApprovalStatus.approved)
-      val actual = JsonReader.fromString(query.toString)
-      val unApprovedQuery = JsonReader.fromString(s"""
-      {
-          "bool": {
-              "must_not": [
-                  {"term": {"moderation_status": {"value": "approved", "boost": 1.0}}}
-              ],
-              $queryDefaults
-          }
-      }
-      """)
-      val expected = JsonReader.fromString(s"""
-      {
-          "bool": {
-              "must_not": [
-                  {
-                      "bool": {
-                          "must": [$datalensQuery, $unApprovedQuery],
-                          $queryDefaults
-                      }
-                  }
-              ],
-              $queryDefaults
-          }
-      }
-      """)
-      actual should be(expected)
-    }
-
-    "include only rejected datalens if looking for rejected" in {
-      val query = docQuery.datalensStatusQuery(ApprovalStatus.rejected)
-      val actual = JsonReader.fromString(query.toString)
-      val rejectedQuery = """{"term": {"moderation_status": {"value": "rejected", "boost": 1.0}}}"""
-      val expected = JsonReader.fromString(s"""
-      {
-          "bool": {
-              "must": [$datalensQuery, $rejectedQuery],
-              $queryDefaults
-          }
-      }
-      """)
-      actual should be(expected)
-    }
-
-    "include only pending datalens if looking for pending" in {
-      val query = docQuery.datalensStatusQuery(ApprovalStatus.pending)
-      val actual = JsonReader.fromString(query.toString)
-      val pendingQuery = """{"term": {"moderation_status": {"value": "pending", "boost": 1.0}}}"""
-      val expected = JsonReader.fromString(s"""
-      {
-          "bool": {
-              "must": [$datalensQuery, $pendingQuery],
-              $queryDefaults
-          }
-      }
-      """)
-      actual should be(expected)
-    }
-  }
-
   "the raStatusQuery" should {
     val rejected = j"""{"term": {"is_rejected_by_parent_domain": {"value": true, "boost": 1.0}}}"""
     val pending = j"""{"term": {"is_pending_on_parent_domain": {"value": true, "boost": 1.0}}}"""
@@ -833,13 +768,12 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESUsers 
     "return the expected query for approved views if the status is approved and we include the context" in {
       val domainSet = DomainSet(someDomains, Some(domains(3)))
       val beModApproved = JsonReader.fromString(docQuery.moderationStatusQuery(ApprovalStatus.approved, domainSet).toString)
-      val beDatalensApproved = JsonReader.fromString(docQuery.datalensStatusQuery(ApprovalStatus.approved).toString)
       val beRAApproved = JsonReader.fromString(docQuery.raStatusQuery(ApprovalStatus.approved, domainSet).toString)
       val beRAApprovedOnContext = JsonReader.fromString(docQuery.raStatusOnContextQuery(ApprovalStatus.approved, domainSet).get.toString)
       val expected = JsonReader.fromString(s"""
       {
           "bool": {
-              "must": [$beModApproved, $beDatalensApproved, $beRAApproved, $beRAApprovedOnContext],
+              "must": [$beModApproved, $beRAApproved, $beRAApprovedOnContext],
               $queryDefaults
           }
       }
@@ -853,12 +787,11 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESUsers 
     "return the expected query for approved views if the status is approved and we exclude the context" in {
       val domainSet = DomainSet(someDomains, Some(domains(3)))
       val beModApproved = JsonReader.fromString(docQuery.moderationStatusQuery(ApprovalStatus.approved, domainSet).toString)
-      val beDatalensApproved = JsonReader.fromString(docQuery.datalensStatusQuery(ApprovalStatus.approved).toString)
       val beRAApproved = JsonReader.fromString(docQuery.raStatusQuery(ApprovalStatus.approved, domainSet).toString)
       val expected = JsonReader.fromString(s"""
       {
           "bool": {
-              "must": [$beModApproved, $beDatalensApproved, $beRAApproved],
+              "must": [$beModApproved, $beRAApproved],
               $queryDefaults
           }
       }
@@ -872,13 +805,12 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESUsers 
     "return the expected query for rejected views if the status is rejected and we include the context" in {
       val domainSet = DomainSet(someDomains, Some(domains(3)))
       val beModRejected = JsonReader.fromString(docQuery.moderationStatusQuery(ApprovalStatus.rejected, domainSet).toString)
-      val beDatalensRejected = JsonReader.fromString(docQuery.datalensStatusQuery(ApprovalStatus.rejected).toString)
       val beRARejected = JsonReader.fromString(docQuery.raStatusQuery(ApprovalStatus.rejected, domainSet).toString)
       val beRARejectedOnContext = JsonReader.fromString(docQuery.raStatusOnContextQuery(ApprovalStatus.rejected, domainSet).get.toString)
       val expected = JsonReader.fromString(s"""
       {
           "bool": {
-              "should": [$beModRejected, $beDatalensRejected, $beRARejected, $beRARejectedOnContext],
+              "should": [$beModRejected, $beRARejected, $beRARejectedOnContext],
               $queryDefaults
           }
       }
@@ -892,12 +824,11 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESUsers 
     "return the expected query for rejected views if the status is rejected and we exclude the context" in {
       val domainSet = DomainSet(someDomains, Some(domains(3)))
       val beModRejected = JsonReader.fromString(docQuery.moderationStatusQuery(ApprovalStatus.rejected, domainSet).toString)
-      val beDatalensRejected = JsonReader.fromString(docQuery.datalensStatusQuery(ApprovalStatus.rejected).toString)
       val beRARejected = JsonReader.fromString(docQuery.raStatusQuery(ApprovalStatus.rejected, domainSet).toString)
       val expected = JsonReader.fromString(s"""
       {
           "bool": {
-              "should": [$beModRejected, $beDatalensRejected, $beRARejected],
+              "should": [$beModRejected, $beRARejected],
               $queryDefaults
           }
       }
@@ -911,13 +842,12 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESUsers 
     "return the expected query for pending views if the status is pending and we include the context" in {
       val domainSet = DomainSet(someDomains, Some(domains(3)))
       val beModPending = JsonReader.fromString(docQuery.moderationStatusQuery(ApprovalStatus.pending, domainSet).toString)
-      val beDatalensPending = JsonReader.fromString(docQuery.datalensStatusQuery(ApprovalStatus.pending).toString)
       val beRAPending = JsonReader.fromString(docQuery.raStatusQuery(ApprovalStatus.pending, domainSet).toString)
       val beRAPendingOnContext = JsonReader.fromString(docQuery.raStatusOnContextQuery(ApprovalStatus.pending, domainSet).get.toString)
       val expected = JsonReader.fromString(s"""
       {
           "bool": {
-              "should": [$beModPending, $beDatalensPending, $beRAPending, $beRAPendingOnContext],
+              "should": [$beModPending, $beRAPending, $beRAPendingOnContext],
               $queryDefaults
           }
       }
@@ -931,12 +861,11 @@ class DocumentQueriesSpec extends WordSpec with ShouldMatchers with TestESUsers 
     "return the expected query for pending views if the status is pending and we exclude the context" in {
       val domainSet = DomainSet(someDomains, Some(domains(3)))
       val beModPending = JsonReader.fromString(docQuery.moderationStatusQuery(ApprovalStatus.pending, domainSet).toString)
-      val beDatalensPending = JsonReader.fromString(docQuery.datalensStatusQuery(ApprovalStatus.pending).toString)
       val beRAPending = JsonReader.fromString(docQuery.raStatusQuery(ApprovalStatus.pending, domainSet).toString)
       val expected = JsonReader.fromString(s"""
       {
           "bool": {
-              "should": [$beModPending, $beDatalensPending, $beRAPending],
+              "should": [$beModPending, $beRAPending],
               $queryDefaults
           }
       }

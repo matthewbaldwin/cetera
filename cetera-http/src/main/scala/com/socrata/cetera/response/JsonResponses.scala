@@ -64,7 +64,6 @@ case class Metadata(
     isModerationApprovedOnContext: Option[Boolean] = None,
     isRoutingApproved: Option[Boolean] = None,
     isRoutingApprovedOnContext: Option[Boolean] = None,
-    isDatalensApproved: Option[Boolean] = None,
     visibleToAnonymous: Option[Boolean] = None,
     moderationStatus: Option[String] = None,
     routingStatus: Option[String] = None,
