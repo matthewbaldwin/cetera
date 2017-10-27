@@ -1,13 +1,12 @@
 package com.socrata.cetera.response
 
-import com.rojoma.json.v3.ast._
-import com.rojoma.json.v3.codec.DecodeError
-import com.rojoma.json.v3.io.JsonReader
-import com.rojoma.json.v3.jpath.JPath
+import com.rojoma.json.v3.util.JsonUtil
 import org.elasticsearch.action.search.SearchResponse
+import org.elasticsearch.search.SearchHit
 import org.slf4j.LoggerFactory
 
 import com.socrata.cetera.auth.AuthedUser
+import com.socrata.cetera.errors.JsonDecodeException
 import com.socrata.cetera.handlers.FormatParamSet
 import com.socrata.cetera.types._
 
@@ -15,32 +14,6 @@ import com.socrata.cetera.types._
 object Format {
   lazy val logger = LoggerFactory.getLogger(Format.getClass)
   val UrlSegmentLengthLimit = 50
-
-  private def decodeErrorToNone(err: DecodeError) = None
-
-  private def parseJToString(jValue: JValue) = jValue match {
-    case JString(s) => Some(s)
-    case _ => None
-  }
-
-  private def parseJToBoolean(jValue: JValue) = jValue match {
-    case JBoolean(b) => Option(b)
-    case _ => None
-  }
-
-  private def parseJToArray(jValue: JValue) = jValue match {
-    case JArray(list) => Some(list.collect{ case JString(s) => s }.toList)
-    case _ => None
-  }
-
-  private def extractJString(decoded: Either[DecodeError, JValue]): Option[String] =
-    decoded.fold(decodeErrorToNone, parseJToString)
-
-  private def extractJBoolean(decoded: Either[DecodeError, JValue]): Option[Boolean] =
-    decoded.fold(decodeErrorToNone, parseJToBoolean)
-
-  private def extractJArray(decoded: Either[DecodeError, JValue]): Option[List[String]] =
-    decoded.fold(decodeErrorToNone, parseJToArray)
 
   def hyphenize(text: String): String = Option(text) match {
     case Some(s) if s.nonEmpty => s.replaceAll("[^\\p{L}\\p{N}_]+", "-").take(UrlSegmentLengthLimit)
@@ -51,19 +24,19 @@ object Format {
       cname: String,
       locale: Option[String],
       datatype: Option[Datatype],
-      viewtype: Option[String],
+      viewtype: String,
       datasetId: String,
       datasetCategory: Option[String],
       datasetName: String,
-      previewImageId: Option[String]): Map[String, JString] = {
+      previewImageId: Option[String]): Map[String, String] = {
 
     val cnameWithLocale = locale.foldLeft(cname){ (path, locale) => s"$path/$locale" }
 
     val perma = (datatype, viewtype) match {
-      case (Some(StoryDatatype), _)             => s"stories/s"
-      case (Some(DatalensDatatype), _)          => s"view"
-      case (_, Some(DatalensDatatype.singular)) => s"view"
-      case _                                  => s"d"
+      case (Some(StoryDatatype), _)          => s"stories/s"
+      case (Some(DatalensDatatype), _)       => s"view"
+      case (_, DatalensDatatype.singular)    => s"view"
+      case _                                 => s"d"
     }
 
     val pretty = datatype match {
@@ -75,156 +48,77 @@ object Format {
         s"${hyphenize(category)}/${hyphenize(datasetName)}"
     }
 
-    val previewImageUrl = previewImageId.map(id => JString(s"https://$cname/views/$datasetId/files/$id"))
+    val previewImageUrl = previewImageId.map(id => s"https://$cname/views/$datasetId/files/$id")
     if (previewImageId.isEmpty) logger.debug(s"Missing previewImageId field for document $datasetId")
 
     Map(
-      "permalink" -> JString(s"https://$cnameWithLocale/$perma/$datasetId"),
-      "link" -> JString(s"https://$cnameWithLocale/$pretty/$datasetId")
+      "permalink" -> s"https://$cnameWithLocale/$perma/$datasetId",
+      "link" -> s"https://$cnameWithLocale/$pretty/$datasetId"
     ) ++ previewImageUrl.map(url => ("previewImageUrl", url))
   }
 
-  // TODO: rammy to rename customer_blah to domain_blah
-  def domainCategory(j: JValue): Option[JValue] = j.dyn.customer_category.? match {
-    case Left(e) => None
-    case Right(jv) => Some(jv)
-  }
-
-  def domainCategoryString(j: JValue): Option[String] =
-    domainCategory(j).flatMap {
-      case JString(s) => Option(s)
-      case _ => None
-    }
-
-  def domainTags(j: JValue): Option[JValue] = j.dyn.customer_tags.? match {
-    case Left(e) => None
-    case Right(jv) => Some(jv)
-  }
-
-  def domainMetadata(j: JValue): Option[JValue] = j.dyn.customer_metadata_flattened.? match {
-    case Left(e) => None
-    case Right(jv) => Some(jv)
-  }
-
-  def domainPrivateMetadata(j: JValue, user: Option[AuthedUser], domainId: Int): Option[JValue] =
+  def domainPrivateMetadata(doc: Document, user: Option[AuthedUser], domainId: Int)
+  : Option[Seq[CustomerMetadataFlattened]] =
     user.flatMap { case u: AuthedUser =>
-      val ownsIt = extractJString(j.dyn.owner_id.?).exists(_ == u.id)
-      val sharesIt = extractJArray(j.dyn.shared_to.?).exists(_.contains(u.id))
+      val ownsIt = doc.owner.id == u.id
+      val sharesIt = doc.sharedTo.contains(u.id)
       // a user may only view private metadata from docs on their authenticating domain,
       // assuming they are authed to do so for stories or non-stories
-      val isStory = extractJString(j.dyn.datatype.?).exists(_ == StoryDatatype.singular)
+      val isStory = doc.isStory
       val canViewIt = u.canViewAllOfSomePrivateMetadata(domainId, isStory)
+
       if (ownsIt || sharesIt || canViewIt) {
-        j.dyn.private_customer_metadata_flattened.? match {
-          case Left(e) => None
-          case Right(jv) => Some(jv)
-        }
+        Some(doc.privateCustomerMetadataFlattened)
       } else {
         None
       }
     }
 
-  def categories(j: JValue): Seq[JValue] =
-    new JPath(j).down("animl_annotations").down("categories").*.down("name").finish.distinct.toList
+  private def literallyApproved(doc: Document): Boolean =
+    doc.moderationStatus.contains(ApprovalStatus.approved.status)
 
-  def tags(j: JValue): Seq[JValue] =
-    new JPath(j).down("animl_annotations").down("tags").*.down("name").finish.distinct.toList
+  private def approvalsContainId(doc: Document, id: Int): Boolean =
+    doc.approvingDomainIds.exists(_.contains(id))
 
-  def cname(domainCnames: Map[Int,String], j: JValue): String = {
-    domainId(j).flatMap { i =>
-      domainCnames.get(i)
-    }.getOrElse("") // if no domain was found, default to blank string
-  }
+  def datalensStatus(doc: Document): Option[String] =
+    if (doc.isDatalens) doc.moderationStatus else None
 
-  def grants(j: JValue): Option[Seq[JValue]] = {
-    new JPath(j).down("grants").finish.headOption.flatMap(_.cast[JArray]).map(_.toSeq)
-  }
+  def datalensApproved(doc: Document): Option[Boolean] =
+    if (doc.isDatalens) Some(literallyApproved(doc)) else None
 
-  def datatype(j: JValue): Option[Datatype] =
-    extractJString(j.dyn.datatype.?).flatMap(s => Datatype(s))
-
-  def viewtype(j: JValue): Option[String] = extractJString(j.dyn.viewtype.?)
-
-  def datasetId(j: JValue): Option[String] = extractJString(j.dyn.socrata_id.dataset_id.?)
-
-  def datasetName(j: JValue): Option[String] = extractJString(j.dyn.resource.name.?)
-
-  def domainId(j: JValue): Option[Int] = j.dyn.socrata_id.domain_id.! match {
-    case jn: JNumber => Option(jn.toInt)
-    case JArray(elems) => elems.lastOption.map(_.asInstanceOf[JNumber].toInt)
-    case jv: JValue => throw new NoSuchElementException(s"Unexpected json value $jv")
-  }
-
-  def previewImageId(j: JValue): Option[String] = extractJString(j.dyn.preview_image_id.?)
-
-  def license(j: JValue): Option[String] = extractJString(j.dyn.license.?)
-
-  def isPublic(j: JValue): Boolean = extractJBoolean(j.dyn.is_public.?).exists(identity)
-
-  def isPublished(j: JValue): Boolean = extractJBoolean(j.dyn.is_published.?).exists(identity)
-
-  def isHidden(j: JValue): Boolean = extractJBoolean(j.dyn.hide_from_catalog.?).exists(identity)
-
-  private def literallyApproved(j: JValue): Boolean = {
-    val status = extractJString(j.dyn.moderation_status.?)
-    status.contains(ApprovalStatus.approved.status)
-  }
-
-  private def approvalsContainId(j: JValue, id: Int): Boolean = {
-    j.dyn.approving_domain_ids.! match {
-      case jn: JNumber => jn.toInt == id
-      case JArray(elems) => elems.map(_.asInstanceOf[JNumber].toInt).contains(id)
-      case _ => false
-    }
-  }
-
-  val datalensTypeStrings = List(DatalensDatatype, DatalensChartDatatype, DatalensMapDatatype).map(_.singular)
-  def datalensStatus(j: JValue): Option[String] = {
-    val isDatalens = extractJString(j.dyn.datatype.?).exists(datalensTypeStrings.contains(_))
-    if (isDatalens) extractJString(j.dyn.moderation_status.?) else None
-  }
-
-  def datalensApproved(j: JValue): Option[Boolean] = {
-    val isDatalens = extractJString(j.dyn.datatype.?).exists(datalensTypeStrings.contains(_))
-    if (isDatalens) Some(literallyApproved(j)) else None
-  }
-
-  def moderationStatus(j: JValue, viewsDomain: Domain): Option[String] = {
-    val isDefault = extractJBoolean(j.dyn.is_default_view.?).exists(identity)
+  def moderationStatus(doc: Document, viewsDomain: Domain): Option[String] = {
     viewsDomain.moderationEnabled match {
-      case true => if (isDefault) Some(ApprovalStatus.approved.status) else extractJString(j.dyn.moderation_status.?)
+      case true => if (doc.isDefaultView) Some(ApprovalStatus.approved.status) else doc.moderationStatus
       case false => None
     }
   }
 
-  def moderationApproved(j: JValue, viewsDomain: Domain): Option[Boolean] = {
-    val isDefault = extractJBoolean(j.dyn.is_default_view.?).exists(identity)
+  def moderationApproved(doc: Document, viewsDomain: Domain): Option[Boolean] = {
     viewsDomain.moderationEnabled match {
-      case true => Some(isDefault || literallyApproved(j))
+      case true => Some(doc.isDefaultView || literallyApproved(doc))
       case false => None
     }
   }
 
-  def moderationApprovedByContext(j: JValue, viewsDomain: Domain, domainSet: DomainSet): Option[Boolean] = {
-    val isDefault = extractJBoolean(j.dyn.is_default_view.?).exists(identity)
+  def moderationApprovedByContext(doc: Document, viewsDomain: Domain, domainSet: DomainSet): Option[Boolean] = {
     (domainSet.contextIsModerated, viewsDomain.moderationEnabled) match {
       // if a view comes from a moderated domain, it must be a default view or approved
-      case (true, true) => Some(isDefault || literallyApproved(j))
+      case (true, true) => Some(doc.isDefaultView || literallyApproved(doc))
       // if a view comes from an unmoderated domain, it must be a default view
-      case (true, false) => Some(isDefault)
+      case (true, false) => Some(doc.isDefaultView)
       // if the context isn't moderated, a views moderationApproval is decided by its parent domain, not the context
       case (false, _) => None
     }
   }
 
-  def routingStatus(j: JValue, viewsDomain: Domain): Option[String] =
+  def routingStatus(doc: Document, viewsDomain: Domain): Option[String] =
     viewsDomain.routingApprovalEnabled match {
       case true =>
-        if (extractJBoolean(j.dyn.is_approved_by_parent_domain.?).exists(identity)) {
+        if (doc.isApprovedByParentDomain) {
           Some(ApprovalStatus.approved.status)
-        } else if (extractJBoolean(j.dyn.is_pending_on_parent_domain.?).exists(identity)) {
+        } else if (doc.isPendingOnParentDomain) {
           Some(ApprovalStatus.pending.status)
-        } else if (extractJBoolean(j.dyn.is_rejected_by_parent_domain.?).exists(identity)) {
+        } else if (doc.isRejectedByParentDomain) {
           Some(ApprovalStatus.rejected.status)
         } else {
           None
@@ -232,119 +126,108 @@ object Format {
       case false => None
     }
 
-  def routingApproved(j: JValue, viewsDomain: Domain): Option[Boolean] = {
+  def routingApproved(doc: Document, viewsDomain: Domain): Option[Boolean] = {
     val viewDomainId = viewsDomain.domainId
     viewsDomain.routingApprovalEnabled match {
-      case true => Some(approvalsContainId(j, viewsDomain.domainId))
+      case true => Some(approvalsContainId(doc, viewsDomain.domainId))
       case false => None
     }
   }
 
-  def routingApprovedByContext(j: JValue, viewsDomain: Domain, domainSet: DomainSet): Option[Boolean] = {
+  def routingApprovedByContext(doc: Document, viewsDomain: Domain, domainSet: DomainSet): Option[Boolean] = {
     val contextDomainId = domainSet.searchContext.map(d => d.domainId).getOrElse(0)
     domainSet.contextHasRoutingApproval match {
-      case true => Some(approvalsContainId(j, contextDomainId))
+      case true => Some(approvalsContainId(doc, contextDomainId))
       case false => None
     }
   }
 
-  def contextApprovals(j: JValue, viewsDomain: Domain, domainSet: DomainSet): (Option[Boolean],Option[Boolean]) = {
+  def contextApprovals(doc: Document, viewsDomain: Domain, domainSet: DomainSet): (Option[Boolean],Option[Boolean]) = {
     val viewDomainId = viewsDomain.domainId
     val contextDomainId = domainSet.searchContext.map(d => d.domainId).getOrElse(0)
-    val moderationApprovalOnContext = moderationApprovedByContext(j, viewsDomain, domainSet)
-    val routingApprovalOnContext = routingApprovedByContext(j, viewsDomain, domainSet)
+    val moderationApprovalOnContext = moderationApprovedByContext(doc, viewsDomain, domainSet)
+    val routingApprovalOnContext = routingApprovedByContext(doc, viewsDomain, domainSet)
     if (viewDomainId != contextDomainId) (moderationApprovalOnContext, routingApprovalOnContext) else (None, None)
   }
 
-  def calculateVisibility(j: JValue, viewsDomain: Domain, domainSet: DomainSet): Metadata = {
+  def calculateVisibility(doc: Document, viewsDomain: Domain, domainSet: DomainSet): Metadata = {
     val viewDomainId = viewsDomain.domainId
     val contextDomainId = domainSet.searchContext.map(d => d.domainId).getOrElse(0)
-    val public = isPublic(j)
-    val published = isPublished(j)
-    val hidden = isHidden(j)
-    val raStatus = routingStatus(j, viewsDomain)
-    val routingApproval = routingApproved(j, viewsDomain)
-    val modStatus = moderationStatus(j, viewsDomain)
-    val moderationApproval = moderationApproved(j, viewsDomain)
-    val dlStatus = datalensStatus(j)
-    val datalensApproval = datalensApproved(j)
-    val(moderationApprovalOnContext, routingApprovalOnContext) = contextApprovals(j, viewsDomain, domainSet)
-    val viewGrants = grants(j)
+    val routingApproval = routingApproved(doc, viewsDomain)
+    val moderationApproval = moderationApproved(doc, viewsDomain)
+    val datalensApproval = datalensApproved(doc)
+    val(moderationApprovalOnContext, routingApprovalOnContext) = contextApprovals(doc, viewsDomain, domainSet)
+    val viewGrants = if (doc.grants.isEmpty) None else Some(doc.grants)
     val anonymousVis =
-      public & published & !hidden &
+      doc.isPublic & doc.isPublished & !doc.isHiddenFromCatalog &
       routingApproval.getOrElse(true) & routingApprovalOnContext.getOrElse(true) &
       moderationApproval.getOrElse(true) & moderationApprovalOnContext.getOrElse(true) &
       datalensApproval.getOrElse(true)
-    val viewLicense = license(j)
 
     Metadata(
       domain = viewsDomain.domainCname,
-      license = viewLicense,
-      isPublic = Some(public),
-      isPublished = Some(published),
-      isHidden = Some(hidden),
-      isModerationApproved = moderationApproval,
+      license = doc.license,
+      isPublic = Some(doc.isPublic),
+      isPublished = Some(doc.isPublished),
+      isHidden = Some(doc.isHiddenFromCatalog),
+      isModerationApproved = moderationApproved(doc, viewsDomain),
       isModerationApprovedOnContext = moderationApprovalOnContext,
       isRoutingApproved = routingApproval,
       isRoutingApprovedOnContext = routingApprovalOnContext,
       isDatalensApproved = datalensApproval,
       visibleToAnonymous = Some(anonymousVis),
-      moderationStatus = modStatus,
-      routingStatus = raStatus,
-      datalensStatus = dlStatus,
+      moderationStatus = moderationStatus(doc, viewsDomain),
+      routingStatus = routingStatus(doc, viewsDomain),
+      datalensStatus = datalensStatus(doc),
       grants = viewGrants)
   }
 
-  def resultOwner(j: JValue): Option[UserInfo] =
-    j.dyn.owner.?.fold(decodeErrorToNone, UserInfo.fromJValue)
-
   def documentSearchResult( // scalastyle:ignore method.length
-      j: JValue,
+      doc: Document,
       user: Option[AuthedUser],
       domainSet: DomainSet,
       locale: Option[String],
-      score: Option[JNumber],
-      showVisibility: Boolean,
-      owner: Option[UserInfo])
+      score: Option[Float],
+      showVisibility: Boolean)
     : Option[SearchResult] = {
     try {
-      val viewsDomainId = domainId(j).getOrElse(throw new NoSuchElementException)
+      val viewsDomainId = doc.socrataId.domainId.toInt
       val domainIdCnames = domainSet.idMap.map { case (i, d) => i -> d.domainCname }
       val viewsDomain = domainSet.idMap.getOrElse(viewsDomainId, throw new NoSuchElementException)
-      val viewLicense = license(j)
-      val scoreMap = score.map(s => s.toBigDecimal)
+
+      val viewLicense = doc.license
       val scorelessMetadata = if (showVisibility) {
-        calculateVisibility(j, viewsDomain, domainSet)
+        calculateVisibility(doc, viewsDomain, domainSet)
       } else {
         Metadata(viewsDomain.domainCname, viewLicense)
       }
 
-      val metadata = scorelessMetadata.copy(score = score.map(_.toBigDecimal))
+      val metadata = scorelessMetadata.copy(score = score)
 
       val linkMap = links(
-        cname(domainIdCnames, j),
+        domainIdCnames.getOrElse(doc.socrataId.domainId.toInt, ""),
         locale,
-        datatype(j),
-        viewtype(j),
-        datasetId(j).get,
-        domainCategoryString(j),
-        datasetName(j).get,
-        previewImageId(j))
+        Datatype(doc.datatype),
+        doc.viewtype,
+        doc.socrataId.datasetId,
+        doc.customerCategory,
+        doc.resource.name,
+        doc.previewImageId)
 
       Some(SearchResult(
-        j.dyn.resource.!,
+        doc.resource,
         Classification(
-          categories(j),
-          tags(j),
-          domainCategory(j),
-          domainTags(j),
-          domainMetadata(j),
-          domainPrivateMetadata(j, user, viewsDomainId)),
+          doc.animlAnnotations.map(_.categoryNames).getOrElse(Seq.empty),
+          doc.animlAnnotations.map(_.tagNames).getOrElse(Seq.empty),
+          doc.customerCategory,
+          doc.customerTags,
+          doc.customerMetadataFlattened,
+          domainPrivateMetadata(doc, user, viewsDomainId)),
         metadata,
-        linkMap.getOrElse("permalink", JString("")),
-        linkMap.getOrElse("link", JString("")),
+        linkMap.getOrElse("permalink", ""),
+        linkMap.getOrElse("link", ""),
         linkMap.get("previewImageUrl"),
-        owner)
+        doc.owner)
       )
     }
     catch { case e: Exception =>
@@ -353,7 +236,14 @@ object Format {
     }
   }
 
-  // WARN: This will raise if a single document has a single missing path!
+  def parseHit(hit: SearchHit): Option[Document] = {
+    val document = JsonUtil.parseJson[Document](hit.getSourceAsString)
+    document match {
+      case Right(d) => Some(d)
+      case Left(e) => None
+    }
+  }
+
   def formatDocumentResponse(
       searchResponse: SearchResponse,
       user: Option[AuthedUser],
@@ -364,12 +254,12 @@ object Format {
     val hits = searchResponse.getHits
 
     val searchResult = hits.getHits().flatMap { hit =>
-      val json = JsonReader.fromString(hit.getSourceAsString())
-      val score = if (formatParams.showScore) Some(JNumber(hit.getScore)) else None
-      val owner = resultOwner(json)
-
-      documentSearchResult(json, user, domainSet, formatParams.locale, score, formatParams.showVisibility, owner)
+      parseHit(hit).flatMap { d =>
+        val score = if (formatParams.showScore) Some(hit.getScore) else None
+        documentSearchResult(d, user, domainSet, formatParams.locale, score, formatParams.showVisibility)
+      }
     }
+
     SearchResults(searchResult, hits.getTotalHits)
   }
 }

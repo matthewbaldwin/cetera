@@ -1,13 +1,9 @@
 package com.socrata.cetera.response
 
+import java.io.{PrintWriter, StringWriter}
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
-import scala.util.matching.Regex.Match
-import java.io.{PrintWriter, StringWriter}
 
-import com.rojoma.json.v3.io.JsonReader
-import com.rojoma.json.v3.jpath.JPath
-import com.rojoma.json.v3.ast.{JString, JValue}
 import com.rojoma.json.v3.codec.JsonEncode
 import com.rojoma.json.v3.util._
 import com.socrata.http.server.HttpResponse
@@ -15,7 +11,7 @@ import com.socrata.http.server.responses.{Json, StatusResponse, Unauthorized}
 import org.elasticsearch.common.text.Text
 import org.elasticsearch.search.SearchHit
 
-import com.socrata.cetera.types.{DomainUser, TitleFieldType, UserInfo}
+import com.socrata.cetera.types._
 
 object JsonResponses {
   def jsonError(error: String): HttpResponse = {
@@ -29,10 +25,8 @@ object JsonResponses {
       "stackTrace" -> getStackTraceAsString(error)
     ))}
 
-  private
-
   // from http://alvinalexander.com/scala/how-convert-stack-trace-exception-string-print-logger-logging-log4j-slf4j
-  def getStackTraceAsString(t: Throwable) = {
+  private def getStackTraceAsString(t: Throwable) = {
     val sw = new StringWriter
     t.printStackTrace(new PrintWriter(sw))
     sw.toString
@@ -48,12 +42,12 @@ object InternalTimings {
 
 @JsonKeyStrategy(Strategy.Underscore)
 case class Classification(
-  categories: Seq[JValue],
-  tags: Seq[JValue],
-  domainCategory: Option[JValue],
-  domainTags: Option[JValue],
-  domainMetadata: Option[JValue],
-  domainPrivateMetadata: Option[JValue])
+    categories: Seq[String],
+    tags: Seq[String],
+    domainCategory: Option[String],
+    domainTags: Seq[String],
+    domainMetadata: Seq[CustomerMetadataFlattened],
+    domainPrivateMetadata: Option[Seq[CustomerMetadataFlattened]])
 
 object Classification {
   implicit val jCodec = AutomaticJsonCodecBuilder[Classification]
@@ -75,8 +69,8 @@ case class Metadata(
     moderationStatus: Option[String] = None,
     routingStatus: Option[String] = None,
     datalensStatus: Option[String] = None,
-    score: Option[BigDecimal] = None,
-    grants: Option[Seq[JValue]] = None)
+    score: Option[Float] = None,
+    grants: Option[Seq[ESGrant]] = None)
 
 object Metadata {
   implicit val jCodec = AutomaticJsonCodecBuilder[Metadata]
@@ -84,24 +78,25 @@ object Metadata {
 
 @JsonKeyStrategy(Strategy.Underscore)
 case class SearchResult(
-  resource: JValue,
-  classification: Classification,
-  metadata: Metadata,
-  permalink: JString,
-  link: JString,
-  previewImageUrl: Option[JString],
-  owner: Option[UserInfo])
+    resource: Resource,
+    classification: Classification,
+    metadata: Metadata,
+    permalink: String,
+    link: String,
+    previewImageUrl: Option[String],
+    owner: UserInfo)
 
 object SearchResult {
   implicit val jCodec = AutomaticJsonCodecBuilder[SearchResult]
 }
 
-case class SearchResults[T](results: Seq[T],
-                            resultSetSize: Long,
-                            timings: Option[InternalTimings] = None)
+case class SearchResults[T](
+    results: Seq[T],
+    resultSetSize: Long,
+    timings: Option[InternalTimings] = None)
 
 object SearchResults {
-  implicit def jEncode[T : JsonEncode]: JsonEncode[SearchResults[T]] = {
+  implicit def jEncode[T: JsonEncode]: JsonEncode[SearchResults[T]] = {
     AutomaticJsonEncodeBuilder[SearchResults[T]]
   }
 

@@ -18,9 +18,10 @@
       "",
       ""
     ],
-    "createdAt": "2014-03-10T14:39:13.000Z",
-    "updatedAt": "2016-06-01T10:00:23.000Z",
+    "created_at": "2014-03-10T14:39:13.000Z",
+    "updated_at": "2016-06-01T10:00:23.000Z",
     "parent_fxf": "7v22-4z3a",
+    "nbe_fxf": "94sr-dmsy",
     "type": "chart",
     "name": "drew",
     "description": "Checks written to pay for products and services received by the City.",
@@ -32,6 +33,15 @@
       "invoiceno",
       "payee",
       "invoiceamt"
+    ],
+    "columns_datatype": [
+      "date",
+      "text",
+      "number",
+      "number",
+      "number",
+      "test",
+      "number"
     ],
     "id": "94sr-dmsy",
     "view_count": {
@@ -65,6 +75,10 @@
       {"user_id": "jane-doe", "type": "view"},
       {"user_id": "jack-joe", "type": "gobble"}
     ]
+  },
+  "owner": {
+    "screen_name": "Drew",
+    "id": "7kqh-9s5a"
   },
   "permalink": "https://petercetera.net/d/94sr-dmsy",
   "link": "https://petercetera.net/Finance/drew/94sr-dmsy"

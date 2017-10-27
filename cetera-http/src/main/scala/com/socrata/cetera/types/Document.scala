@@ -45,7 +45,10 @@ object Annotation {
 }
 
 @JsonKeyStrategy(Strategy.Underscore)
-case class AnimlAnnotations(categories: Seq[Annotation], tags: Seq[Annotation])
+case class AnimlAnnotations(categories: Seq[Annotation], tags: Seq[Annotation]) {
+  def categoryNames: Seq[String] = categories.map(_.name).distinct
+  def tagNames: Seq[String] = tags.map(_.name).distinct
+}
 object AnimlAnnotations { implicit val jCodec = AutomaticJsonCodecBuilder[AnimlAnnotations] }
 
 @JsonKeyStrategy(Strategy.Underscore)
@@ -61,12 +64,13 @@ object IndexedMetadata {
 }
 
 @JsonKeyStrategy(Strategy.Underscore)
-case class PageViews(pageViewsTotal: Long,
-                     pageViewsLastMonth: Long,
-                     pageViewsLastWeek: Long,
-                     pageViewsTotalLog: Option[Float] = None,
-                     pageViewsLastMonthLog: Option[Float] = None,
-                     pageViewsLastWeekLog: Option[Float] = None)
+case class PageViews(
+    pageViewsTotal: Long,
+    pageViewsLastMonth: Long,
+    pageViewsLastWeek: Long,
+    pageViewsTotalLog: Option[Float] = None,
+    pageViewsLastMonthLog: Option[Float] = None,
+    pageViewsLastWeekLog: Option[Float] = None)
 object PageViews { implicit val jCodec = AutomaticJsonCodecBuilder[PageViews] }
 
 @JsonKeyStrategy(Strategy.Underscore)

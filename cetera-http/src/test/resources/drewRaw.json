@@ -7,7 +7,7 @@
     "ti9x-irmy"
   ],
   "socrata_id": {
-    "parent_dataset_id": "7v22-4z3a",
+    "parent_dataset_id": ["7v22-4z3a"],
     "dataset_id": "94sr-dmsy",
     "nbe_id": "94sr-dmsy",
     "obe_id": "afha-1234",
@@ -59,6 +59,8 @@
   "approving_domain_ids": [],
   "approving_domain_ids": [],
   "is_approved_by_parent_domain": false,
+  "is_rejected_by_parent_domain": true,
+  "is_pending_on_parent_domain": false,
   "animl_annotations": {
     "tags": [
       {"name": "finance", "score": 0.9},
@@ -94,9 +96,10 @@
       "",
       ""
     ],
-    "createdAt": "2014-03-10T14:39:13.000Z",
-    "updatedAt": "2016-06-01T10:00:23.000Z",
+    "created_at": "2014-03-10T14:39:13.000Z",
+    "updated_at": "2016-06-01T10:00:23.000Z",
     "parent_fxf": "7v22-4z3a",
+    "nbe_fxf": "94sr-dmsy",
     "type": "chart",
     "name": "drew",
     "description": "Checks written to pay for products and services received by the City.",
@@ -108,6 +111,15 @@
       "invoiceno",
       "payee",
       "invoiceamt"
+    ],
+    "columns_datatype": [
+      "date",
+      "text",
+      "number",
+      "number",
+      "number",
+      "test",
+      "number"
     ],
     "id": "94sr-dmsy",
     "view_count": {

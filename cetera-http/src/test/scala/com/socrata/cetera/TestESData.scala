@@ -3,7 +3,7 @@ package com.socrata.cetera
 import java.io.File
 import scala.io.Source
 
-import com.rojoma.json.v3.ast.{JString, JValue}
+import com.rojoma.json.v3.ast.JValue
 import com.rojoma.json.v3.interpolation._
 import com.rojoma.json.v3.io.CompactJsonWriter
 import com.rojoma.json.v3.util.JsonUtil
@@ -168,8 +168,7 @@ trait TestESData extends TestESDomains with TestESUsers {
     service.doSearch(allDomainsParams, AuthParams(cookie=Some(adminCookie)), Some(host), None)._2.results
   }
 
-  def fxfs(searchResult: SearchResult): String =
-    searchResult.resource.dyn.id.!.asInstanceOf[JString].string
+  def fxfs(searchResult: SearchResult): String = searchResult.resource.id
 
   def fxfs(searchResults: SearchResults[SearchResult]): Seq[String] =
     searchResults.results.map(fxfs)

@@ -1,16 +1,11 @@
 package com.socrata.cetera.services
 
-import com.rojoma.json.v3.codec.JsonDecode
 import java.io.ByteArrayInputStream
 import java.nio.charset.{Charset, CodingErrorAction}
 import java.util.Collections
 import javax.servlet.http.HttpServletRequest
-import org.elasticsearch.index.Index
-import org.elasticsearch.search.{ SearchHit, SearchHits }
-import org.elasticsearch.search.profile.{ ProfileShardResult, SearchProfileShardResults }
 import scala.collection.JavaConverters._
 
-import com.rojoma.json.v3.ast.{JString, JValue}
 import com.rojoma.json.v3.interpolation._
 import com.rojoma.simplearm.v2._
 import com.socrata.http.server.HttpRequest
@@ -19,10 +14,11 @@ import org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
 import org.elasticsearch.action.search._
 import org.elasticsearch.common.bytes.BytesArray
 import org.elasticsearch.common.text.Text
-import org.elasticsearch.search.aggregations.{InternalAggregation, InternalAggregations}
+import org.elasticsearch.search.aggregations.InternalAggregations
 import org.elasticsearch.search.internal._
+import org.elasticsearch.search.profile.{ProfileShardResult, SearchProfileShardResults}
 import org.elasticsearch.search.suggest.Suggest
-import org.elasticsearch.search.{SearchHitField, SearchShardTarget}
+import org.elasticsearch.search.{SearchHit, SearchHitField, SearchHits}
 import org.scalamock.scalatest.proxy.MockFactory
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, FunSuiteLike, Matchers}
 import org.springframework.mock.web.{DelegatingServletInputStream, MockHttpServletResponse}
@@ -30,7 +26,7 @@ import org.springframework.mock.web.{DelegatingServletInputStream, MockHttpServl
 import com.socrata.cetera._
 import com.socrata.cetera.auth.AuthParams
 import com.socrata.cetera.errors.UnauthorizedError
-import com.socrata.cetera.handlers.FormatParamSet
+import com.socrata.cetera.handlers.{FormatParamSet, PagingParamSet, ScoringParamSet, SearchParamSet}
 import com.socrata.cetera.response.{Classification, Format, SearchResult, SearchResults}
 import com.socrata.cetera.types._
 
@@ -53,34 +49,10 @@ class SearchServiceSpec extends FunSuiteLike
   val emptySearchHitMap = Map[String, SearchHitField]().asJava
   val domainSet = DomainSet(domains = (0 to 2).map(domains(_)).toSet)
 
-  val searchResponse = {
-    val score = 0.12345f
-
-    val resource = "\"resource\":{\"name\": \"Just A Test\", \"I'm\":\"OK\",\"you're\":\"so-so\"}"
-
-    val datasetSocrataId =
-      "\"socrata_id\":{\"domain_id\":[0],\"dataset_id\":\"four-four\"}"
-    val pageSocrataId =
-      "\"socrata_id\":{\"domain_id\":[1,2],\"dataset_id\":\"four-four\",\"page_id\":\"fore-fore\"}"
-
-    val datasetDatatype = "\"datatype\":\"dataset\""
-    val datasetViewtype = "\"viewtype\":\"\""
-    val pageDatatype = "\"datatype\":\"datalens\""
-    val pageViewtype = "\"viewtype\":\"\""
-
-    val datasetSource = new BytesArray("{" + List(resource, datasetDatatype, datasetViewtype, datasetSocrataId).mkString(",") + "}")
-    val pageSource = new BytesArray("{" + List(resource, pageDatatype, pageViewtype, pageSocrataId).mkString(",") + "}")
-
-    val datasetHit = new SearchHit(1, "46_3yu6-fka7", new Text("dataset"), emptySearchHitMap)
-    datasetHit.sourceRef(datasetSource)
-    datasetHit.score(score)
-
-    val pageHit = new SearchHit(1, "64_6uy3-7akf", new Text("page"), emptySearchHitMap)
-    pageHit.sourceRef(pageSource)
-    pageHit.score(score)
-
-    val hits = Array[SearchHit](datasetHit, pageHit)
-    val internalSearchHits = new SearchHits(hits, 3037, 1.0f)
+  lazy val searchResponse = {
+    val req = documentClient.buildSearchRequest(domainSet, SearchParamSet(user = Some("john-clan")), ScoringParamSet(), PagingParamSet(), None)
+    val res = req.execute.actionGet
+    val internalSearchHits = new SearchHits(res.getHits.getHits, 3037, 1.0f)
     val internalSearchResponse = new InternalSearchResponse(
       internalSearchHits,
       new InternalAggregations(Nil.asJava),
@@ -101,12 +73,9 @@ class SearchServiceSpec extends FunSuiteLike
 
     val datasetSocrataId = "\"socrata_id\":{\"domain_id\":[0],\"dataset_id\":\"four-four\"}"
     val badDatasetSocrataId = "\"socrata_id\":{\"domain_id\":\"i am a string\",\"dataset_id\":\"four-four\"}"
-    val pageSocrataId = "\"socrata_id\":{\"domain_id\":[1,2],\"dataset_id\":\"four-four\",\"page_id\":\"fore-fore\"}"
 
     val datasetDatatype = "\"datatype\":\"dataset\""
     val datasetViewtype = "\"viewtype\":\"\""
-    val pageDatatype = "\"datatype\":\"datalens\""
-    val pageViewtype = "\"viewtype\":\"\""
 
     val badResourceDatasetSource = new BytesArray("{" +
       List(badResource, datasetDatatype, datasetViewtype, datasetSocrataId).mkString(",") +
@@ -114,10 +83,6 @@ class SearchServiceSpec extends FunSuiteLike
 
     val badSocrataIdDatasetSource = new BytesArray("{" +
       List(goodResource, datasetDatatype, datasetViewtype, badDatasetSocrataId).mkString(",")
-      + "}")
-
-    val pageSource = new BytesArray("{" +
-      List(goodResource, pageDatatype, pageViewtype, pageSocrataId).mkString(",")
       + "}")
 
     // A result missing the resource field should get filtered (a bogus doc is often missing expected fields)
@@ -130,11 +95,7 @@ class SearchServiceSpec extends FunSuiteLike
     badSocrataIdDatasetHit.sourceRef(badSocrataIdDatasetSource)
     badSocrataIdDatasetHit.score(score)
 
-    val pageHit = new SearchHit(1, "64_6uy3-7akf", new Text("page"), emptySearchHitMap)
-    pageHit.sourceRef(pageSource)
-    pageHit.score(score)
-
-    val hits = Array[SearchHit](badResourceDatasetHit, badSocrataIdDatasetHit, pageHit)
+    val hits = Array[SearchHit](badResourceDatasetHit, badSocrataIdDatasetHit)
     val internalSearchHits = new SearchHits(hits, 3037, 1.0f)
     val internalSearchResponse = new InternalSearchResponse(
       internalSearchHits,
@@ -149,9 +110,6 @@ class SearchServiceSpec extends FunSuiteLike
   }
 
   test("extract and format resources from SearchResponse") {
-    val domain = Domain(1, "tempuri.org", None, Some("Title"), Some("Temp Org"), isCustomerDomain = true, moderationEnabled = false, routingApprovalEnabled = false, lockedDown = false, apiLockedDown = false)
-    val resource = j"""{ "name" : "Just A Test", "I'm" : "OK", "you're" : "so-so" }"""
-
     val searchResults = Format.formatDocumentResponse(searchResponse, None, domainSet, FormatParamSet())
 
     searchResults.resultSetSize should be (searchResponse.getHits.getTotalHits)
@@ -159,19 +117,13 @@ class SearchServiceSpec extends FunSuiteLike
 
     val results = searchResults.results
     results should be ('nonEmpty)
-    results.size should be (2)
+    results.size should be (1)
 
     val datasetResponse = results(0)
-    datasetResponse.resource should be (j"""${resource}""")
-    datasetResponse.classification should be (Classification(Seq.empty[JValue], Seq.empty[JValue], None, None, None, None))
+    datasetResponse.resource should be(docs(18).resource)
+    datasetResponse.classification should be (Classification(Vector(),Vector(),Some("Fun"),Vector(),Vector(),None))
 
-    datasetResponse.metadata.domain should be ("petercetera.net")
-
-    val pageResponse = results(1)
-    pageResponse.resource should be (j"""${resource}""")
-    pageResponse.classification should be (Classification(Seq.empty[JValue], Seq.empty[JValue], None, None, None, None))
-
-    pageResponse.metadata.domain should be ("blue.org")
+    datasetResponse.metadata.domain should be ("blue.org")
   }
 
   test("SearchResponse does not throw on bad documents it just ignores them") {
@@ -181,10 +133,7 @@ class SearchServiceSpec extends FunSuiteLike
     val searchResults = Format.formatDocumentResponse(badSearchResponse, None, domainSet, FormatParamSet())
 
     val results = searchResults.results
-    results.size should be (1)
-
-    val pageResponse = results(0)
-    pageResponse.resource should be (j"""${expectedResource}""")
+    results.size should be (0)
   }
 
   def wasSearchQueryLogged(filename: String, q: String): Boolean = {
@@ -200,7 +149,7 @@ class SearchServiceSpec extends FunSuiteLike
 
   private def fxfsVisibility(searchResults: SearchResults[SearchResult]): Map[String, Boolean] =
     searchResults.results.map { hit =>
-      val fxf = hit.resource.dyn.id.!.asInstanceOf[JString].string
+      val fxf = hit.resource.id
       val visibility = hit.metadata.visibleToAnonymous.getOrElse(fail())
       fxf -> visibility
     }.toMap
@@ -351,7 +300,7 @@ class SearchServiceSpec extends FunSuiteLike
 
     val results = service.doSearch(params, AuthParams(), None, None)._2.results
     results.map(result =>
-      result.resource.dyn.id.!.cast[JString].get.string
+      result.resource.id
     ) should contain inOrderOnly ("1234-5678", "1234-5679")
   }
 
@@ -361,7 +310,7 @@ class SearchServiceSpec extends FunSuiteLike
     val results = service.doSearch(params, AuthParams(), None, None)._2.results
 
     results.map(result =>
-      result.resource.dyn.id.!.cast[JString].get.string
+      result.resource.id
     ) should contain theSameElementsInOrderAs anonymouslyViewableDocIds.sorted
   }
 
@@ -373,16 +322,14 @@ class SearchServiceSpec extends FunSuiteLike
     val results = service.doSearch(params, AuthParams(), None, None)._2.results
 
     results.map(result =>
-      result.resource.dyn.id.!.cast[JString].get.string
+      result.resource.id
     ) should contain theSameElementsInOrderAs anonymouslyViewableDocIdsSorted.drop(dropIndex).take(5)
   }
 
   test("the owner field is included in the results") {
     val params = Map("domains" -> Seq("robert.demo.socrata.com"), "ids" -> Seq("1234-5678"))
-
     val results = service.doSearch(params, AuthParams(), None, None)._2.results
-
-    results.toList.headOption.flatMap(_.owner) should be(Some(UserInfo("honorable.sheriff", Some("Honorable Sheriff of Nottingham"))))
+    results.toList(0).owner should be(UserInfo("honorable.sheriff", Some("Honorable Sheriff of Nottingham")))
   }
 
   test("sorting on the owner returns results in the correct order") {
@@ -390,12 +337,12 @@ class SearchServiceSpec extends FunSuiteLike
 
     val results = service.doSearch(params, AuthParams(), None, None)._2.results
 
-    results.toList.flatMap(_.owner.map(_.id)) should be(List("honorable.sheriff", "lil-john"))
+    results.toList.map(_.owner.id) should be(List("honorable.sheriff", "lil-john"))
 
     val paramsDesc = params + ("order" -> Seq("owner DESC"))
     val resultsDesc = service.doSearch(paramsDesc, AuthParams(), None, None)._2.results
 
-    resultsDesc.toList.flatMap(_.owner.map(_.id)) should be(List("lil-john", "honorable.sheriff"))
+    resultsDesc.toList.map(_.owner.id) should be(List("lil-john", "honorable.sheriff"))
   }
 
   test("sorting on domain category returns results in the correct order") {
@@ -404,14 +351,14 @@ class SearchServiceSpec extends FunSuiteLike
     val results = service.doSearch(params, AuthParams(), None, None)._2.results
 
     val t = results.toList.flatMap(
-      _.classification.domainCategory.flatMap(_.cast[JString].map(_.string))
+      _.classification.domainCategory
     ) should be(List("Beta", "Science"))
 
     val paramsDesc = params + ("order" -> Seq("domain_category DESC"))
     val resultsDesc = service.doSearch(paramsDesc, AuthParams(), None, None)._2.results
 
     resultsDesc.toList.flatMap(
-      _.classification.domainCategory.flatMap(_.cast[JString].map(_.string))
+      _.classification.domainCategory
     ) should be(List("Science", "Beta"))
   }
 
@@ -421,14 +368,14 @@ class SearchServiceSpec extends FunSuiteLike
     val results = service.doSearch(params, AuthParams(), None, None)._2.results
 
     results.toList.map(
-      _.resource.dyn.`type`.!.asInstanceOf[JString].string
+      _.resource.datatype
     ) should be(List("chart", "chart", "dataset", "dataset", "dataset"))
 
     val paramsDesc = params + ("order" -> Seq("datatype DESC"))
     val resultsDesc = service.doSearch(paramsDesc, AuthParams(), None, None)._2.results
 
     resultsDesc.toList.map(
-      _.resource.dyn.`type`.!.asInstanceOf[JString].string
+      _.resource.datatype
     ) should be(List("dataset", "dataset", "dataset", "chart", "chart"))
   }
 
@@ -437,7 +384,7 @@ class SearchServiceSpec extends FunSuiteLike
     val results = service.doSearch(params, AuthParams(), None, None)._2.results
 
     val categories = results.toList.map(
-      _.classification.domainCategory.flatMap(_.cast[JString].map(_.string))
+      _.classification.domainCategory
     )
 
     categories.head should be(Some("Alpha"))
@@ -452,7 +399,7 @@ class SearchServiceSpec extends FunSuiteLike
     val results = service.doSearch(params, AuthParams(), None, None)._2.results
 
     val categories = results.toList.map(
-      _.classification.domainCategory.flatMap(_.cast[JString].map(_.string))
+      _.classification.domainCategory
     )
 
     categories.head should be(Some("Science"))

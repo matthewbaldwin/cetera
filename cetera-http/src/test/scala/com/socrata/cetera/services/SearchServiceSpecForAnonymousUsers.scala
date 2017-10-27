@@ -1,16 +1,11 @@
 package com.socrata.cetera.services
 
-import java.nio.charset.{Charset, CodingErrorAction}
-
-import com.rojoma.json.v3.ast.{JArray, JString}
-import com.rojoma.simplearm.v2._
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, FunSuiteLike, Matchers}
 
 import com.socrata.cetera.TestESData
 import com.socrata.cetera.auth.AuthParams
 import com.socrata.cetera.errors.DomainNotFoundError
 import com.socrata.cetera.handlers.Params
-import com.socrata.cetera.response.SearchResult
 import com.socrata.cetera.types.ApprovalStatus
 
 class SearchServiceSpecForAnonymousUsers
@@ -132,14 +127,14 @@ class SearchServiceSpecForAnonymousUsers
 
   test("search response contains pretty and perma links") {
     service.doSearch(Map.empty, AuthParams(), None, None)._2.results.foreach { r =>
-      val dsid = r.resource.dyn.id.!.asInstanceOf[JString].string
+      val dsid = r.resource.id
 
       val perma = "(d|stories/s|view)"
       val alphanum = "[\\p{L}\\p{N}\\-]+" // all of the test data have proper categories and names
     val pretty = s"$alphanum/$alphanum"
 
-      r.permalink.string should endWith regex s"/$perma/$dsid"
-      r.link.string should endWith regex s"/$pretty/$dsid"
+      r.permalink should endWith regex s"/$perma/$dsid"
+      r.link should endWith regex s"/$pretty/$dsid"
     }
   }
 
@@ -245,7 +240,7 @@ class SearchServiceSpecForAnonymousUsers
   test("giving a datatype a boost of >1 should promote assets of that type to the top") {
     val params = Map("boostStories" -> Seq("10.0"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    val resultTypes = results.results.map(_.resource.dyn.`type`.!.asInstanceOf[JString].string)
+    val resultTypes = results.results.map(_.resource.datatype)
     val topResultType = resultTypes.headOption
     topResultType should be(Some("story"))
   }
@@ -253,7 +248,7 @@ class SearchServiceSpecForAnonymousUsers
   test("giving a datatype a boost of <<1 should demote assets of that type to the bottom") {
     val params = Map("boostStories" -> Seq(".0000001"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    val resultTypes = results.results.map(_.resource.dyn.`type`.!.asInstanceOf[JString].string)
+    val resultTypes = results.results.map(_.resource.datatype)
     val lastResultType = resultTypes.last
     lastResultType should be("story")
   }
@@ -656,29 +651,29 @@ class SearchServiceSpecForAnonymousUsers
   test("sorting by name works") {
     val params = Map("order" -> Seq("name"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    results.results.head.resource.dyn("name").? should be(Right(JString("")))
-    results.results.last.resource.dyn("name").? should be(Right(JString("Three")))
+    results.results.head.resource.name should be("")
+    results.results.last.resource.name should be("Three")
   }
 
   test("sorting by name DESC works") {
     val params = Map("order" -> Seq("name DESC"), "domains" -> Seq("robert.demo.socrata.com"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    results.results.head.resource.dyn("name").? should be(Right(JString("My Latest and Greatest Dataset")))
-    results.results.last.resource.dyn("name").? should be(Right(JString("Alfa")))
+    results.results.head.resource.name should be("My Latest and Greatest Dataset")
+    results.results.last.resource.name should be("Alfa")
   }
 
   test("sorting by name ignores non-alphanumeric characters") {
     val params = Map("order" -> Seq("name"), "domains" -> Seq("robert.demo.socrata.com"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    results.results.head.resource.dyn("name").? should be(Right(JString("Alfa")))
-    results.results.last.resource.dyn("name").? should be(Right(JString("My Latest and Greatest Dataset")))
+    results.results.head.resource.name should be("Alfa")
+    results.results.last.resource.name should be("My Latest and Greatest Dataset")
   }
 
   test("sorting by name ignores case") {
     val params = Map("order" -> Seq("name"), "ids" -> Seq("1234-5680", "1234-5682"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    results.results.head.resource.dyn("name").? should be(Right(JString("'bravo")))
-    results.results.last.resource.dyn("name").? should be(Right(JString("Charlie")))
+    results.results.head.resource.name should be("'bravo")
+    results.results.last.resource.name should be("Charlie")
   }
 
   //////////////////////////////////////////////////
@@ -712,9 +707,7 @@ class SearchServiceSpecForAnonymousUsers
   test("attribution is included in the resulting resource") {
     val params = Map("q" -> Seq("merry men"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    results.results.headOption.map { case SearchResult(resource, _, _, _, _, _, _) =>
-      resource.dyn.attribution.!.asInstanceOf[JString].string
-    } should be(Some("The Merry Men"))
+    results.results(0).resource.attribution should be(Some("The Merry Men"))
   }
 
   //////////////////////////////////////////////////
@@ -724,9 +717,7 @@ class SearchServiceSpecForAnonymousUsers
   test("filtering by provenance works and the resulting resource has a 'provenance' field") {
     val params = Map("provenance" -> Seq("official"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    results.results.headOption.map { case SearchResult(resource, _, _, _, _, _, _) =>
-      resource.dyn.provenance.!.asInstanceOf[JString].string
-    } should be(Some("official"))
+    results.results(0).resource.provenance should be(Some("official"))
   }
 
   //////////////////////////////////////////////////
@@ -736,33 +727,25 @@ class SearchServiceSpecForAnonymousUsers
   test("filtering by license works and the resulting metadata has a 'license' field") {
     val params = Map("license" -> Seq("Academic Free License"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    results.results.headOption.flatMap { case SearchResult(_, _, metadata, _, _, _, _) =>
-      metadata.license
-    } should be(Some("Academic Free License"))
+    results.results(0).metadata.license should be(Some("Academic Free License"))
   }
 
   test("filtering by license should be exact") {
     val params = Map("license" -> Seq("Free License"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    results.results.headOption.flatMap { case SearchResult(_, _, metadata, _, _, _, _) =>
-      metadata.license
-    } should be(None)
+    results.results should be('empty)
   }
 
   test("filtering by license should be case sensitive") {
     val params = Map("license" -> Seq("academic free license"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    results.results.headOption.flatMap { case SearchResult(_, _, metadata, _, _, _, _) =>
-      metadata.license
-    } should be(None)
+    results.results should be('empty)
   }
 
   test("a query that results in a dataset with a license should return metadata with a 'license' field") {
     val params = Map("q" -> Seq("A dataset with a multiword title"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    results.results.headOption.flatMap { case SearchResult(_, _, metadata, _, _, _, _) =>
-      metadata.license
-    } should be(Some("Academic Free License"))
+    results.results(0).metadata.license should be(Some("Academic Free License"))
   }
 
   //////////////////////////////////////////////////
@@ -772,16 +755,14 @@ class SearchServiceSpecForAnonymousUsers
   test("preview_image_url should be included in the search result when available") {
     val params = Map("ids" -> Seq("zeta-0007"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    val resultPreviewImageUrls = results.results.map(_.previewImageUrl.map(_.asInstanceOf[JString].string))
-    val firstPreviewImageUrl = resultPreviewImageUrls.headOption.flatten
+    val firstPreviewImageUrl = results.results(0).previewImageUrl
     firstPreviewImageUrl should be(Some("https://petercetera.net/views/zeta-0007/files/123456789"))
   }
 
   test("preview_image_url should be None in the search result when not available") {
     val params = Map("ids" -> Seq("fxf-0"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    val resultPreviewImageUrls = results.results.map(_.previewImageUrl.map(_.asInstanceOf[JString].string))
-    val firstPreviewImageUrl = resultPreviewImageUrls.headOption.flatten
+    val firstPreviewImageUrl = results.results(0).previewImageUrl
     firstPreviewImageUrl should be(None)
   }
 
@@ -827,33 +808,18 @@ class SearchServiceSpecForAnonymousUsers
   test("filtering by column names works") {
     val params = Map("column_names[]" -> Seq("first_name"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    results.results.headOption.flatMap { case SearchResult(resource, _, _, _, _, _, _) =>
-      resource.dyn.columns_name.!.asInstanceOf[JArray] match {
-        case JArray(elems) => elems.headOption.map(_.asInstanceOf[JString].string)
-        case _ => None
-      }
-    } should be(Some("first_name"))
+    results.results(0).resource.columnsName should be(List("first_name"))
   }
 
   test("searching for column names works via the 'q' param works") {
     val params = Map("q" -> Seq("first_name"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    results.results.headOption.flatMap { case SearchResult(resource, _, _, _, _, _, _) =>
-      resource.dyn.columns_name.!.asInstanceOf[JArray] match {
-        case JArray(elems) => elems.headOption.map(_.asInstanceOf[JString].string)
-        case _ => None
-      }
-    } should be(Some("first_name"))
+    results.results(0).resource.columnsName should be(List("first_name"))
   }
 
   test("searching by column names is case insensitive") {
     val params = Map("column_names[]" -> Seq("FIRST_NAME"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    results.results.headOption.flatMap { case SearchResult(resource, _, _, _, _, _, _) =>
-      resource.dyn.columns_name.!.asInstanceOf[JArray] match {
-        case JArray(elems) => elems.headOption.map(_.asInstanceOf[JString].string)
-        case _ => None
-      }
-    } should be(Some("first_name"))
+    results.results(0).resource.columnsName should be(List("first_name"))
   }
 }
