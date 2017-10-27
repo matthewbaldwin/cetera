@@ -10,10 +10,9 @@
   },
   "resource": {
     "description": "Number Five is Alive",
-    "nbe_fxf": "fxf-11",
     "parent_fxf": null,
-    "updated_at": "2016-09-19T10:37:20.857-07:00",
-    "created_at": "2016-09-19T10:37:20.933-07:00",
+    "updatedAt": "2016-09-19T10:37:20.857-07:00",
+    "createdAt": "2016-09-19T10:37:20.933-07:00",
     "type": "federated_href",
     "id": "fxf-11",
     "name": "Five",

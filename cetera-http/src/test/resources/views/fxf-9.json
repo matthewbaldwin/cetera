@@ -12,10 +12,9 @@
   },
   "resource": {
     "description": "Second the best",
-    "nbe_fxf": "fxf-9",
-    "parent_fxf": "fxf-0",
-    "updated_at": "2016-09-19T10:37:20.857-07:00",
-    "created_at": "2016-09-19T10:37:20.933-07:00",
+    "parent_fxf": ["fxf-0"],
+    "updatedAt": "2016-09-19T10:37:20.857-07:00",
+    "createdAt": "2016-09-19T10:37:20.933-07:00",
     "type": "pulse",
     "id": "fxf-9",
     "name": "Two",

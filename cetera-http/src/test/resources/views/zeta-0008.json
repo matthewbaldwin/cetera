@@ -10,10 +10,9 @@
   },
   "resource": {
     "description": "a datalens on the doubly-locked down domain",
-    "nbe_fxf": "zeta-0008",
     "parent_fxf": null,
-    "updated_at": "2016-09-19T10:37:21.151-07:00",
-    "created_at": "2016-09-19T10:37:21.151-07:00",
+    "updatedAt": "2016-09-19T10:37:21.151-07:00",
+    "createdAt": "2016-09-19T10:37:21.151-07:00",
     "type": "datalens",
     "id": "zeta-0008",
     "name": "",

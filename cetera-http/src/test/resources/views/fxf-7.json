@@ -12,10 +12,9 @@
   },
   "resource": {
     "description": "May the fourth be with you",
-    "nbe_fxf": "fxf-7",
-    "parent_fxf": "fxf-0",
-    "updated_at": "2016-09-19T10:37:20.857-07:00",
-    "created_at": "2016-09-19T10:37:20.933-07:00",
+    "parent_fxf": ["fxf-0"],
+    "updatedAt": "2016-09-19T10:37:20.857-07:00",
+    "createdAt": "2016-09-19T10:37:20.933-07:00",
     "type": "map",
     "id": "fxf-7",
     "name": "Four",

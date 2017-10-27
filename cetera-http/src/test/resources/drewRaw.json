@@ -96,10 +96,9 @@
       "",
       ""
     ],
-    "created_at": "2014-03-10T14:39:13.000Z",
-    "updated_at": "2016-06-01T10:00:23.000Z",
-    "parent_fxf": "7v22-4z3a",
-    "nbe_fxf": "94sr-dmsy",
+    "createdAt": "2014-03-10T14:39:13.000Z",
+    "updatedAt": "2016-06-01T10:00:23.000Z",
+    "parent_fxf": ["7v22-4z3a"],
     "type": "chart",
     "name": "drew",
     "description": "Checks written to pay for products and services received by the City.",

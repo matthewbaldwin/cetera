@@ -10,10 +10,9 @@
   },
   "resource": {
     "description": "A dataset with a multiword title",
-    "nbe_fxf": "fxf-12",
     "parent_fxf": null,
-    "updated_at": "2016-09-19T10:37:20.857-07:00",
-    "created_at": "2016-09-19T10:37:20.933-07:00",
+    "updatedAt": "2016-09-19T10:37:20.857-07:00",
+    "createdAt": "2016-09-19T10:37:20.933-07:00",
     "type": "dataset",
     "id": "fxf-12",
     "name": "A Multiword Title",

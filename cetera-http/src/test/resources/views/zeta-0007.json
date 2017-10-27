@@ -10,10 +10,9 @@
   },
   "resource": {
     "description": "a dataset with attribution and provenance",
-    "nbe_fxf": "zeta-0007",
     "parent_fxf": null,
-    "updated_at": "2016-09-19T10:37:21.149-07:00",
-    "created_at": "2016-09-19T10:37:21.149-07:00",
+    "updatedAt": "2016-09-19T10:37:21.149-07:00",
+    "createdAt": "2016-09-19T10:37:21.149-07:00",
     "type": "dataset",
     "id": "zeta-0007",
     "name": "rammy is rammy",

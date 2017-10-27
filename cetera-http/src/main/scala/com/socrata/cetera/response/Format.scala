@@ -240,7 +240,9 @@ object Format {
     val document = JsonUtil.parseJson[Document](hit.getSourceAsString)
     document match {
       case Right(d) => Some(d)
-      case Left(e) => None
+      case Left(e) =>
+        logger.error(s"Cannot parse document because ${e.english}. Document is: ${hit.getSourceAsString}")
+        None
     }
   }
 

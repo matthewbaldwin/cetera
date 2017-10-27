@@ -10,10 +10,9 @@
   },
   "resource": {
     "description": "We're number one",
-    "nbe_fxf": "fxf-0",
     "parent_fxf": null,
-    "updated_at": "2016-09-19T12:07:09.089-07:00",
-    "created_at": "2016-09-19T12:07:09.135-07:00",
+    "updatedAt": "2016-09-19T12:07:09.089-07:00",
+    "createdAt": "2016-09-19T12:07:09.135-07:00",
     "type": "calendar",
     "id": "fxf-0",
     "name": "One",

@@ -20,10 +20,9 @@ object SocrataId {
 @JsonKeyStrategy(Strategy.Underscore)
 case class Resource(
     description: String,
-    nbeFxf: String,
-    parentFxf: Option[String],
-    updatedAt: String,
-    createdAt: String,
+    parentFxf: Option[Seq[String]],
+    @JsonKey("updatedAt") updatedAt: String,
+    @JsonKey("createdAt")createdAt: String,
     @JsonKey("type") datatype: String,
     id: String,
     columnsFieldName: Seq[String],
