@@ -94,7 +94,7 @@
     "1-one"
   ],
   "shared_to": [],
-  "attribution": null,
+  "attribution": "La comunidad",
   "preview_image_id": null,
   "grants": [],
   "hide_from_catalog": false,
@@ -102,5 +102,18 @@
   "provenance": "community",
   "owner": {
     "id": "robin-hood"
-  }
+  },
+  "approvals": [ {
+    "outcome": "publicize",
+    "reviewed_at": "2017-11-01T12:00:00.000Z",
+    "reviewed_automatically": false,
+    "state": "rejected",
+    "submitted_at": "2017-10-31T12:00:00.000Z",
+    "submitter_id" : "robin-hood",
+    "submitter_name" : "Robin Hood",
+    "submitter_email" : "robin-hood@nottingham.com",
+    "reviewer_id" : "honorable.sheriff",
+    "reviewer_name" : "The Honorable Sheriff of Nottingham",
+    "reviewer_email" : "honorable.sheriff@nottingham.com"
+  } ]
 }

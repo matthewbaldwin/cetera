@@ -73,5 +73,18 @@
   "provenance": "community",
   "owner": {
     "id": "lil-john"
-  }
+  },
+  "approvals": [ {
+    "outcome": "publicize",
+    "reviewed_at": "2017-11-01T12:00:00.000Z",
+    "reviewed_automatically": false,
+    "state": "approved",
+    "submitted_at": "2017-10-31T12:00:00.000Z",
+    "submitter_id" : "lil-john",
+    "submitter_name" : "Little John",
+    "submitter_email" : "lil.john@nottingham.com",
+    "reviewer_id" : "honorable.sheriff",
+    "reviewer_name" : "The Honorable Sheriff of Nottingham",
+    "reviewer_email" : "honorable.sheriff@nottingham.com"
+  } ]
 }

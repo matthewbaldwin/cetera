@@ -58,7 +58,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
     doc.isRaPending(domainId) should be(false)
   }
 
-  "domain 0 is a customer domain with neither VM or RA and that federates into domain 2, which has RA" should {
+  "domain 0 is a customer domain with neither VM or RA (but uses fontana_approvals) and that federates into domain 2, which has RA" should {
     "have the expected statuses for fxf-0" in {
       val doc = docs.find(d => d.socrataId.datasetId == "fxf-0").get
       doc.isPublic should be(true)

@@ -179,7 +179,9 @@ object Format {
       moderationStatus = moderationStatus(doc, viewsDomain),
       routingStatus = routingStatus(doc, viewsDomain),
       datalensStatus = datalensStatus(doc),
-      grants = viewGrants)
+      grants = viewGrants,
+      approvals = doc.approvals.map(_.map(_.removeEmails)) // not bothering with auth to show emails
+    )
   }
 
   def documentSearchResult( // scalastyle:ignore method.length

@@ -75,5 +75,13 @@
   "provenance": "community",
   "owner": {
     "id": "lil-john"
-  }
+  },
+  "approvals" : [ {
+    "outcome" : "publicize",
+    "state" : "pending",
+    "submitted_at" : "2017-10-31T12:00:00.000Z",
+    "submitter_id" : "lil-john",
+    "submitter_name" : "Little John",
+    "submitter_email" : "lil.john@nottingham.com"
+  } ]
 }

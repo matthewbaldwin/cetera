@@ -45,6 +45,23 @@
     "is_approved_by_parent_domain": { "type": "boolean" },
     "is_pending_on_parent_domain": { "type": "boolean" },
     "is_rejected_by_parent_domain": { "type": "boolean" },
+    "approvals": {
+      "type": "nested",
+      "dynamic": "false",
+      "properties": {
+        "outcome": { "type": "keyword" },
+        "state": { "type": "keyword" },
+        "submitted_at": { "type": "date", "format": "dateOptionalTime" },
+        "submitter_id": { "type": "keyword" },
+        "submitter_name": { "type": "text", "analyzer": "lowercase_alphanumeric", "fielddata": true },
+        "submitter_email": { "type": "keyword" },
+        "reviewed_automatically" : { "type": "boolean" },
+        "reviewer_id": { "type": "keyword" },
+        "reviewer_name": { "type": "text", "analyzer": "lowercase_alphanumeric", "fielddata": true },
+        "reviewer_email": { "type": "keyword" },
+        "reviewed_at" : { "type": "date", "format": "dateOptionalTime" }
+      }
+    },
     "created_at": { "type": "date", "format": "dateOptionalTime" },
     "customer_category": {
       "type": "text",

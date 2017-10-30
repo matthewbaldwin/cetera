@@ -89,6 +89,29 @@ object CustomerMetadataFlattened {
 }
 
 @JsonKeyStrategy(Strategy.Underscore)
+@NullForNone
+case class FlattenedApproval(
+    outcome: String,
+    state: String,
+    submittedAt: String,
+    submitterId: String,
+    submitterName: String,
+    submitterEmail: Option[String],
+    reviewedAutomatically: Option[Boolean],
+    reviewedAt: Option[String],
+    reviewerId: Option[String],
+    reviewerName: Option[String],
+    reviewerEmail: Option[String]
+) {
+
+  def removeEmails(): FlattenedApproval = this.copy(submitterEmail = None, reviewerEmail = None)
+}
+
+object FlattenedApproval {
+  implicit val jCodec = AutomaticJsonCodecBuilder[FlattenedApproval]
+}
+
+@JsonKeyStrategy(Strategy.Underscore)
 case class Document(
     pageViews: Option[PageViews], // with Some for log variants
     datatype: String,
@@ -106,6 +129,7 @@ case class Document(
     isApprovedByParentDomain: Boolean,
     isRejectedByParentDomain: Boolean,
     isPendingOnParentDomain: Boolean,
+    approvals: Option[Seq[FlattenedApproval]],
     customerTags: Seq[String],
     customerCategory: Option[String],
     // If this comes back empty, it comes back as an empty object, not an empty array

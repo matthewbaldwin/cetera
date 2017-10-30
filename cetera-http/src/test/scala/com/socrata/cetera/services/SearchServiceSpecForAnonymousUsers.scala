@@ -6,7 +6,8 @@ import com.socrata.cetera.TestESData
 import com.socrata.cetera.auth.AuthParams
 import com.socrata.cetera.errors.DomainNotFoundError
 import com.socrata.cetera.handlers.Params
-import com.socrata.cetera.types.ApprovalStatus
+import com.socrata.cetera.response.Metadata
+import com.socrata.cetera.types.{ApprovalStatus, FlattenedApproval}
 
 class SearchServiceSpecForAnonymousUsers
   extends FunSuiteLike
@@ -136,6 +137,33 @@ class SearchServiceSpecForAnonymousUsers
       r.permalink should endWith regex s"/$perma/$dsid"
       r.link should endWith regex s"/$pretty/$dsid"
     }
+  }
+
+  test("search response contains visibility info if requested") {
+    val params = Map(
+      Params.domains -> "robert.demo.socrata.com",
+      Params.showVisibility -> "true",
+      Params.attribution -> "La comunidad"
+    )
+    val res = service.doSearch(params.mapValues(Seq(_)), AuthParams(), None, None)._2.results
+    res.length should be(1)
+    val expectedMetadata = Metadata("robert.demo.socrata.com",None,Some(true),Some(true),Some(false),None,None,None,None,None,Some(true),None,None,None,None,None,None)
+    res(0).metadata should be(expectedMetadata)
+  }
+
+  test("search response contains additional approvals visibility info if present") {
+    val params = Map(
+      Params.domains -> "petercetera.net",
+      Params.showVisibility -> "true",
+      Params.attribution -> "La comunidad"
+    )
+    val res = service.doSearch(params.mapValues(Seq(_)), AuthParams(), None, None)._2.results
+    res.length should be(1)
+    val expectedMetadata = Metadata("petercetera.net",None,Some(true),Some(true),Some(false),None,None,None,None,None,
+      Some(true),None,None,None,None,None,
+      Some(Vector(FlattenedApproval("publicize","rejected","2017-10-31T12:00:00.000Z","robin-hood","Robin Hood", None,
+        Some(false),Some("2017-11-01T12:00:00.000Z"),Some("honorable.sheriff"),Some("The Honorable Sheriff of Nottingham"), None))))
+    res(0).metadata should be(expectedMetadata)
   }
 
   test("search response without a searchContext should have the correct set of documents") {

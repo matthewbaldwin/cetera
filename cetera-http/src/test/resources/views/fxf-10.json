@@ -18,7 +18,7 @@
     "type": "story",
     "id": "fxf-10",
     "name": "Three",
-    "attribution": null,
+    "attribution": "La comunidad",
     "provenance": "community",
     "columns_field_name": [],
     "columns_datatype": [],
@@ -64,6 +64,7 @@
       "key": "Private-Metadata_Thing"
     }
   ],
+  "attribution": "La comunidad",
   "is_public": true,
   "is_published": true,
   "is_default_view": true,

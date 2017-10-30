@@ -71,5 +71,13 @@
   "provenance": "community",
   "owner": {
     "id": "cook-mons"
-  }
+  },
+  "approvals" : [ {
+    "outcome" : "publicize",
+    "state" : "pending",
+    "submitted_at" : "2017-10-31T12:00:00.000Z",
+    "submitter_id" : "cook-mons",
+    "submitter_name" : "cookie Monsteer",
+    "submitter_email" : "cookie.monster@sesame.street.com"
+  } ]
 }

@@ -70,7 +70,8 @@ case class Metadata(
     routingStatus: Option[String] = None,
     datalensStatus: Option[String] = None,
     score: Option[Float] = None,
-    grants: Option[Seq[ESGrant]] = None)
+    grants: Option[Seq[ESGrant]] = None,
+    approvals: Option[Seq[FlattenedApproval]] = None)
 
 object Metadata {
   implicit val jCodec = AutomaticJsonCodecBuilder[Metadata]
