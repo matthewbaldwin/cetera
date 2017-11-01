@@ -4,10 +4,87 @@ import org.elasticsearch.index.query.QueryBuilders.{termQuery, termsQuery}
 import org.elasticsearch.search.sort._
 
 import com.socrata.cetera.handlers.SearchParamSet
+import com.socrata.cetera.search.Sorts.{Ascending, Descending}
 import com.socrata.cetera.types._
+
+trait Sort {
+  def field: String
+  def defaultOrder: String
+}
+
+case class SimpleSort(
+    override val field: String,
+    override val defaultOrder: String
+) extends Sort {
+
+  def buildSort(sortOrder: Option[String]): SortBuilder[_] =
+    sortOrder.getOrElse(defaultOrder) match {
+      case Ascending => Sorts.sortFieldAsc(field)
+      case _ => Sorts.sortFieldDesc(field)
+    }
+}
+
+object SimpleSort {
+  def apply(sortKey: String): Option[SimpleSort] = // scalastyle:ignore cyclomatic.complexity
+    sortKey match {
+      case "createdAt" => Some(SimpleSort(CreatedAtFieldType.fieldName, Descending))
+      case "created_at" => Some(SimpleSort(CreatedAtFieldType.fieldName, Descending))
+      case "updatedAt" => Some(SimpleSort(UpdatedAtFieldType.fieldName, Descending))
+      case "updated_at" => Some(SimpleSort(UpdatedAtFieldType.fieldName, Descending))
+      case "page_views_last_week" => Some(SimpleSort(PageViewsLastWeekFieldType.fieldName, Descending))
+      case "page_views_last_month" => Some(SimpleSort(PageViewsLastMonthFieldType.fieldName, Descending))
+      case "page_views_total" => Some(SimpleSort(PageViewsTotalFieldType.fieldName, Descending))
+      case "name" => Some(SimpleSort(TitleFieldType.lowercaseAlphanumFieldName, Ascending))
+      case "owner" => Some(SimpleSort(OwnerDisplayNameFieldType.fieldName, Ascending))
+      case "domain_category" => Some(SimpleSort(DomainCategoryFieldType.lowercaseAlphanumFieldName, Ascending))
+      case "datatype" => Some(SimpleSort(DatatypeFieldType.fieldName, Ascending))
+      case "screen_name" => Some(SimpleSort(UserScreenName.lowercaseAlphanumFieldName, Ascending))
+      case "email" => Some(SimpleSort(UserEmail.lowercaseAlphanumFieldName, Ascending))
+      case _ => None
+    }
+}
+
+case class NestedSort(
+    override val field: String,
+    override val defaultOrder: String
+) extends Sort {
+
+  def buildSort(sortOrder: Option[String], domainId: Option[Int]): SortBuilder[_] =
+    domainId match {
+      case None =>
+        sortOrder.getOrElse(defaultOrder) match {
+          case Ascending => Sorts.buildNestedApprovalsSort(field, SortOrder.ASC)
+          case _ => Sorts.buildNestedApprovalsSort(field, SortOrder.DESC)
+        }
+      case Some(id) =>
+        sortOrder.getOrElse(defaultOrder) match {
+          case Ascending => Sorts.buildNestedUserSort(field, id, SortOrder.ASC)
+          case _ => Sorts.buildNestedUserSort(field, id, SortOrder.DESC)
+        }
+    }
+}
+
+object NestedSort {
+  def apply(sortKey: String): Option[NestedSort] =
+    sortKey match {
+      case "submitted_at" => Some(NestedSort(SubmittedAtFieldType.fieldName, Descending))
+      case "reviewed_at" => Some(NestedSort(ReviewedAtFieldType.fieldName, Descending))
+      case "submitter" => Some(NestedSort(SubmitterNameFieldType.fieldName, Ascending))
+      case "reviewer" => Some(NestedSort(ReviewerNameFieldType.fieldName, Ascending))
+      case "role_name" => Some(NestedSort(UserRoleName.lowercaseAlphanumFieldName, Ascending))
+      case "last_authenticated_at" => Some(NestedSort(UserLastAuthenticatedAt.fieldName, Descending))
+      case _ => None
+    }
+}
+
 
 // TODO: Ultimately, these should accept Sortables rather than Strings
 object Sorts {
+
+  val SortModeForSoloRes = SortMode.MIN // NOTE: the sortMode doesn't matter if only one item is returned
+  val Ascending = "ASC"
+  val Descending = "DESC"
+
   def sortScoreDesc: ScoreSortBuilder =
     SortBuilders.scoreSort().order(SortOrder.DESC)
 
@@ -20,110 +97,48 @@ object Sorts {
   def sortDatasetId: FieldSortBuilder =
     SortBuilders.fieldSort(SocrataIdDatasetIdFieldType.fieldName)
 
-  def buildAverageScoreSort(
-      fieldName: String,
-      rawFieldName: String,
-      classifications: Set[String])
-    : FieldSortBuilder = {
-
+  def buildAverageScoreSort(fieldName: String, rawFieldName: String, classifications: Set[String]): FieldSortBuilder =
     SortBuilders
       .fieldSort(fieldName)
       .order(SortOrder.DESC)
       .sortMode(SortMode.AVG)
       .setNestedFilter(termsQuery(rawFieldName, classifications.toSeq: _*))
-  }
 
-  def buildNestedUserSort(
-      fieldName: String,
-      domainId: Int,
-      sortOrder: SortOrder)
-  : FieldSortBuilder = {
-
-    // NOTE: the sortMode shouldn't matter as only one nested role should come back from the filter
-    val sortMode = SortMode.MIN
-
+  def buildNestedUserSort(fieldName: String, domainId: Int, sortOrder: SortOrder): FieldSortBuilder =
     SortBuilders
       .fieldSort(fieldName)
       .order(sortOrder)
-      .sortMode(sortMode)
+      .sortMode(SortModeForSoloRes) // NOTE: only one nested role comes back from filter
       .setNestedPath("roles")
       .setNestedFilter(termQuery(UserDomainId.fieldName, domainId))
-  }
 
-  /** Get the appropriate SortBuilder given a sort parameter string
-    *
-    * @param sortParam the sort parameter string
-    * @return a SortBuilder
-    */
-  def mapSortParam(sortParam: String): Option[SortBuilder[_]] = // scalastyle:ignore cyclomatic.complexity method.length
-    sortParam match {
-      // Timestamps
-      case "createdAt ASC" => Some(sortFieldAsc(CreatedAtFieldType.fieldName))
-      case "createdAt DESC" => Some(sortFieldDesc(CreatedAtFieldType.fieldName))
-      case "createdAt" => Some(sortFieldDesc(CreatedAtFieldType.fieldName))
-      case "updatedAt ASC" => Some(sortFieldAsc(UpdatedAtFieldType.fieldName))
-      case "updatedAt DESC" => Some(sortFieldDesc(UpdatedAtFieldType.fieldName))
-      case "updatedAt" => Some(sortFieldDesc(UpdatedAtFieldType.fieldName))
+  def buildNestedApprovalsSort(fieldName: String, sortOrder: SortOrder): FieldSortBuilder =
+    SortBuilders
+      .fieldSort(fieldName)
+      .order(sortOrder)
+      .sortMode(SortModeForSoloRes) // NOTE: only should have one workflow and thus one approval summary
+      .setNestedPath("approvals")
 
-      // Page view
-      case "page_views_last_week ASC" => Some(sortFieldAsc(PageViewsLastWeekFieldType.fieldName))
-      case "page_views_last_week DESC" => Some(sortFieldDesc(PageViewsLastWeekFieldType.fieldName))
-      case "page_views_last_week" => Some(sortFieldDesc(PageViewsLastWeekFieldType.fieldName))
-      case "page_views_last_month ASC" => Some(sortFieldAsc(PageViewsLastMonthFieldType.fieldName))
-      case "page_views_last_month DESC" => Some(sortFieldDesc(PageViewsLastMonthFieldType.fieldName))
-      case "page_views_last_month" => Some(sortFieldDesc(PageViewsLastMonthFieldType.fieldName))
-      case "page_views_total ASC" => Some(sortFieldAsc(PageViewsTotalFieldType.fieldName))
-      case "page_views_total DESC" => Some(sortFieldDesc(PageViewsTotalFieldType.fieldName))
-      case "page_views_total" => Some(sortFieldDesc(PageViewsTotalFieldType.fieldName))
+  private def simpleOrNestedSort(sortKey: String): Either[SimpleSort, NestedSort] =
+    (SimpleSort(sortKey), NestedSort(sortKey)) match {
+      case (Some(simpleSort), _) => Left(simpleSort)
+      case (_, Some(nestedSort)) => Right(nestedSort)
+      case _ => throw new IllegalArgumentException(s"'$sortKey' is not a valid sort key")
+    }
 
-      // Name
-      case "name" => Some(sortFieldAsc(TitleFieldType.lowercaseAlphanumFieldName))
-      case "name ASC" => Some(sortFieldAsc(TitleFieldType.lowercaseAlphanumFieldName))
-      case "name DESC" => Some(sortFieldDesc(TitleFieldType.lowercaseAlphanumFieldName))
-
-      // Owner
-      case "owner" => Some(sortFieldAsc(OwnerDisplayNameFieldType.fieldName))
-      case "owner ASC" => Some(sortFieldAsc(OwnerDisplayNameFieldType.fieldName))
-      case "owner DESC" => Some(sortFieldDesc(OwnerDisplayNameFieldType.fieldName))
-
-      // Category
-      case "domain_category" => Some(sortFieldAsc(DomainCategoryFieldType.lowercaseAlphanumFieldName))
-      case "domain_category ASC" => Some(sortFieldAsc(DomainCategoryFieldType.lowercaseAlphanumFieldName))
-      case "domain_category DESC" => Some(sortFieldDesc(DomainCategoryFieldType.lowercaseAlphanumFieldName))
-
-      // Datatype
-      case "datatype" => Some(sortFieldAsc(DatatypeFieldType.fieldName))
-      case "datatype ASC" => Some(sortFieldAsc(DatatypeFieldType.fieldName))
-      case "datatype DESC" => Some(sortFieldDesc(DatatypeFieldType.fieldName))
-
-      // Relevance
-      case "relevance" => Some(sortScoreDesc)
-
-      // Dataset ID
-      case "dataset_id" => Some(sortDatasetId)
-
-      // ScreenName (Users)
-      case "screen_name" => Some(sortFieldAsc(UserScreenName.fieldName))
-      case "screen_name ASC" => Some(sortFieldAsc(UserScreenName.fieldName))
-      case "screen_name DESC" => Some(sortFieldDesc(UserScreenName.fieldName))
-
-      // Email (Users)
-      case "email" => Some(sortFieldAsc(UserEmail.fieldName))
-      case "email ASC" => Some(sortFieldAsc(UserEmail.fieldName))
-      case "email DESC" => Some(sortFieldDesc(UserEmail.fieldName))
-
-      // RoleName (Users)
-      case "role_name" => Some(sortFieldAsc(UserRoleName.fieldName))
-      case "role_name ASC" => Some(sortFieldAsc(UserRoleName.fieldName))
-      case "role_name DESC" => Some(sortFieldDesc(UserRoleName.fieldName))
-
-      // LastAuthenticatedAt (Users)
-      case "last_authenticated_at ASC" => Some(sortFieldAsc(UserLastAuthenticatedAt.fieldName))
-      case "last_authenticated_at DESC" => Some(sortFieldDesc(UserLastAuthenticatedAt.fieldName))
-      case "last_authenticated_at" => Some(sortFieldDesc(UserLastAuthenticatedAt.fieldName))
-
-      // Otherwise...
-      case _ => None
+  def buildSort(
+      sortKey: Option[String],
+      sortOrder: Option[String],
+      domainId: Option[Int] = None): SortBuilder[_] =
+    sortKey match {
+      case Some("relevance") => sortScoreDesc
+      case Some("dataset_id") => sortDatasetId
+      case Some(key) =>
+        simpleOrNestedSort(key) match {
+          case Left(simpleSort) => simpleSort.buildSort(sortOrder)
+          case Right(nestedSort) => nestedSort.buildSort(sortOrder, domainId)
+        }
+      case None => sortScoreDesc
     }
 
   /** Get the appropriate SortBuilder given a searchContext and a searchParams
@@ -153,23 +168,6 @@ object Sorts {
         )
 
       // Everything else
-      case _ => Sorts.sortScoreDesc
-    }
-
-  def chooseUserSort(sortString: Option[String], domainId: Int): SortBuilder[_] =
-    sortString match {
-      case Some("email") | Some("email ASC") => sortFieldAsc(UserEmail.lowercaseAlphanumFieldName)
-      case Some("email DESC") => sortFieldDesc(UserEmail.lowercaseAlphanumFieldName)
-      case Some("screen_name") | Some("screen_name ASC") => sortFieldAsc(UserScreenName.lowercaseAlphanumFieldName)
-      case Some("screen_name DESC") => sortFieldDesc(UserScreenName.lowercaseAlphanumFieldName)
-      case Some("last_authenticated_at") | Some("last_authenticated_at ASC") =>
-        buildNestedUserSort(UserLastAuthenticatedAt.fieldName, domainId, SortOrder.ASC)
-      case Some("last_authenticated_at DESC") =>
-        buildNestedUserSort(UserLastAuthenticatedAt.fieldName, domainId, SortOrder.DESC)
-      case Some("role_name") | Some("role_name ASC") =>
-        buildNestedUserSort(UserRoleName.lowercaseAlphanumFieldName, domainId, SortOrder.ASC)
-      case Some("role_name DESC") =>
-        buildNestedUserSort(UserRoleName.lowercaseAlphanumFieldName, domainId, SortOrder.DESC)
       case _ => Sorts.sortScoreDesc
     }
 }

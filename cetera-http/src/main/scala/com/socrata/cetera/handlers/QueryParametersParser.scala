@@ -4,7 +4,7 @@ import org.joda.time.{DateTime, DateTimeZone}
 import org.slf4j.LoggerFactory
 
 import com.socrata.cetera.handlers.util._
-import com.socrata.cetera.search.{Sorts, Boosts}
+import com.socrata.cetera.search.{Boosts, NestedSort, SimpleSort, Sorts}
 import com.socrata.cetera.types._
 
 // These are validated input parameters but aren't supposed to know anything about ES
@@ -50,12 +50,6 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
   case class NonNegativeFloat(value: Float)
   implicit val nonNegativeFloatParamConverter = ParamConverter.filtered { (a: Float) =>
     if (a >= 0.0f) Some(NonNegativeFloat(a)) else None
-  }
-
-  // for sort order
-  case class SortOrderString(value: String)
-  implicit val sortOrderStringParamConverter = ParamConverter.filtered { (a: String) =>
-    if (Sorts.mapSortParam(a).isDefined) Some(SortOrderString(a)) else None
   }
 
   // for age decay
@@ -181,14 +175,42 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
       case _ => Right(None)
     }
 
+  private def splitSortParam(sortParam: String): (String, Option[String]) = {
+    val sortParts = sortParam.split(' ')
+    val sortKey = sortParts(0)
+    if (sortParts.size > 1) {
+      val order = sortParts(1)
+      if (order == Sorts.Ascending || order == Sorts.Descending) {
+        (sortKey, Some(order))
+      } else {
+        throw new IllegalArgumentException(s"'$sortParam' is not a supported sort")
+      }
+    } else {
+      (sortKey, None)
+    }
+  }
 
   //////////////////
   // PARAM PREPARERS
   //
   // Prepare means parse and validate
 
-  def prepareSortOrder(queryParameters: MultiQueryParams): Option[String] =
-    queryParameters.typedFirst[SortOrderString](Params.order).map(validated(_).value)
+  def prepareSort(queryParameters: MultiQueryParams): (Option[String], Option[String]) = {
+    val sortParam = queryParameters.first(Params.order)
+    sortParam match {
+      case None => (None, None)
+      case Some(s) =>
+        val (sortKey, sortOrder) = splitSortParam(s)
+        if (sortKey == "relevance" ||
+          sortKey == "dataset_id" ||
+          SimpleSort(sortKey).isDefined ||
+          NestedSort(sortKey).isDefined) {
+          (Some(sortKey), sortOrder)
+        } else {
+          throw new IllegalArgumentException(s"'$s' is not a supported sort")
+        }
+    }
+  }
 
   def prepareLocale(queryParametesrs: MultiQueryParams): Option[String] =
     queryParametesrs.first(Params.locale).map(_.toLowerCase)
@@ -400,7 +422,7 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
       throw new IllegalArgumentException(s"Sum of `offset` and `limit` cannot exceed $maxResultWindow")
     }
 
-    if (pagingParams.scrollId.isDefined && pagingParams.sortOrder.isDefined) {
+    if (pagingParams.scrollId.isDefined && pagingParams.sortKey.isDefined) {
       throw new IllegalArgumentException(s"The `order` and `scroll_id` parameters cannot both be specified")
     }
 
@@ -476,11 +498,13 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
   }
 
   def pagingParamSet(queryParameters: MultiQueryParams): PagingParamSet = {
+    val (sortKey, sortOrder) = prepareSort(queryParameters)
     val pagingParams = PagingParamSet(
       prepareOffset(queryParameters),
       prepareLimit(queryParameters),
       prepareScrollId(queryParameters),
-      prepareSortOrder(queryParameters)
+      sortKey,
+      sortOrder
     )
 
     validatePagingParams(pagingParams)
@@ -536,11 +560,13 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
 
     val scoringParams = UserScoringParamSet(prepareMinShouldMatch(queryParameters))
 
+    val (sortKey, sortOrder) = prepareSort(queryParameters)
     val pagingParams = PagingParamSet(
       prepareOffset(queryParameters),
       prepareLimit(queryParameters),
       None, // scrollId
-      prepareSortOrder(queryParameters)
+      sortKey,
+      sortOrder
     )
 
     validatePagingParams(pagingParams)

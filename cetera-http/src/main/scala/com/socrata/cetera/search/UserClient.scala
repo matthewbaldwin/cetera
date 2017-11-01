@@ -76,7 +76,7 @@ class UserClient(esClient: ElasticSearchClient, indexAliasName: String) {
       .setQuery(userQuery(searchParams.copy(ids=ids), domain, authorizedUser))
       .setFrom(pagingParams.offset)
       .setSize(pagingParams.limit)
-      .addSort(Sorts.chooseUserSort(pagingParams.sortOrder, domainForRoles.domainId))
+      .addSort(Sorts.buildSort(pagingParams.sortKey, pagingParams.sortOrder, Some(domainForRoles.domainId)))
     logger.info(LogHelper.formatEsRequest(req))
 
     val res = req.execute.actionGet
@@ -162,7 +162,7 @@ class UserClient(esClient: ElasticSearchClient, indexAliasName: String) {
       .setQuery(UserQueries.autocompleteQuery(searchParams, scoringParams, domain, authorizedUser))
       .setFrom(pagingParams.offset)
       .setSize(pagingParams.limit)
-      .addSort(Sorts.chooseUserSort(pagingParams.sortOrder, domainForRoles.domainId))
+      .addSort(Sorts.buildSort(pagingParams.sortKey, pagingParams.sortOrder, Some(domainForRoles.domainId)))
       .highlighter(highlighter)
 
     logger.info(LogHelper.formatEsRequest(req))

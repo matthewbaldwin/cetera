@@ -141,6 +141,14 @@ case object OwnerDisplayNameFieldType extends DocumentFieldType with Sortable {
   val fieldName: String = "owner.display_name"
 }
 
+case object SubmitterNameFieldType extends DocumentFieldType with Sortable {
+  val fieldName: String = "approvals.submitter_name"
+}
+
+case object ReviewerNameFieldType extends DocumentFieldType with Sortable {
+  val fieldName: String = "approvals.reviewer_name"
+}
+
 case object SharedToFieldType extends DocumentFieldType with NativelyRawable {
   val fieldName: String = "shared_to"
 }
@@ -356,11 +364,19 @@ case object PageViewsLastWeekFieldType extends DocumentFieldType with Sortable {
 }
 
 case object UpdatedAtFieldType extends DocumentFieldType with Sortable {
-  val fieldName: String = "updated_at" // notice the snake_case, long story
+  val fieldName: String = "updated_at"
 }
 
 case object CreatedAtFieldType extends DocumentFieldType with Sortable {
-  val fieldName: String = "created_at" // notice the snake_case, long story
+  val fieldName: String = "created_at"
+}
+
+case object SubmittedAtFieldType extends DocumentFieldType with Sortable {
+  val fieldName: String = "approvals.submitted_at"
+}
+
+case object ReviewedAtFieldType extends DocumentFieldType with Sortable {
+  val fieldName: String = "approvals.reviewed_at"
 }
 
 ////////////////

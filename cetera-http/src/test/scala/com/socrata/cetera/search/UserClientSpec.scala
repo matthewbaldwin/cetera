@@ -249,7 +249,7 @@ class UserClientSpec extends FunSuiteLike with Matchers with TestESData with Tes
   }
 
   test("search all with sort on screen_name ASC") {
-    val params = PagingParamSet(sortOrder = Some("screen_name"))
+    val params = PagingParamSet(sortKey = Some("screen_name"))
     val (userRes, _, _) = userClient.search(UserSearchParamSet(), params, None, domainForRoles, superAdminUser(0))
     val expectedOrder = users.map(_.screenName.getOrElse("zzz")).map(_.toLowerCase).sorted
     val actualOrder = userRes.map(_.screenName.getOrElse("zzz")).map(_.toLowerCase)
@@ -257,7 +257,7 @@ class UserClientSpec extends FunSuiteLike with Matchers with TestESData with Tes
   }
 
   test("search all with sort on screen_name DESC") {
-    val params = PagingParamSet(sortOrder = Some("screen_name DESC"))
+    val params = PagingParamSet(sortKey = Some("screen_name"), sortOrder = Some("DESC"))
     val (userRes, _, _) = userClient.search(UserSearchParamSet(), params, None, domainForRoles, superAdminUser(0))
     val expectedOrder = users.map(_.screenName.getOrElse("aaa")).map(_.toLowerCase).sorted.reverse
     val actualOrder = userRes.map(_.screenName.getOrElse("aaa")).map(_.toLowerCase)
@@ -265,7 +265,7 @@ class UserClientSpec extends FunSuiteLike with Matchers with TestESData with Tes
   }
 
   test("search all with sort on email ASC") {
-    val params = PagingParamSet(sortOrder = Some("email"))
+    val params = PagingParamSet(sortKey = Some("email"))
     val (userRes, _, _) = userClient.search(UserSearchParamSet(), params, None, domainForRoles, superAdminUser(0))
     val expectedOrder = users.map(_.email.getOrElse("zzz")).map(_.toLowerCase.replace(".", "")).sorted
     val actualOrder = userRes.map(_.email.getOrElse("zzz")).map(_.toLowerCase.replace(".", ""))
@@ -273,7 +273,7 @@ class UserClientSpec extends FunSuiteLike with Matchers with TestESData with Tes
   }
 
   test("search all with sort on email DESC") {
-    val params = PagingParamSet(sortOrder = Some("email DESC"))
+    val params = PagingParamSet(sortKey = Some("email"), sortOrder = Some("DESC"))
     val (userRes, _, _) = userClient.search(UserSearchParamSet(), params, None, domainForRoles, superAdminUser(0))
     val expectedOrder = users.map(_.email.getOrElse("aaa")).map(_.toLowerCase.replace(".", "")).sorted.reverse
     val actualOrder = userRes.map(_.email.getOrElse("aaa")).map(_.toLowerCase.replace(".", ""))
@@ -282,7 +282,7 @@ class UserClientSpec extends FunSuiteLike with Matchers with TestESData with Tes
 
   test("search domain 1 with sort on role_name ASC") {
     val domain = domains(1)
-    val params = PagingParamSet(sortOrder = Some("role_name"))
+    val params = PagingParamSet(sortKey = Some("role_name"))
     val (userRes, _, _) = userClient.search(UserSearchParamSet(), params, Some(domain), domain, superAdminUser(0))
     val expectedOrder = users.map(_.roleName(domain.domainId)).flatten.map(_.toLowerCase).sorted
     val actualOrder = userRes.map(_.roleName(domain.domainId)).flatten.map(_.toLowerCase)
@@ -291,7 +291,7 @@ class UserClientSpec extends FunSuiteLike with Matchers with TestESData with Tes
 
   test("search domain 1 with sort on role_name DESC") {
     val domain = domains(1)
-    val params = PagingParamSet(sortOrder = Some("role_name DESC"))
+    val params = PagingParamSet(sortKey = Some("role_name"), sortOrder = Some("DESC"))
     val (userRes, _, _) = userClient.search(UserSearchParamSet(), params, Some(domain), domain, superAdminUser(0))
     val expectedOrder = users.map(_.roleName(domain.domainId)).flatten.map(_.toLowerCase).sorted.reverse
     val actualOrder = userRes.map(_.roleName(domain.domainId)).flatten.map(_.toLowerCase)
@@ -300,7 +300,7 @@ class UserClientSpec extends FunSuiteLike with Matchers with TestESData with Tes
 
   test("search all with sort on role_name ASC") {
     val domain = domains(1)
-    val params = PagingParamSet(sortOrder = Some("role_name"))
+    val params = PagingParamSet(sortKey = Some("role_name"))
     val (userRes, _, _) = userClient.search(UserSearchParamSet(), params, None, domain, superAdminUser(0))
     val expectedOrder = users.map(_.roleName(domain.domainId).getOrElse("zzz")).map(_.toLowerCase).sorted
     val actualOrder = userRes.map(_.roleName(domain.domainId).getOrElse("zzz")).map(_.toLowerCase)
@@ -309,7 +309,7 @@ class UserClientSpec extends FunSuiteLike with Matchers with TestESData with Tes
 
   test("search all with sort on role_name DESC") {
     val domain = domains(1)
-    val params = PagingParamSet(sortOrder = Some("role_name DESC"))
+    val params = PagingParamSet(sortKey = Some("role_name"), sortOrder = Some("DESC"))
     val (userRes, _, _) = userClient.search(UserSearchParamSet(), params, None, domain, superAdminUser(0))
     val expectedOrder = users.map(_.roleName(domain.domainId).getOrElse("aaa")).map(_.toLowerCase).sorted.reverse
     val actualOrder = userRes.map(_.roleName(domain.domainId).getOrElse("aaa")).map(_.toLowerCase)
@@ -318,16 +318,16 @@ class UserClientSpec extends FunSuiteLike with Matchers with TestESData with Tes
 
   test("search domain 1 with sort on last_authenticated_at ASC") {
     val domain = domains(1)
-    val params = PagingParamSet(sortOrder = Some("last_authenticated_at"))
+    val params = PagingParamSet(sortKey = Some("last_authenticated_at"), sortOrder = Some("ASC"))
     val (userRes, _, _) = userClient.search(UserSearchParamSet(), params, Some(domain), domain, superAdminUser(0))
     val expectedOrder = users.map(_.lastAuthenticatedAt(domain.domainId)).flatten.sorted
     val actualOrder = userRes.map(_.lastAuthenticatedAt(domain.domainId)).flatten
     actualOrder.toList should equal(expectedOrder.toList)
   }
 
-  test("search domain 1 with sort on last_authenticated_at DESC") {
+  test("search domain 1 with sort on last_authenticated_at") {
     val domain = domains(1)
-    val params = PagingParamSet(sortOrder = Some("last_authenticated_at DESC"))
+    val params = PagingParamSet(sortKey = Some("last_authenticated_at"))
     val (userRes, _, _) = userClient.search(UserSearchParamSet(), params, Some(domain), domain, superAdminUser(0))
     val expectedOrder = users.map(_.lastAuthenticatedAt(domain.domainId)).flatten.sorted.reverse
     val actualOrder = userRes.map(_.lastAuthenticatedAt(domain.domainId)).flatten
@@ -336,7 +336,7 @@ class UserClientSpec extends FunSuiteLike with Matchers with TestESData with Tes
 
   test("search all with sort on last_authenticated_at ASC") {
     val domain = domains(1)
-    val params = PagingParamSet(sortOrder = Some("last_authenticated_at"))
+    val params = PagingParamSet(sortKey = Some("last_authenticated_at"), sortOrder = Some("ASC"))
     val (userRes, _, _) = userClient.search(UserSearchParamSet(), params, None, domain, superAdminUser(0))
     val expectedOrder = users.map(_.lastAuthenticatedAt(domain.domainId).getOrElse(BigInt(9999999999L))).sorted
     val actualOrder = userRes.map(_.lastAuthenticatedAt(domain.domainId).getOrElse(BigInt(9999999999L)))
@@ -345,7 +345,7 @@ class UserClientSpec extends FunSuiteLike with Matchers with TestESData with Tes
 
   test("search all with sort on last_authenticated_at DESC") {
     val domain = domains(1)
-    val params = PagingParamSet(sortOrder = Some("last_authenticated_at DESC"))
+    val params = PagingParamSet(sortKey = Some("last_authenticated_at"), sortOrder = Some("DESC"))
     val (userRes, _, _) = userClient.search(UserSearchParamSet(), params, None, domain, superAdminUser(0))
     val expectedOrder = users.map(_.lastAuthenticatedAt(domain.domainId).getOrElse(BigInt(0))).sorted.reverse
     val actualOrder = userRes.map(_.lastAuthenticatedAt(domain.domainId).getOrElse(BigInt(0)))

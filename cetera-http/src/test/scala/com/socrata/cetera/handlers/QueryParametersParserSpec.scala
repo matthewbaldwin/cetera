@@ -429,7 +429,7 @@ class QueryParametersParserSpec extends FunSuiteLike with Matchers {
 
   test("sort order can be parsed") {
     val sortOrder = Map("order" -> Seq("page_views_total"))
-    QueryParametersParser(sortOrder).pagingParamSet.sortOrder should be(Some("page_views_total"))
+    QueryParametersParser(sortOrder).pagingParamSet.sortKey should be(Some("page_views_total"))
   }
 
   test("an upper bound of 10000 is imposed on the limit parameter") {
@@ -526,6 +526,37 @@ class QueryParametersParserSpec extends FunSuiteLike with Matchers {
   test("the prepareUserType method returns a user type when given a valid user type specifier") {
     QueryParametersParser.prepareUserType(Map("only" -> Seq("owner"))) should be(Some(Owner))
     QueryParametersParser.prepareUserType(Map("only" -> Seq("owners"))) should be(Some(Owner))
+  }
+
+  test("the prepareSort method should return no sortKey or sortOrder if no sortParam is given") {
+    QueryParametersParser.prepareSort(Map("only" -> Seq("owner"))) should be((None, None))
+  }
+
+  test("the prepareSort method should parse apart acceptable sortParams") {
+    QueryParametersParser.prepareSort(Map("order" -> Seq("submitted_at"))) should be((Some("submitted_at"), None))
+    QueryParametersParser.prepareSort(Map("order" -> Seq("createdAt ASC"))) should be((Some("createdAt"), Some("ASC")))
+    QueryParametersParser.prepareSort(Map("order" -> Seq("page_views_last_week DESC"))) should be((Some("page_views_last_week"), Some("DESC")))
+  }
+
+  test("the prepareSort method should choke on acceptable sortParams") {
+    intercept[IllegalArgumentException] {
+      QueryParametersParser.prepareSort(Map("order" -> Seq("")))
+    }
+    intercept[IllegalArgumentException] {
+      QueryParametersParser.prepareSort(Map("order" -> Seq("name DESCENDING")))
+    }
+    intercept[IllegalArgumentException] {
+      QueryParametersParser.prepareSort(Map("order" -> Seq("name ASCENDING")))
+    }
+    intercept[IllegalArgumentException] {
+      QueryParametersParser.prepareSort(Map("order" -> Seq(" name")))
+    }
+    intercept[IllegalArgumentException] {
+      QueryParametersParser.prepareSort(Map("order" -> Seq("huh")))
+    }
+    intercept[IllegalArgumentException] {
+      QueryParametersParser.prepareSort(Map("order" -> Seq("lastAuthenticatedAt")))
+    }
   }
 }
 

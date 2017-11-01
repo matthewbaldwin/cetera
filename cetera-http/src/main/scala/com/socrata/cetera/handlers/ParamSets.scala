@@ -47,6 +47,7 @@ case class PagingParamSet(
     offset: Int = PagingParamSet.defaultPageOffset,
     limit: Int = PagingParamSet.defaultPageLength,
     scrollId: Option[String] = None,
+    sortKey: Option[String] = None,
     sortOrder: Option[String] = None)
 
 object PagingParamSet {

@@ -83,11 +83,9 @@ class DocumentClient(
 
   def buildSort(domainSet: DomainSet, searchParams: SearchParamSet, pagingParams: PagingParamSet): SortBuilder[_] =
     pagingParams match {
-      case PagingParamSet(_, _, Some(id), _) => Sorts.sortDatasetId
-      case PagingParamSet(_, _, _, Some(so)) if so != "relevance" =>
-        Sorts.mapSortParam(so).get // will raise if invalid param got through
-      case _ =>
-        Sorts.chooseSort(domainSet.searchContext, searchParams)
+      case PagingParamSet(_, _, Some(id), _,  _) => Sorts.sortDatasetId
+      case PagingParamSet(_, _, _, sk @ Some(_), so) => Sorts.buildSort(sk, so)
+      case _ => Sorts.chooseSort(domainSet.searchContext, searchParams)
     }
 
   private def completionResultsFromSearchHits(hits: SearchHits): List[CompletionResult] =
