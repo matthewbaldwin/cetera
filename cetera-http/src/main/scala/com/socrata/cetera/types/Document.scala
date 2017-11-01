@@ -18,21 +18,32 @@ object SocrataId {
 }
 
 @JsonKeyStrategy(Strategy.Underscore)
+case class PageViews(
+    pageViewsTotal: Long,
+    pageViewsLastMonth: Long,
+    pageViewsLastWeek: Long,
+    pageViewsTotalLog: Option[Float] = None,
+    pageViewsLastMonthLog: Option[Float] = None,
+    pageViewsLastWeekLog: Option[Float] = None)
+object PageViews { implicit val jCodec = AutomaticJsonCodecBuilder[PageViews] }
+
+@JsonKeyStrategy(Strategy.Underscore)
 case class Resource(
-    description: String,
-    parentFxf: Option[Seq[String]],
-    @JsonKey("updatedAt") updatedAt: String,
-    @JsonKey("createdAt")createdAt: String,
-    @JsonKey("type") datatype: String,
+    name: String,
     id: String,
+    parentFxf: Option[Set[String]],
+    description: String,
+    attribution: Option[String],
+    @JsonKey("type") datatype: String,
+    @JsonKey("updatedAt") updatedAt: String,
+    @JsonKey("createdAt") createdAt: String,
+    pageViews: Option[PageViews],
+    columnsName: Seq[String],
     columnsFieldName: Seq[String],
     columnsDatatype: Seq[String],
     columnsDescription: Seq[String],
-    columnsName: Seq[String],
-    name: String,
-    attribution: Option[String],
-    provenance: Option[String]
-)
+    downloadCount: Option[BigInt],
+    provenance: Option[String])
 object Resource { implicit val jCodec = AutomaticJsonCodecBuilder[Resource] }
 
 @JsonKeyStrategy(Strategy.Underscore)
@@ -61,16 +72,6 @@ case class IndexedMetadata(
 object IndexedMetadata {
   implicit val jCodec = AutomaticJsonCodecBuilder[IndexedMetadata]
 }
-
-@JsonKeyStrategy(Strategy.Underscore)
-case class PageViews(
-    pageViewsTotal: Long,
-    pageViewsLastMonth: Long,
-    pageViewsLastWeek: Long,
-    pageViewsTotalLog: Option[Float] = None,
-    pageViewsLastMonthLog: Option[Float] = None,
-    pageViewsLastWeekLog: Option[Float] = None)
-object PageViews { implicit val jCodec = AutomaticJsonCodecBuilder[PageViews] }
 
 @JsonKeyStrategy(Strategy.Underscore)
 case class ESGrant(
