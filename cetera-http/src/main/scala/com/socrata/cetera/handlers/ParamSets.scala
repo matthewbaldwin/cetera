@@ -25,7 +25,11 @@ case class SearchParamSet(
     approvalStatus: Option[ApprovalStatus] = None,
     visibility: Option[String] = None,
     license: Option[String] = None,
-    columnNames: Option[Set[String]] = None)
+    columnNames: Option[Set[String]] = None,
+    submitterId: Option[String] = None,
+    reviewerId: Option[String] = None,
+    reviewedAutomatically: Option[Boolean] = None
+)
 
 case class AgeDecayParamSet(
     decayType: String,

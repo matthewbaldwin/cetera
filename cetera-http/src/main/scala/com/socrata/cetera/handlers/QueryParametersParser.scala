@@ -290,6 +290,15 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
   def prepareColumnNames(queryParameters: MultiQueryParams): Option[Set[String]] =
     filterNonEmptySetParams(mergeArrayCommaParams(queryParameters, Params.columnNames))
 
+  def prepareSubmitterId(queryParameters: MultiQueryParams): Option[String] =
+    filterNonEmptyStringParams(queryParameters.first(Params.submitterId))
+
+  def prepareReviewerId(queryParameters: MultiQueryParams): Option[String] =
+    filterNonEmptyStringParams(queryParameters.first(Params.reviewerId))
+
+  def prepareReviewedAutomatically(queryParameters: MultiQueryParams): Option[Boolean] =
+    prepareBooleanParam(queryParameters, Params.reviewedAutomatically)
+
   def prepareApprovalStatus(queryParameters: MultiQueryParams): Option[ApprovalStatus] = {
     val status = filterNonEmptyStringParams(queryParameters.first(Params.approvalStatus))
     status.map(restrictApprovalFilter(_))
@@ -490,7 +499,10 @@ object QueryParametersParser { // scalastyle:ignore number.of.methods
       prepareApprovalStatus(queryParameters),
       prepareVisibility(queryParameters),
       prepareLicense(queryParameters),
-      prepareColumnNames(queryParameters)
+      prepareColumnNames(queryParameters),
+      prepareSubmitterId(queryParameters),
+      prepareReviewerId(queryParameters),
+      prepareReviewedAutomatically(queryParameters)
     )
 
     validateSearchParams(searchParams)
@@ -597,6 +609,9 @@ object Params {
   val visibility = "visibility"
   val license = "license"
   val columnNames = "column_names"
+  val submitterId = "submitter_id"
+  val reviewerId = "reviewer_id"
+  val reviewedAutomatically = "reviewed_automatically"
 
   val qInternal = "q_internal"
   val q = "q"
@@ -707,7 +722,10 @@ object Params {
     scrollId,
     order,
     license,
-    columnNames
+    columnNames,
+    submitterId,
+    reviewerId,
+    reviewedAutomatically
   ) ++ datatypeBoostParams.toSet
 
 

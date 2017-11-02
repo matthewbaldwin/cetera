@@ -80,6 +80,18 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
       b.should(matchQuery(ColumnNameFieldType.lowercaseFieldName, q))
     }
 
+  def nestedApprovalQuery(approvalQuery: TermQueryBuilder): NestedQueryBuilder =
+    nestedQuery("approvals", approvalQuery, ScoreMode.Min) // NOTE: should only ever be one, so Mode matters not
+
+  def sumbitterIdQuery(id: String): NestedQueryBuilder =
+    nestedApprovalQuery(termQuery(SubmitterIdFieldType.fieldName, id))
+
+  def reviewerIdQuery(id: String): NestedQueryBuilder =
+    nestedApprovalQuery(termQuery(ReviewerIdFieldType.fieldName, id))
+
+  def reviewedAutomaticallyQuery(auto: Boolean = true): NestedQueryBuilder =
+    nestedApprovalQuery(termQuery(ReviewerAutomaticallyFieldType.fieldName, auto))
+
   // this query limits documents to those with metadata keys/values that
   // match the given metadata. If public is true, this matches against the public metadata fields,
   // otherwise, this matches against the private metadata fields.
@@ -382,6 +394,9 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
     val derivationQuery = searchParams.derived.map(d => defaultViewQuery(!d))
     val licensesQuery = searchParams.license.map(licenseQuery(_))
     val colNamesQuery = searchParams.columnNames.map(columnNamesQuery)
+    val submitterQuery = searchParams.submitterId.map(sumbitterIdQuery(_))
+    val reviewerQuery = searchParams.reviewerId.map(reviewerIdQuery(_))
+    val reviewedAutoQuery = searchParams.reviewedAutomatically.map(reviewedAutomaticallyQuery(_))
 
     // we want to honor categories and tags in domain search only, and this can only be done via filters.
     // for document search however, we score these in queries
@@ -398,8 +413,8 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
 
     List(
       typeQuery, ownerQuery, sharingQuery, attrQuery, provQuery, parentIdQuery, idsQuery, metaQuery,
-      derivationQuery, licensesQuery, colNamesQuery, catQuery, tagsQuery,
-      privacyQuery, publicationQuery, hiddenQuery, approvalQuery, visibilityQuery
+      derivationQuery, licensesQuery, colNamesQuery, submitterQuery, reviewerQuery, reviewedAutoQuery,
+      catQuery, tagsQuery, privacyQuery, publicationQuery, hiddenQuery, approvalQuery, visibilityQuery
     ).flatten match {
       case Nil => None
       case queries: Seq[QueryBuilder] => Some(queries.foldLeft(boolQuery()) { (b, f) => b.must(f) })

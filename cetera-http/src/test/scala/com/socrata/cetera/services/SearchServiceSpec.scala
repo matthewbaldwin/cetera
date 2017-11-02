@@ -4,22 +4,13 @@ import java.io.ByteArrayInputStream
 import java.nio.charset.{Charset, CodingErrorAction}
 import java.util.Collections
 import javax.servlet.http.HttpServletRequest
-import org.apache.commons.io.FileUtils
-import scala.collection.JavaConverters._
 
 import com.rojoma.json.v3.interpolation._
 import com.rojoma.simplearm.v2._
 import com.socrata.http.server.HttpRequest
 import com.socrata.http.server.HttpRequest.AugmentedHttpServletRequest
+import org.apache.commons.io.FileUtils
 import org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
-import org.elasticsearch.action.search._
-import org.elasticsearch.common.bytes.BytesArray
-import org.elasticsearch.common.text.Text
-import org.elasticsearch.search.aggregations.InternalAggregations
-import org.elasticsearch.search.internal._
-import org.elasticsearch.search.profile.{ProfileShardResult, SearchProfileShardResults}
-import org.elasticsearch.search.suggest.Suggest
-import org.elasticsearch.search.{SearchHit, SearchHitField, SearchHits}
 import org.scalamock.scalatest.proxy.MockFactory
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, FunSuiteLike, Matchers}
 import org.springframework.mock.web.{DelegatingServletInputStream, MockHttpServletResponse}
@@ -27,8 +18,7 @@ import org.springframework.mock.web.{DelegatingServletInputStream, MockHttpServl
 import com.socrata.cetera._
 import com.socrata.cetera.auth.AuthParams
 import com.socrata.cetera.errors.UnauthorizedError
-import com.socrata.cetera.handlers.{FormatParamSet, PagingParamSet, ScoringParamSet, SearchParamSet}
-import com.socrata.cetera.response.{Classification, Format, SearchResult, SearchResults}
+import com.socrata.cetera.response.{SearchResult, SearchResults}
 import com.socrata.cetera.types._
 
 class SearchServiceSpec extends FunSuiteLike
@@ -49,96 +39,6 @@ class SearchServiceSpec extends FunSuiteLike
     removeBootstrapData()
     client.close()
     httpClient.close()
-  }
-
-  val emptySearchHitMap = Map[String, SearchHitField]().asJava
-  val domainSet = DomainSet(domains = (0 to 2).map(domains(_)).toSet)
-
-  lazy val searchResponse = {
-    val req = documentClient.buildSearchRequest(domainSet, SearchParamSet(user = Some("john-clan")), ScoringParamSet(), PagingParamSet(), None)
-    val res = req.execute.actionGet
-    val internalSearchHits = new SearchHits(res.getHits.getHits, 3037, 1.0f)
-    val internalSearchResponse = new InternalSearchResponse(
-      internalSearchHits,
-      new InternalAggregations(Nil.asJava),
-      new Suggest(Nil.asJava),
-      new SearchProfileShardResults(Map.empty[String, ProfileShardResult].asJava),
-      false,
-      false,
-      0)
-
-    new SearchResponse(internalSearchResponse, "", 15, 15, 4, Array[ShardSearchFailure]())
-  }
-
-  val badSearchResponse = {
-    val score = 0.54321f
-
-    val badResource = "\"badResource\":{\"name\": \"Just A Test\", \"I'm\":\"NOT OK\",\"you'll\":\"never know\"}"
-    val goodResource = "\"resource\":{\"name\": \"Just A Test\", \"I'm\":\"OK\",\"you're\":\"so-so\"}"
-
-    val datasetSocrataId = "\"socrata_id\":{\"domain_id\":[0],\"dataset_id\":\"four-four\"}"
-    val badDatasetSocrataId = "\"socrata_id\":{\"domain_id\":\"i am a string\",\"dataset_id\":\"four-four\"}"
-
-    val datasetDatatype = "\"datatype\":\"dataset\""
-    val datasetViewtype = "\"viewtype\":\"\""
-
-    val badResourceDatasetSource = new BytesArray("{" +
-      List(badResource, datasetDatatype, datasetViewtype, datasetSocrataId).mkString(",") +
-      "}")
-
-    val badSocrataIdDatasetSource = new BytesArray("{" +
-      List(goodResource, datasetDatatype, datasetViewtype, badDatasetSocrataId).mkString(",")
-      + "}")
-
-    // A result missing the resource field should get filtered (a bogus doc is often missing expected fields)
-    val badResourceDatasetHit = new SearchHit(1, "46_3yu6-fka7", new Text("dataset"), emptySearchHitMap)
-    badResourceDatasetHit.sourceRef(badResourceDatasetSource)
-    badResourceDatasetHit.score(score)
-
-    // A result with corrupted (unparseable) field should also get skipped (instead of raising)
-    val badSocrataIdDatasetHit = new SearchHit(1, "46_3yu6-fka7", new Text("dataset"), emptySearchHitMap)
-    badSocrataIdDatasetHit.sourceRef(badSocrataIdDatasetSource)
-    badSocrataIdDatasetHit.score(score)
-
-    val hits = Array[SearchHit](badResourceDatasetHit, badSocrataIdDatasetHit)
-    val internalSearchHits = new SearchHits(hits, 3037, 1.0f)
-    val internalSearchResponse = new InternalSearchResponse(
-      internalSearchHits,
-      new InternalAggregations(List.empty.asJava),
-      new Suggest(List.empty.asJava),
-      new SearchProfileShardResults(Map.empty[String, ProfileShardResult].asJava),
-      false,
-      false,
-      0)
-
-    new SearchResponse(internalSearchResponse, "", 15, 15, 4, Array[ShardSearchFailure]())
-  }
-
-  test("extract and format resources from SearchResponse") {
-    val searchResults = Format.formatDocumentResponse(searchResponse, None, domainSet, FormatParamSet())
-
-    searchResults.resultSetSize should be (searchResponse.getHits.getTotalHits)
-    searchResults.timings should be (None) // not yet added
-
-    val results = searchResults.results
-    results should be ('nonEmpty)
-    results.size should be (1)
-
-    val datasetResponse = results(0)
-    datasetResponse.resource should be(docs(18).resource)
-    datasetResponse.classification should be (Classification(Vector(),Vector(),Some("Fun"),Vector(),Vector(),None))
-
-    datasetResponse.metadata.domain should be ("blue.org")
-  }
-
-  test("SearchResponse does not throw on bad documents it just ignores them") {
-    val domain = Domain(1, "tempuri.org", None, Some("Title"), Some("Temp Org"), isCustomerDomain = true, moderationEnabled = false, routingApprovalEnabled = false, lockedDown = false, apiLockedDown = false)
-
-    val expectedResource = j"""{ "name" : "Just A Test", "I'm" : "OK", "you're" : "so-so" }"""
-    val searchResults = Format.formatDocumentResponse(badSearchResponse, None, domainSet, FormatParamSet())
-
-    val results = searchResults.results
-    results.size should be (0)
   }
 
   def wasSearchQueryLogged(filename: String, q: String): Boolean = {
@@ -278,6 +178,58 @@ class SearchServiceSpec extends FunSuiteLike
 
     val host = domain.domainCname
     val params = Map("only" -> "links", "domains" -> host, "search_context" -> host).mapValues(Seq(_))
+    val res = service.doSearch(params, AuthParams(), None, None)
+    val actualFxfs = fxfs(res._2)
+
+    actualFxfs should contain theSameElementsAs(expectedFxfs)
+  }
+
+  test("searching for submitter_id should find results with that submitter") {
+    val domain = domains(0)
+    val domain0Docs = anonymouslyViewableDocs.filter(d => d.socrataId.domainId == 0)
+    val expectedFxfs = fxfs(domain0Docs.filter(d => d.approvals.isDefined && d.approvals.get.forall(_.submitterId == "robin-hood")))
+
+    val host = domain.domainCname
+    val params = Map("submitter_id" -> "robin-hood", "domains" -> host, "search_context" -> host).mapValues(Seq(_))
+    val res = service.doSearch(params, AuthParams(), None, None)
+    val actualFxfs = fxfs(res._2)
+
+    actualFxfs should contain theSameElementsAs(expectedFxfs)
+  }
+
+  test("searching for reviewer_id should find results with that reviewer") {
+    val domain = domains(0)
+    val domain0Docs = anonymouslyViewableDocs.filter(d => d.socrataId.domainId == 0)
+    val expectedFxfs = fxfs(domain0Docs.filter(d => d.approvals.isDefined && d.approvals.get.forall(_.reviewerId.getOrElse("") == "honorable.sheriff")))
+
+    val host = domain.domainCname
+    val params = Map("reviewer_id" -> "honorable.sheriff", "domains" -> host, "search_context" -> host).mapValues(Seq(_))
+    val res = service.doSearch(params, AuthParams(), None, None)
+    val actualFxfs = fxfs(res._2)
+
+    actualFxfs should contain theSameElementsAs(expectedFxfs)
+  }
+
+  test("searching for reviewed_automatically=true should find results that were automatically reviewed") {
+    val domain = domains(0)
+    val domain0Docs = anonymouslyViewableDocs.filter(d => d.socrataId.domainId == 0)
+    val expectedFxfs = fxfs(domain0Docs.filter(d => d.approvals.isDefined && d.approvals.get.forall(_.reviewedAutomatically.getOrElse(false))))
+
+    val host = domain.domainCname
+    val params = Map("reviewed_automatically" -> "true", "domains" -> host, "search_context" -> host).mapValues(Seq(_))
+    val res = service.doSearch(params, AuthParams(), None, None)
+    val actualFxfs = fxfs(res._2)
+
+    actualFxfs should contain theSameElementsAs(expectedFxfs)
+  }
+
+  test("searching for reviewed_automatically=false should find results that were reviewed by humans") {
+    val domain = domains(0)
+    val domain0Docs = anonymouslyViewableDocs.filter(d => d.socrataId.domainId == 0)
+    val expectedFxfs = fxfs(domain0Docs.filter(d => d.approvals.isDefined && d.approvals.get.forall(!_.reviewedAutomatically.getOrElse(true))))
+
+    val host = domain.domainCname
+    val params = Map("reviewed_automatically" -> "false", "domains" -> host, "search_context" -> host).mapValues(Seq(_))
     val res = service.doSearch(params, AuthParams(), None, None)
     val actualFxfs = fxfs(res._2)
 

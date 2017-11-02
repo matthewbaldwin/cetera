@@ -145,8 +145,20 @@ case object SubmitterNameFieldType extends DocumentFieldType with Sortable {
   val fieldName: String = "approvals.submitter_name"
 }
 
+case object SubmitterIdFieldType extends DocumentFieldType {
+  val fieldName: String = "approvals.submitter_id"
+}
+
 case object ReviewerNameFieldType extends DocumentFieldType with Sortable {
   val fieldName: String = "approvals.reviewer_name"
+}
+
+case object ReviewerIdFieldType extends DocumentFieldType {
+  val fieldName: String = "approvals.reviewer_id"
+}
+
+case object ReviewerAutomaticallyFieldType extends DocumentFieldType {
+  val fieldName: String = "approvals.reviewed_automatically"
 }
 
 case object SharedToFieldType extends DocumentFieldType with NativelyRawable {
