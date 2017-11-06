@@ -150,6 +150,7 @@ case class Document(
     moderationStatus: Option[String],
     license: Option[String]) {
 
+  def isSharedBy(userId: String): Boolean = sharedTo.contains(userId)
   def isSharedOrOwned(userId: String): Boolean = owner.id == userId || sharedTo.contains(userId)
   def isStory: Boolean = datatype == StoryDatatype.singular
   def isHiddenFromCatalog: Boolean = hideFromCatalog.getOrElse(false)

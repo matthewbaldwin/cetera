@@ -1,0 +1,95 @@
+{
+  "created_at": "2016-09-19T10:37:20.933-07:00",
+  "updated_at": "2016-09-19T10:37:20.857-07:00",
+  "socrata_id": {
+    "dataset_id": "d1-v0",
+    "parent_dataset_id": [],
+    "domain_id": 1,
+    "nbe_id": "abcd-efgh",
+    "obe_id": "hgfe-dcba"
+  },
+  "resource": {
+    "description": "Second the best",
+    "parent_fxf": ["d0-v0"],
+    "updatedAt": "2016-09-19T10:37:20.857-07:00",
+    "createdAt": "2016-09-19T10:37:20.933-07:00",
+    "type": "chart",
+    "id": "d1-v0",
+    "name": "Two",
+    "attribution": null,
+    "provenance": "community",
+    "columns_field_name": [],
+    "columns_datatype": [],
+    "columns_description": [],
+    "columns_name": []
+  },
+  "animl_annotations": {
+    "categories": [
+      {
+        "name": "Personal",
+        "score": 1
+      }
+    ],
+    "tags": [
+      {
+        "name": "Happy",
+        "score": 0.65
+      },
+      {
+        "name": "Accident",
+        "score": 0.35
+      }
+    ]
+  },
+  "datatype": "chart",
+  "viewtype": "",
+  "indexed_metadata": {
+    "name": "Two",
+    "description": "Second the best",
+    "columns_field_name": [],
+    "columns_description": [],
+    "columns_name": []
+  },
+  "customer_metadata_flattened": [
+    {
+      "key": "one",
+      "value": "2"
+    }
+  ],
+  "private_customer_metadata_flattened": [
+    {
+      "key": "secret domain 1 kitty support",
+      "value": "Pumas Inc."
+    }
+  ],
+  "is_public": true,
+  "is_published": true,
+  "is_default_view": false,
+  "moderation_status": "approved",
+  "approving_domain_ids": [],
+  "rejecting_domain_ids": [],
+  "pending_domain_ids": [],
+  "is_approved_by_parent_domain": false,
+  "is_rejected_by_parent_domain": false,
+  "is_pending_on_parent_domain": false,
+  "page_views": {
+    "page_views_total": 2,
+    "page_views_last_month": 2,
+    "page_views_last_week": 2
+  },
+  "customer_category": "Beta",
+  "customer_tags": [
+    "1-one",
+    "2-two"
+  ],
+  "shared_to": [],
+  "attribution": null,
+  "preview_image_id": null,
+  "grants": [],
+  "hide_from_catalog": false,
+  "hide_from_data_json": false,
+  "provenance": "community",
+  "owner": {
+    "id": "maid-marian"
+  }
+}

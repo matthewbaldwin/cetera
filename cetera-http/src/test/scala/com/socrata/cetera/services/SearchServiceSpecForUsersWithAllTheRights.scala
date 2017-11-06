@@ -36,9 +36,9 @@ class SearchServiceSpecForUsersWithAllTheRights
     val raDisabledDomain = domains(0)
     val withinDomain = docs.filter(d => d.socrataId.domainId == raDisabledDomain.domainId).map(d => d.socrataId.datasetId)
     val ownedByCookieMonster = docs.collect{ case d: Document if d.owner.id == "cook-mons" => d.socrataId.datasetId }
-    ownedByCookieMonster should be(List("zeta-0006"))
+    ownedByCookieMonster should be(List("d0-v6"))
     val sharedToCookieMonster = docs.collect{ case d: Document if d.sharedTo.contains("cook-mons") => d.socrataId.datasetId }
-    sharedToCookieMonster should be(List("zeta-0004"))
+    sharedToCookieMonster should be(List("d0-v5"))
     val expectedFxfs = (withinDomain ++ ownedByCookieMonster ++ sharedToCookieMonster ++ anonymouslyViewableDocIds).distinct
 
     val host = raDisabledDomain.domainCname
@@ -82,7 +82,7 @@ class SearchServiceSpecForUsersWithAllTheRights
 
   test("hidden documents on the user's domain should be visible") {
     val host = domains(0).domainCname
-    val hiddenDoc = docs(4)
+    val hiddenDoc = docs.filter(d => d.socrataId.domainId == 0 && !d.isHiddenFromCatalog).headOption.get
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
 
     val (_, res, _, _) = service.doSearch(Map(
@@ -94,7 +94,7 @@ class SearchServiceSpecForUsersWithAllTheRights
 
   test("hidden documents on a domain other than the users should be hidden") {
     val host = domains(1).domainCname
-    val hiddenDoc = docs(4) // belongs to domain 0
+    val hiddenDoc = docs.filter(d => d.socrataId.domainId == 0 && d.isHiddenFromCatalog).headOption.get
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
 
     val (_, res, _, _) = service.doSearch(Map(
@@ -106,7 +106,7 @@ class SearchServiceSpecForUsersWithAllTheRights
 
   test("private documents on the user's domain should be visible") {
     val host = domains(2).domainCname
-    val privateDoc = docs(16)
+    val privateDoc = docs.filter(d => d.socrataId.domainId == 2 && !d.isPublic).headOption.get
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
 
     val (_, res, _, _) = service.doSearch(Map(
@@ -118,7 +118,7 @@ class SearchServiceSpecForUsersWithAllTheRights
 
   test("private documents on a domain other than the users should be hidden") {
     val host = domains(4).domainCname
-    val privateDoc = docs(16) // belongs to domain 2
+    val privateDoc = docs.filter(d => d.socrataId.domainId == 2 && !d.isPublic).headOption.get
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
 
     val (_, res, _, _) = service.doSearch(Map(
@@ -130,7 +130,7 @@ class SearchServiceSpecForUsersWithAllTheRights
 
   test("unpublished documents on the user's domain should be visible") {
     val host = domains(0).domainCname
-    val unpublishedDoc = docs(19)
+    val unpublishedDoc = docs.filter(d => d.socrataId.domainId == 0 && !d.isPublished).headOption.get
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
 
     val (_, res, _, _) = service.doSearch(Map(
@@ -142,7 +142,7 @@ class SearchServiceSpecForUsersWithAllTheRights
 
   test("unpublished documents on a domain other than the users should be hidden") {
     val host = domains(6).domainCname
-    val unpublishedDoc = docs(19) // belongs to domain 0
+    val unpublishedDoc = docs.filter(d => d.socrataId.domainId == 0 && !d.isPublished).headOption.get
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
 
     val (_, res, _, _) = service.doSearch(Map(
@@ -364,7 +364,7 @@ class SearchServiceSpecForUsersWithAllTheRights
     val pendingOn2 = fxfs(domain2Docs.filter(d => d.isPendingOnParentDomain))
     // on 0, despite the fact that an admin on domain 2 doesn't have the rights to see pending views on domain 0
     // there can be views that are approved on 0, but pending by domain 2's R&A process.
-    // heh, also an admin on 2 can see pending views on 0, if they've been shared the view, as is the case with zeta-0004
+    // heh, also an admin on 2 can see pending views on 0, if they've been shared the view, as is the case with d0-v5
     val pendingOn0 = fxfs(domain0Docs.filter(d => (d.isRaPending(2) || d.isVmPending) &&
       (anonymouslyViewableDocIds.contains(d.socrataId.datasetId) || d.isSharedOrOwned("cook-mons"))))
     pendingOn0 shouldNot be('empty)
@@ -387,9 +387,9 @@ class SearchServiceSpecForUsersWithAllTheRights
     actualFxfs should contain theSameElementsAs expectedFxfs
 
     // confirm there were documents on other domains that were excluded.
-    anonymouslyViewableDocs.find(_.socrataId.datasetId == "fxf-1").get.privateCustomerMetadataFlattened.exists(_.value == privateValue
+    anonymouslyViewableDocs.find(_.socrataId.datasetId == "d1-v0").get.privateCustomerMetadataFlattened.exists(_.value == privateValue
     ) should be(true)
-    actualFxfs should not contain theSameElementsAs(List("fxf-1"))
+    actualFxfs should not contain theSameElementsAs(List("d1-v0"))
   }
 
   test("searching with a private metadata k/v pair param finds all items from the authenticating domain with that pair") {
@@ -406,9 +406,9 @@ class SearchServiceSpecForUsersWithAllTheRights
     actualFxfs should contain theSameElementsAs expectedFxfs
 
     // confirm there were documents on other domains that were excluded.
-    anonymouslyViewableDocs.find(_.socrataId.datasetId == "zeta-0002").get.privateCustomerMetadataFlattened.exists(m =>
+    anonymouslyViewableDocs.find(_.socrataId.datasetId == "d3-v4").get.privateCustomerMetadataFlattened.exists(m =>
       m.value == privateValue && m.key == privateKey) should be(true)
-    actualFxfs should not contain theSameElementsAs(List("zeta-0002"))
+    actualFxfs should not contain theSameElementsAs(List("d3-v4"))
   }
 
   test("searching with 'visibility=open' filters away the internal items the user can view") {

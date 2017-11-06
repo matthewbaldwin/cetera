@@ -39,9 +39,9 @@ class SearchServiceSpecForUsersWithStoriesRights
     val storiesWithinDomain = docs.filter(d => d.socrataId.domainId == dom.domainId && d.isStory).map(d => d.socrataId.datasetId)
     val internalNonStoriesWithinDomain = internalDocs.filter(d => d.socrataId.domainId == dom.domainId && !d.isStory).map(d => d.socrataId.datasetId)
     val ownedByCookieMonster = docs.filter(d => d.owner.id == "cook-mons").map(d => d.socrataId.datasetId)
-    ownedByCookieMonster should be(List("zeta-0006"))
+    ownedByCookieMonster should be(List("d0-v6"))
     val sharedToCookieMonster = docs.filter(d => d.sharedTo.contains("cook-mons")).map(d => d.socrataId.datasetId)
-    sharedToCookieMonster should be(List("zeta-0004"))
+    sharedToCookieMonster should be(List("d0-v5"))
     val expectedFxfs = (storiesWithinDomain ++ ownedByCookieMonster ++ sharedToCookieMonster ++ anonymouslyViewableDocIds).distinct
     val internalNonStoriesThatCookieMonsCantSee = internalNonStoriesWithinDomain.toSet -- sharedToCookieMonster.toSet -- ownedByCookieMonster.toSet
 
@@ -84,9 +84,7 @@ class SearchServiceSpecForUsersWithStoriesRights
 
   test("hidden stories on the user's domain should be visible") {
     val host = domains(0).domainCname
-    val hiddenDoc = docs(4)
-    hiddenDoc.isStory should be(true)
-    hiddenDoc.isHiddenFromCatalog should be(true)
+    val hiddenDoc = docs.filter(d => d.socrataId.domainId == 0 && d.isHiddenFromCatalog && d.isStory).headOption.get
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
 
     val (_, res, _, _) = service.doSearch(Map(
@@ -98,9 +96,7 @@ class SearchServiceSpecForUsersWithStoriesRights
 
   test("hidden non-stories on the user's domain should be hidden") {
     val host = domains(0).domainCname
-    val hiddenDoc = docs(19) // belongs to domain 0
-    hiddenDoc.isStory should be(false)
-    hiddenDoc.isHiddenFromCatalog should be(true)
+    val hiddenDoc = docs.filter(d => d.socrataId.domainId == 0 && d.isHiddenFromCatalog && !d.isStory).headOption.get
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
 
     val (_, res, _, _) = service.doSearch(Map(
@@ -112,9 +108,7 @@ class SearchServiceSpecForUsersWithStoriesRights
 
   test("private stories on the user's domain should be visible") {
     val host = domains(0).domainCname
-    val privateDoc = docs(4)
-    privateDoc.isStory should be(true)
-    privateDoc.isPublic should be(false)
+    val privateDoc = docs.filter(d => d.socrataId.domainId == 0 && !d.isPublic && d.isStory).headOption.get
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
 
     val (_, res, _, _) = service.doSearch(Map(
@@ -126,9 +120,7 @@ class SearchServiceSpecForUsersWithStoriesRights
 
   test("private non-stories on the user's domain should be hidden") {
     val host = domains(2).domainCname
-    val privateDoc = docs(16)
-    privateDoc.isStory should be(false)
-    privateDoc.isPublic should be(false)
+    val privateDoc = docs.filter(d => d.socrataId.domainId == 2 && !d.isPublic && !d.isStory).headOption.get
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
 
     val (_, res, _, _) = service.doSearch(Map(
@@ -140,9 +132,7 @@ class SearchServiceSpecForUsersWithStoriesRights
 
   test("unpublished stories on the user's domain should be visible") {
     val host = domains(0).domainCname
-    val unpublishedDoc = docs(4)
-    unpublishedDoc.isStory should be(true)
-    unpublishedDoc.isPublished should be(false)
+    val unpublishedDoc = docs.filter(d => d.socrataId.domainId == 0 && !d.isPublished && d.isStory).headOption.get
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
 
     val (_, res, _, _) = service.doSearch(Map(
@@ -154,9 +144,7 @@ class SearchServiceSpecForUsersWithStoriesRights
 
   test("unpublished non-stories on the user's domain should be hidden") {
     val host = domains(0).domainCname
-    val unpublishedDoc = docs(19)
-    unpublishedDoc.isStory should be(false)
-    unpublishedDoc.isPublished should be(false)
+    val unpublishedDoc = docs.filter(d => d.socrataId.domainId == 0 && !d.isPublished && !d.isStory).headOption.get
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
 
     val (_, res, _, _) = service.doSearch(Map(

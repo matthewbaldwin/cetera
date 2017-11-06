@@ -38,9 +38,9 @@ class SearchServiceSpecForUsersWithNonStoriesRights
     val nonStoriesWithinDomain = docs.filter(d => d.socrataId.domainId == dom.domainId && !d.isStory).map(d => d.socrataId.datasetId)
     val internalStoriesWithinDomain = internalDocs.filter(d => d.socrataId.domainId == dom.domainId && d.isStory).map(d => d.socrataId.datasetId)
     val ownedByCookieMonster = docs.collect{ case d: Document if d.owner.id == "cook-mons" => d.socrataId.datasetId }
-    ownedByCookieMonster should be(List("zeta-0006"))
+    ownedByCookieMonster should be(List("d0-v6"))
     val sharedToCookieMonster = docs.collect{ case d: Document if d.sharedTo.contains("cook-mons") => d.socrataId.datasetId }
-    sharedToCookieMonster should be(List("zeta-0004"))
+    sharedToCookieMonster should be(List("d0-v5"))
     val expectedFxfs = (nonStoriesWithinDomain ++ ownedByCookieMonster ++ sharedToCookieMonster ++ anonymouslyViewableDocIds).distinct
 
     val host = dom.domainCname
@@ -76,7 +76,7 @@ class SearchServiceSpecForUsersWithNonStoriesRights
 
   test("hidden non-stories on the user's domain should be visible") {
     val host = domains(0).domainCname
-    val hiddenDoc = docs(19)
+    val hiddenDoc = docs.filter(d => d.socrataId.domainId == 0 && d.isHiddenFromCatalog && !d.isStory).headOption.get
     hiddenDoc.isStory should be(false)
     hiddenDoc.isHiddenFromCatalog should be(true)
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
@@ -90,7 +90,7 @@ class SearchServiceSpecForUsersWithNonStoriesRights
 
   test("hidden stories on the user's domain should be hidden") {
     val host = domains(0).domainCname
-    val hiddenDoc = docs(4)
+    val hiddenDoc = docs.filter(d => d.socrataId.domainId == 0 && d.isHiddenFromCatalog && d.isStory).headOption.get
     hiddenDoc.isStory should be(true)
     hiddenDoc.isHiddenFromCatalog should be(true)
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
@@ -104,7 +104,7 @@ class SearchServiceSpecForUsersWithNonStoriesRights
 
   test("private non-stories on the user's domain should be visible") {
     val host = domains(2).domainCname
-    val privateDoc = docs(16)
+    val privateDoc = docs.filter(d => d.socrataId.domainId == 2 && !d.isPublic && !d.isStory).headOption.get
     privateDoc.isStory should be(false)
     privateDoc.isPublic should be(false)
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
@@ -118,7 +118,7 @@ class SearchServiceSpecForUsersWithNonStoriesRights
 
   test("private stories on the user's domain should be hidden") {
     val host = domains(0).domainCname
-    val privateDoc = docs(4)
+    val privateDoc = docs.filter(d => d.socrataId.domainId == 0 && !d.isPublic && d.isStory).headOption.get
     privateDoc.isStory should be(true)
     privateDoc.isPublic should be(false)
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
@@ -132,7 +132,7 @@ class SearchServiceSpecForUsersWithNonStoriesRights
 
   test("unpublished non-stories on the user's domain should be visible") {
     val host = domains(0).domainCname
-    val unpublishedDoc = docs(19)
+    val unpublishedDoc = docs.filter(d => d.socrataId.domainId == 0 && !d.isPublished && !d.isStory).headOption.get
     unpublishedDoc.isStory should be(false)
     unpublishedDoc.isPublished should be(false)
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
@@ -146,7 +146,7 @@ class SearchServiceSpecForUsersWithNonStoriesRights
 
   test("unpublished stories on the user's domain should be hidden") {
     val host = domains(0).domainCname
-    val unpublishedDoc = docs(4)
+    val unpublishedDoc = docs.filter(d => d.socrataId.domainId == 0 && !d.isPublished && d.isStory).headOption.get
     unpublishedDoc.isStory should be(true)
     unpublishedDoc.isPublished should be(false)
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)

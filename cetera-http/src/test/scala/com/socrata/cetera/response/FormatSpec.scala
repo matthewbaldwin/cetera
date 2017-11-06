@@ -37,7 +37,7 @@ class FormatSpec extends WordSpec with ShouldMatchers
 
   val drewRawString = Source.fromInputStream(getClass.getResourceAsStream("/drewRaw.json")).getLines().mkString("\n")
   val drewRawJson = JsonReader.fromString(drewRawString)
-  val storyRawString = Source.fromInputStream(getClass.getResourceAsStream("/views/fxf-10.json")).getLines().mkString("\n")
+  val storyRawString = Source.fromInputStream(getClass.getResourceAsStream("/views/d2-v2.json")).getLines().mkString("\n")
   val storyRawJson = JsonReader.fromString(storyRawString)
   val emptySearchHitMap = Map[String, SearchHitField]().asJava
   val domainSet = DomainSet(domains = (0 to 2).map(domains(_)).toSet)
@@ -61,8 +61,9 @@ class FormatSpec extends WordSpec with ShouldMatchers
       results should be('nonEmpty)
       results.size should be(1)
 
+      val expectedDoc = docs.filter(d => d.isSharedOrOwned("john-clan")).headOption.get
       val datasetResponse = results(0)
-      datasetResponse.resource should be(docs(18).resource)
+      datasetResponse.resource should be(expectedDoc.resource)
       datasetResponse.classification should be(Classification(Vector(), Vector(), Some("Fun"), Vector(), Vector(), None))
 
       datasetResponse.metadata.domain should be("blue.org")
@@ -252,8 +253,10 @@ class FormatSpec extends WordSpec with ShouldMatchers
   "the domainPrivateMetadata method" should {
     val viewsDomainId = 0
     val privateMetadata = List(CustomerMetadataFlattened("No looky", "Private-Metadata_Thing"))
-    val docWithPrivateMetadata = docs(0).copy(privateCustomerMetadataFlattened = privateMetadata)
-    val storyWithPrivateMetadata = docs(10).copy(privateCustomerMetadataFlattened = privateMetadata)
+    val nonStory = docs.filter(d => d.socrataId.domainId == 0 && !d.isStory).headOption.get
+    val story = docs.filter(d => d.socrataId.domainId == 0 && d.isStory).headOption.get
+    val docWithPrivateMetadata = nonStory.copy(privateCustomerMetadataFlattened = privateMetadata)
+    val storyWithPrivateMetadata = story.copy(privateCustomerMetadataFlattened = privateMetadata)
 
     "return None if no user is provided" in {
       Format.domainPrivateMetadata(docWithPrivateMetadata, None, viewsDomainId) should be(None)
@@ -293,7 +296,8 @@ class FormatSpec extends WordSpec with ShouldMatchers
 
     "return the expected value if the user shares the view" in {
       val user = Some(AuthedUser("friar-tuck", domains(1)))
-      val metadata = Format.domainPrivateMetadata(docs(5).copy(privateCustomerMetadataFlattened = privateMetadata), user, viewsDomainId)
+      val sharedDoc = docs.filter(d => d.socrataId.domainId == 1 && d.isSharedBy("friar-tuck")).headOption.get
+      val metadata = Format.domainPrivateMetadata(sharedDoc.copy(privateCustomerMetadataFlattened = privateMetadata), user, viewsDomainId)
       metadata should be(Some(privateMetadata))
     }
 

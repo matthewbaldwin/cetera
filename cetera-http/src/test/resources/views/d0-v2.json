@@ -1,0 +1,119 @@
+{
+  "created_at": "2016-09-19T10:37:20.933-07:00",
+  "updated_at": "2016-09-19T10:37:20.857-07:00",
+  "socrata_id": {
+    "dataset_id": "d0-v2",
+    "parent_dataset_id": [
+      "d0-v0"
+    ],
+    "domain_id": 0,
+    "nbe_id": "abcd-efgh",
+    "obe_id": "hgfe-dcba"
+  },
+  "resource": {
+    "description": "We're number one",
+    "parent_fxf": ["d0-v0"],
+    "updatedAt": "2016-09-19T10:37:20.857-07:00",
+    "createdAt": "2016-09-19T10:37:20.933-07:00",
+    "type": "href",
+    "id": "d0-v2",
+    "name": "One",
+    "attribution": null,
+    "provenance": "community",
+    "columns_field_name": [],
+    "columns_datatype": [],
+    "columns_description": [],
+    "columns_name": []
+  },
+  "animl_annotations": {
+    "categories": [
+      {
+        "name": "Personal",
+        "score": 1
+      }
+    ],
+    "tags": [
+      {
+        "name": "Happy",
+        "score": 0.65
+      },
+      {
+        "name": "Accident",
+        "score": 0.35
+      }
+    ]
+  },
+  "datatype": "href",
+  "viewtype": "",
+  "indexed_metadata": {
+    "name": "One",
+    "description": "We're number one",
+    "columns_field_name": [],
+    "columns_description": [],
+    "columns_name": []
+  },
+  "customer_metadata_flattened": [
+    {
+      "key": "one",
+      "value": "1"
+    },
+    {
+      "key": "two",
+      "value": "3"
+    },
+    {
+      "key": "five",
+      "value": "8"
+    }
+  ],
+  "private_customer_metadata_flattened": [
+    {
+      "key": "Secret domain 0 cat organization",
+      "value": "Cheetah Corp."
+    }
+  ],
+  "is_public": true,
+  "is_published": true,
+  "is_default_view": true,
+  "moderation_status": null,
+  "approving_domain_ids": [],
+  "rejecting_domain_ids": [
+    2
+  ],
+  "pending_domain_ids": [],
+  "is_approved_by_parent_domain": false,
+  "is_rejected_by_parent_domain": false,
+  "is_pending_on_parent_domain": false,
+  "page_views": {
+    "page_views_total": 9,
+    "page_views_last_month": 9,
+    "page_views_last_week": 9
+  },
+  "customer_category": "Alpha to Omega",
+  "customer_tags": [
+    "1-one"
+  ],
+  "shared_to": [],
+  "attribution": "La comunidad",
+  "preview_image_id": null,
+  "grants": [],
+  "hide_from_catalog": false,
+  "hide_from_data_json": false,
+  "provenance": "community",
+  "owner": {
+    "id": "robin-hood"
+  },
+  "approvals": [ {
+    "outcome": "publicize",
+    "reviewed_at": "2017-11-01T12:00:00.000Z",
+    "reviewed_automatically": false,
+    "state": "rejected",
+    "submitted_at": "2017-10-31T12:00:00.000Z",
+    "submitter_id" : "robin-hood",
+    "submitter_name" : "Robin Hood",
+    "submitter_email" : "robin-hood@nottingham.com",
+    "reviewer_id" : "honorable.sheriff",
+    "reviewer_name" : "The Honorable Sheriff of Nottingham",
+    "reviewer_email" : "honorable.sheriff@nottingham.com"
+  } ]
+}

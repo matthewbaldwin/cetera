@@ -59,8 +59,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
   }
 
   "domain 0 is a customer domain with neither VM or RA (but uses fontana_approvals) and that federates into domain 2, which has RA" should {
-    "have the expected statuses for fxf-0" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "fxf-0").get
+    "have the expected statuses for d0-v0" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d0-v0").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -72,8 +72,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaPending(doc, 2)
     }
 
-    "have the expected statuses for fxf-4" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "fxf-4").get
+    "have the expected statuses for d0-v1" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d0-v1").get
       doc.isPublic should be(false)
       doc.isPublished should be(false)
       doc.isStory should be(true)
@@ -85,8 +85,21 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaApproved(doc, 2)
     }
 
-    "have the expected statuses for fxf-8" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "fxf-8").get
+    "have the expected statuses for d0-v2" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d0-v2").get
+        doc.isPublic should be(true)
+      doc.isPublished should be(true)
+      doc.isStory should be(false)
+      doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(true)
+      doc.isSharedOrOwned("robin-hood") should be(true)
+      verifyVmMissing(doc)
+      verifyRaMissing(doc, 0)
+      verifyRaRejected(doc, 2)
+    }
+
+    "have the expected statuses for d0-v3" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d0-v3").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -98,8 +111,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaRejected(doc, 2)
     }
 
-    "have the expected statuses for zeta-0001" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "zeta-0001").get
+    "have the expected statuses for d0-v4" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d0-v4").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -111,8 +124,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaApproved(doc, 2)
     }
 
-    "have the expected statuses for zeta-0004" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "zeta-0004").get
+    "have the expected statuses for d0-v5" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d0-v5").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -125,8 +138,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaPending(doc, 2)
     }
 
-    "have the expected statuses for zeta-0006" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "zeta-0006").get
+    "have the expected statuses for d0-v6" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d0-v6").get
       doc.isPublic should be(true)
       doc.isPublished should be(false)
       doc.isStory should be(false)
@@ -139,8 +152,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaMissing(doc, 2)  // isn't in 2's queue, b/c of RA bug ;)
     }
 
-    "have the expected statuses for zeta-0007" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "zeta-0007").get
+    "have the expected statuses for d0-v7" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d0-v7").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -153,8 +166,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaApproved(doc, 2)
     }
 
-    "have the expected statuses for zeta-0011" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "zeta-0011").get
+    "have the expected statuses for d0-v8" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d0-v8").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -166,8 +179,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaPending(doc, 2)
     }
 
-    "have the expected statuses for zeta-0012" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "zeta-0012").get
+    "have the expected statuses for d0-v9" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d0-v9").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -180,8 +193,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
   }
 
   "domain 1 is not a customer domain; it has VM, but no RA and does not federate anywhere" should {
-    "have the expected statuses for fxf-1" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "fxf-1").get
+    "have the expected statuses for d1-v0" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d1-v0").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -192,8 +205,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaMissing(doc, 1)
     }
 
-    "have the expected statuses for fxf-5" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "fxf-5").get
+    "have the expected statuses for d1-v1" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d1-v1").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -205,8 +218,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaMissing(doc, 1)
     }
 
-    "have the expected statuses for fxf-9" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "fxf-9").get
+    "have the expected statuses for d1-v2" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d1-v2").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -221,8 +234,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
 
 
   "domain 2 is a customer domain with RA, but no VM, that federates into domain 0 (which has neither VM or RA) and domain 3 (which has both VM & RA)" should {
-    "have the expected statuses for fxf-2" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "fxf-2").get
+    "have the expected statuses for d2-v0" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d2-v0").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -234,8 +247,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaRejected(doc, 3)
     }
 
-    "have the expected statuses for fxf-6" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "fxf-6").get
+    "have the expected statuses for d2-v1" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d2-v1").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -248,8 +261,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaApproved(doc, 3)
     }
 
-    "have the expected statuses for fxf-10" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "fxf-10").get
+    "have the expected statuses for d2-v2" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d2-v2").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(true)
@@ -262,8 +275,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaApproved(doc, 3)
     }
 
-    "have the expected statuses for zeta-0003" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "zeta-0003").get
+    "have the expected statuses for d2-v3" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d2-v3").get
       doc.isPublic should be(false)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -277,8 +290,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaRejected(doc, 3)
     }
 
-    "have the expected statuses for zeta-0005" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "zeta-0005").get
+    "have the expected statuses for d2-v4" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d2-v4").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -291,8 +304,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaApproved(doc, 3)
     }
 
-    "have the expected statuses for zeta-0010" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "zeta-0010").get
+    "have the expected statuses for d2-v5" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d2-v5").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -305,8 +318,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaRejected(doc, 3)
     }
 
-    "have the expected statuses for zeta-0017" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "zeta-0017").get
+    "have the expected statuses for d2-v6" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d2-v6").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -318,8 +331,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaRejected(doc, 2)
     }
 
-    "have the expected statuses for zeta-0018" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "zeta-0018").get
+    "have the expected statuses for d2-v7" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d2-v7").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -333,8 +346,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
   }
 
   "domain 3 is a customer domain with both VM & RA that does not federate anywhere" should {
-    "have the expected statuses for fxf-3" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "fxf-3").get
+    "have the expected statuses for d3-v0" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d3-v0").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isHiddenFromCatalog should be(false)
@@ -344,8 +357,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaRejected(doc, 3)
     }
 
-    "have the expected statuses for fxf-7" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "fxf-7").get
+    "have the expected statuses for d3-v1" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d3-v1").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -356,8 +369,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaPending(doc, 3)
     }
 
-    "have the expected statuses for fxf-11" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "fxf-11").get
+    "have the expected statuses for d3-v2" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d3-v2").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -368,8 +381,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaApproved(doc, 3)
     }
 
-    "have the expected statuses for fxf-12" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "fxf-12").get
+    "have the expected statuses for d3-v3" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d3-v3").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -380,8 +393,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaApproved(doc, 3)
     }
 
-    "have the expected statuses for zeta-0002" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "zeta-0002").get
+    "have the expected statuses for d3-v4" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d3-v4").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -392,8 +405,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaApproved(doc, 3)
     }
 
-    "have the expected statuses for zeta-0009" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "zeta-0009").get
+    "have the expected statuses for d3-v5" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d3-v5").get
       doc.isPublic should be(false)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -404,8 +417,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaApproved(doc, 3)
     }
 
-    "have the expected statuses for zeta-0013" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "zeta-0013").get
+    "have the expected statuses for d3-v6" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d3-v6").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -417,8 +430,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaApproved(doc, 3)
     }
 
-    "have the expected statuses for zeta-0014" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "zeta-0014").get
+    "have the expected statuses for d3-v7" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d3-v7").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -430,8 +443,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaRejected(doc, 3)
     }
 
-    "have the expected statuses for zeta-0015" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "zeta-0015").get
+    "have the expected statuses for d3-v8" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d3-v8").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -444,8 +457,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       verifyRaPending(doc, 2)
     }
 
-    "have the expected statuses for zeta-0016" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "zeta-0016").get
+    "have the expected statuses for d3-v9" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d3-v9").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -460,8 +473,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
   }
 
   "domain 8 is locked-down customer domain with both VM & RA that does not federate anywhere" should {
-    "have the expected statuses for zeta-0008" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "zeta-0008").get
+    "have the expected statuses for d8-v0" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d8-v0").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -474,8 +487,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
   }
 
   "domain 9 is a customer domain with neither VM & RA that does not federate anywhere" should {
-    "have the expected statuses for 1234-5678" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "1234-5678").get
+    "have the expected statuses for d9-v0" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d9-v0").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -484,8 +497,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isSharedOrOwned("honorable.sheriff") should be(true)
     }
 
-    "have the expected statuses for 1234-5679" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "1234-5679").get
+    "have the expected statuses for d9-v1" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d9-v1").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -494,8 +507,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isSharedOrOwned("honorable.sheriff") should be(true)
     }
 
-    "have the expected statuses for 1234-5680" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "1234-5680").get
+    "have the expected statuses for d9-v2" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d9-v2").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -504,8 +517,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isSharedOrOwned("honorable.sheriff") should be(true)
     }
 
-    "have the expected statuses for 1234-5681" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "1234-5681").get
+    "have the expected statuses for d9-v3" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d9-v3").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
@@ -514,8 +527,8 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isSharedOrOwned("honorable.sheriff") should be(true)
     }
 
-    "have the expected statuses for 1234-5682" in {
-      val doc = docs.find(d => d.socrataId.datasetId == "1234-5682").get
+    "have the expected statuses for d9-v4" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d9-v4").get
       doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)

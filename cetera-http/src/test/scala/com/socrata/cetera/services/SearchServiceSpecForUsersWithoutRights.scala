@@ -375,7 +375,7 @@ class SearchServiceSpecForUsersWithoutRights
     actualFxfs should be('empty)
 
     // confirm there were documents that were excluded.
-    anonymouslyViewableDocs.find(_.socrataId.datasetId == "fxf-8").get.privateCustomerMetadataFlattened.exists(_.value == privateValue
+    anonymouslyViewableDocs.find(_.socrataId.datasetId == "d0-v2").get.privateCustomerMetadataFlattened.exists(_.value == privateValue
     ) should be(true)
   }
 
@@ -403,7 +403,7 @@ class SearchServiceSpecForUsersWithoutRights
     actualFxfs should be('empty)
 
     // confirm there were documents that were excluded.
-    anonymouslyViewableDocs.find(_.socrataId.datasetId == "fxf-8").get.privateCustomerMetadataFlattened.exists(m =>
+    anonymouslyViewableDocs.find(_.socrataId.datasetId == "d0-v2").get.privateCustomerMetadataFlattened.exists(m =>
       m.value == privateValue && m.key == privateKey) should be(true)
   }
 

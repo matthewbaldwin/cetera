@@ -69,7 +69,7 @@ class FacetServiceSpec
       FacetRes(tags, categories, datatypes, metadata)
     }
 
-    // domain 0 has 2 datasets (zeta-0001 and zeta-0007), a calendar (fxf-0), two hrefs (fxf-8, fxf-13) and a DL (zeta-0012) that are anonymously viewable
+    // domain 0 has 2 datasets (d0-v4 and d0-v7), a calendar (d0-v0), two hrefs (d0-v2, d0-v3) and a DL (d0-v9) that are anonymously viewable
     domainFacets(0).datatypes should contain theSameElementsAs(List(ValueCount("dataset", 2), ValueCount("calendar",1),
       ValueCount("datalens",1), ValueCount("href",2)))
     domainFacets(0).categories should contain theSameElementsAs(List(ValueCount("Alpha to Omega",2),
@@ -78,19 +78,19 @@ class FacetServiceSpec
       ValueCount("1-one is only the very first part of this tag",1)))
     domainFacets(0).metadata should contain theSameElementsAs(List(ValueCount("8",3), ValueCount("1",3), ValueCount("3",3)))
 
-    // domain 1 has 1 chart (fxf-1) that is anonymously viewable
+    // domain 1 has 1 chart (d1-v0) that is anonymously viewable
     domainFacets(1).datatypes should contain theSameElementsAs(List(ValueCount("chart", 1)))
     domainFacets(1).categories should contain theSameElementsAs(List(ValueCount("Beta",1)))
     domainFacets(1).tags should contain theSameElementsAs(List(ValueCount("1-one",1), ValueCount("2-two",1)))
     domainFacets(1).metadata should contain theSameElementsAs(List(ValueCount("2",1)))
 
-    // domain 2 has 1 story (fxf-10) and 1 filter (zeta-0005) that are anonymously viewable
+    // domain 2 has 1 story (d2-v2) and 1 filter (d2-v4) that are anonymously viewable
     domainFacets(2).datatypes should contain theSameElementsAs(List(ValueCount("filter",1), ValueCount("story",1)))
     domainFacets(2).categories should contain theSameElementsAs(List(ValueCount("Fun",1), ValueCount("Gamma",1)))
     domainFacets(2).tags should contain theSameElementsAs(List(ValueCount("1-one",1), ValueCount("2-two",1)))
     domainFacets(2).metadata should contain theSameElementsAs(List(ValueCount("3",1)))
 
-    // domain 3 has 1 dataset (zeta-0002) that is anonymously viewable
+    // domain 3 has 1 dataset (d3-v4) that is anonymously viewable
     domainFacets(3).datatypes should contain theSameElementsAs(List(ValueCount("dataset", 1), ValueCount("href", 1), ValueCount("federated_href", 1)))
     domainFacets(3).categories should contain theSameElementsAs(List(ValueCount("Fun",1)))
     domainFacets(3).tags should be(List(ValueCount("1-one", 2), ValueCount("2-two", 2)))
@@ -116,7 +116,7 @@ class FacetServiceSpec
       "categories" -> "Fun",
       "tags" -> "facts"
     ).mapValues(Seq(_))
-    // these ^ params leave a single dataset, zeta-0007
+    // these ^ params leave a single dataset, d0-v7
     val (_, facets, timings, _) = facetService.doAggregate(params, context.domainCname, AuthParams(cookie=Some("c=cookie")), Some(context.domainCname), None)
     val datatypes = facets.find(_.facet == "datatypes").map(_.values).getOrElse(fail())
     val categories = facets.find(_.facet == "categories").map(_.values).getOrElse(fail())

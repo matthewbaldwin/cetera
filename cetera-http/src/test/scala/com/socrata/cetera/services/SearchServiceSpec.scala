@@ -103,16 +103,16 @@ class SearchServiceSpec extends FunSuiteLike
         "rights" : [ "view_others_datasets", "view_story" ]
         }"""
     val expectedVis = Map(
-      "fxf-3" -> false,
-      "fxf-7" -> false,
-      "fxf-11" -> true,
-      "fxf-12" -> true,
-      "zeta-0002" -> true,
-      "zeta-0009" -> false,
-      "zeta-0013" -> false,
-      "zeta-0014" -> false,
-      "zeta-0015" -> false,
-      "zeta-0016" -> false
+      "d3-v0" -> false,
+      "d3-v1" -> false,
+      "d3-v2" -> true,
+      "d3-v3" -> true,
+      "d3-v4" -> true,
+      "d3-v5" -> false,
+      "d3-v6" -> false,
+      "d3-v7" -> false,
+      "d3-v8" -> false,
+      "d3-v9" -> false
     )
 
     prepareAuthenticatedUser(cookie, host, authedUserBody)
@@ -130,16 +130,16 @@ class SearchServiceSpec extends FunSuiteLike
         "rights" : [ "view_others_datasets", "view_story" ]
         }"""
     val expectedVis = Map(
-      "fxf-0" -> true,
-      "fxf-4" -> false,
-      "fxf-8" -> true,
-      "fxf-13" -> true,
-      "zeta-0001" -> true,
-      "zeta-0004" -> false,
-      "zeta-0006" -> false,
-      "zeta-0007" -> true,
-      "zeta-0011" -> false,
-      "zeta-0012" -> true
+      "d0-v0" -> true,
+      "d0-v1" -> false,
+      "d0-v2" -> true,
+      "d0-v3" -> true,
+      "d0-v4" -> true,
+      "d0-v5" -> false,
+      "d0-v6" -> false,
+      "d0-v7" -> true,
+      "d0-v8" -> false,
+      "d0-v9" -> true
     )
 
     prepareAuthenticatedUser(cookie, host, authedUserBody)
@@ -260,7 +260,7 @@ class SearchServiceSpec extends FunSuiteLike
     val results = service.doSearch(params, AuthParams(), None, None)._2.results
     results.map(result =>
       result.resource.id
-    ) should contain inOrderOnly ("1234-5678", "1234-5679")
+    ) should contain inOrderOnly ("d9-v0", "d9-v1")
   }
 
   test("if scroll_id is specified, then results will be sorted by dataset ID") {
@@ -274,9 +274,9 @@ class SearchServiceSpec extends FunSuiteLike
   }
 
   test("the expected results are returned when scroll_id and limit are specified") {
-    val params = Map("scroll_id" -> Seq("fxf-8"), "limit" -> Seq("5"), "domains" -> Seq(domains.map(_.domainCname).mkString(",")))
+    val params = Map("scroll_id" -> Seq("d0-v2"), "limit" -> Seq("5"), "domains" -> Seq(domains.map(_.domainCname).mkString(",")))
     val anonymouslyViewableDocIdsSorted = anonymouslyViewableDocIds.sorted
-    val dropIndex = anonymouslyViewableDocIdsSorted.indexOf("fxf-8") + 1
+    val dropIndex = anonymouslyViewableDocIdsSorted.indexOf("d0-v2") + 1
 
     val results = service.doSearch(params, AuthParams(), None, None)._2.results
 
@@ -286,13 +286,13 @@ class SearchServiceSpec extends FunSuiteLike
   }
 
   test("the owner field is included in the results") {
-    val params = Map("domains" -> Seq("robert.demo.socrata.com"), "ids" -> Seq("1234-5678"))
+    val params = Map("domains" -> Seq("robert.demo.socrata.com"), "ids" -> Seq("d9-v0"))
     val results = service.doSearch(params, AuthParams(), None, None)._2.results
     results.toList(0).owner should be(UserInfo("honorable.sheriff", Some("Honorable Sheriff of Nottingham")))
   }
 
   test("sorting on the owner returns results in the correct order") {
-    val params = Map("domains" -> Seq("robert.demo.socrata.com"), "ids" -> Seq("1234-5678", "1234-5682"), "order" -> Seq("owner ASC"))
+    val params = Map("domains" -> Seq("robert.demo.socrata.com"), "ids" -> Seq("d9-v0", "d9-v4"), "order" -> Seq("owner ASC"))
 
     val results = service.doSearch(params, AuthParams(), None, None)._2.results
 
@@ -305,7 +305,7 @@ class SearchServiceSpec extends FunSuiteLike
   }
 
   test("sorting on domain category returns results in the correct order") {
-    val params = Map("domains" -> Seq("robert.demo.socrata.com"), "ids" -> Seq("1234-5678", "1234-5682"), "order" -> Seq("domain_category ASC"))
+    val params = Map("domains" -> Seq("robert.demo.socrata.com"), "ids" -> Seq("d9-v0", "d9-v4"), "order" -> Seq("domain_category ASC"))
 
     val results = service.doSearch(params, AuthParams(), None, None)._2.results
 

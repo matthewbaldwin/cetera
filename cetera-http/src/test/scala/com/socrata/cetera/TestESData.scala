@@ -52,29 +52,21 @@ trait TestESData extends TestESDomains with TestESUsers {
     "show_visibility" -> "true"
   ).mapValues(Seq(_))
 
+  val domDocCount = Map(0->9, 1->2, 2->7, 3->9, 8->0 ,9->4)
   val docs = {
-    // there is no difference in these two types of docs except for the means by which
-    // we used to construct them in commit 1442a6b08.
-    val series1DocFiles = (0 to 13).map(i => s"/views/fxf-$i.json")
-    val series2DocFiles = (1 to 9).map(i => s"/views/zeta-000$i.json") ++
-      (10 to 18).map(i => s"/views/zeta-00$i.json") ++
-      (1 to 5).map(i => s"/views/domain-9-view-$i.json")
+    val files = domDocCount.map { case (dom: Int, docCount: Int) =>
+      (0 to docCount).map(i => s"/views/d$dom-v$i.json")
+    }.flatten
 
-    val series1Docs = series1DocFiles.map { f =>
+    files.map { f =>
       val source = Source.fromInputStream(getClass.getResourceAsStream(f)).getLines().mkString("\n")
       Document(source).get
     }
-    val series2Docs = series2DocFiles.map { f =>
-      val source = Source.fromInputStream(getClass.getResourceAsStream(f)).getLines().mkString("\n")
-      Document(source).get
-    }
-
-    series1Docs.toList ++ series2Docs.toList
-  }
+  }.toList
 
   val anonymouslyViewableDocIds = List(
-    "fxf-0", "fxf-1", "fxf-8", "fxf-10", "fxf-11", "fxf-12", "fxf-13", "zeta-0001", "zeta-0002",
-    "zeta-0005", "zeta-0007", "zeta-0012", "1234-5678", "1234-5679", "1234-5680", "1234-5681", "1234-5682")
+    "d0-v0", "d1-v0", "d0-v2", "d2-v2", "d3-v2", "d3-v3", "d0-v3", "d0-v4", "d3-v4",
+    "d2-v4", "d0-v7", "d0-v9", "d9-v0", "d9-v1", "d9-v2", "d9-v3", "d9-v4")
   val (anonymouslyViewableDocs, internalDocs) =
     docs.partition(d => anonymouslyViewableDocIds contains(d.socrataId.datasetId))
 

@@ -1,0 +1,81 @@
+{
+  "created_at": "2016-09-19T10:37:20.933-07:00",
+  "updated_at": "2016-09-19T10:37:20.857-07:00",
+  "socrata_id": {
+    "dataset_id": "d0-v9",
+    "parent_dataset_id": [],
+    "domain_id": 0,
+    "nbe_id": "d0-v9",
+    "obe_id": null
+  },
+  "resource": {
+    "description": "approved datalens",
+    "parent_fxf": null,
+    "updatedAt": "2016-09-19T10:37:21.143-07:00",
+    "createdAt": "2016-09-19T10:37:21.143-07:00",
+    "type": "datalens",
+    "id": "d0-v9",
+    "name": "",
+    "attribution": null,
+    "columns_field_name": [],
+    "columns_datatype": [],
+    "columns_description": [],
+    "columns_name": []
+  },
+  "animl_annotations": {
+    "categories": [],
+    "tags": []
+  },
+  "datatype": "datalens",
+  "viewtype": "",
+  "indexed_metadata": {
+    "name": "",
+    "description": "",
+    "columns_field_name": [],
+    "columns_description": [],
+    "columns_name": []
+  },
+  "customer_metadata_flattened": [],
+  "private_customer_metadata_flattened": [
+    {
+      "key": "Secret domain 0 cat organization",
+      "value": "Cheetah Corp."
+    }
+  ],
+  "is_public": true,
+  "is_published": true,
+  "is_default_view": false,
+  "moderation_status": "approved",
+  "approving_domain_ids": [
+    2
+  ],
+  "rejecting_domain_ids": [],
+  "pending_domain_ids": [],
+  "is_approved_by_parent_domain": false,
+  "is_rejected_by_parent_domain": false,
+  "is_pending_on_parent_domain": false,
+  "page_views": {
+    "page_views_total": 42,
+    "page_views_last_month": 42,
+    "page_views_last_week": 42
+  },
+  "customer_category": "Pumas",
+  "customer_tags": [],
+  "shared_to": [],
+  "attribution": "nottingham",
+  "preview_image_id": null,
+  "grants": [],
+  "hide_from_catalog": false,
+  "hide_from_data_json": false,
+  "owner": {
+    "id": "lil-john"
+  },
+  "approvals" : [ {
+    "outcome" : "publicize",
+    "state" : "pending",
+    "submitted_at" : "2017-10-31T12:00:00.000Z",
+    "submitter_id" : "lil-john",
+    "submitter_name" : "Little John",
+    "submitter_email" : "lil.john@nottingham.com"
+  } ]
+}

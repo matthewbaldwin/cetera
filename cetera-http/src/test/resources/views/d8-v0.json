@@ -1,0 +1,78 @@
+{
+  "created_at": "2016-09-19T10:37:20.933-07:00",
+  "updated_at": "2016-09-19T10:37:20.857-07:00",
+  "socrata_id": {
+    "dataset_id": "d8-v0",
+    "parent_dataset_id": [],
+    "domain_id": 8,
+    "nbe_id": "d8-v0",
+    "obe_id": null
+  },
+  "resource": {
+    "description": "a datalens on the doubly-locked down domain",
+    "parent_fxf": null,
+    "updatedAt": "2016-09-19T10:37:21.151-07:00",
+    "createdAt": "2016-09-19T10:37:21.151-07:00",
+    "type": "datalens",
+    "id": "d8-v0",
+    "name": "",
+    "attribution": null,
+    "provenance": "official",
+    "columns_field_name": [],
+    "columns_datatype": [],
+    "columns_description": [],
+    "columns_name": []
+  },
+  "animl_annotations": {
+    "categories": [],
+    "tags": []
+  },
+  "datatype": "datalens",
+  "viewtype": "",
+  "indexed_metadata": {
+    "name": "",
+    "description": "",
+    "columns_field_name": [],
+    "columns_description": [],
+    "columns_name": []
+  },
+  "customer_metadata_flattened": [],
+  "private_customer_metadata_flattened": [
+    {
+      "key": "domain 8 field",
+      "value": "value for view 0008"
+    }
+  ],
+  "is_public": true,
+  "is_published": true,
+  "is_default_view": false,
+  "moderation_status": "approved",
+  "approving_domain_ids": [
+    8
+  ],
+  "rejecting_domain_ids": [],
+  "pending_domain_ids": [],
+  "is_approved_by_parent_domain": true,
+  "is_rejected_by_parent_domain": false,
+  "is_pending_on_parent_domain": false,
+  "page_views": {
+    "page_views_total": 42,
+    "page_views_last_month": 42,
+    "page_views_last_week": 42
+  },
+  "customer_category": "Fun",
+  "customer_tags": [
+    "fake",
+    "king"
+  ],
+  "shared_to": [],
+  "attribution": null,
+  "preview_image_id": null,
+  "grants": [],
+  "hide_from_catalog": false,
+  "hide_from_data_json": false,
+  "provenance": "official",
+  "owner": {
+    "id": "prince-john"
+  }
+}

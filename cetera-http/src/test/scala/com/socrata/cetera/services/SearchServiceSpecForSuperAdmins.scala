@@ -211,10 +211,10 @@ class SearchServiceSpecForSuperAdmins
     val actualFxfs = fxfs(res._2)
     actualFxfs should contain theSameElementsAs expectedFxfs
 
-    // zeta-0005 is approved on 3, but is sadly a derived view and 3's moderated context won't have that.
-    // this verifies that zeta-0005 could've showed up, but didn't  (and ensures no one accidentally removes this test case)
-    approvedFxfs should contain("zeta-0005")
-    derivedViewsFromUnmoderatedDomains should contain("zeta-0005")
+    // d2-v4 is approved on 3, but is sadly a derived view and 3's moderated context won't have that.
+    // this verifies that d2-v4 could've showed up, but didn't  (and ensures no one accidentally removes this test case)
+    approvedFxfs should contain("d2-v4")
+    derivedViewsFromUnmoderatedDomains should contain("d2-v4")
   }
 
   test("searching across all domains as a superadmin with approval_status=pending and no context should find all pending results") {

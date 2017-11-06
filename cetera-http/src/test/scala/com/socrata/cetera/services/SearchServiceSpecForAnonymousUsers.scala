@@ -341,8 +341,8 @@ class SearchServiceSpecForAnonymousUsers
       "domains" -> "opendata-demo.socrata.com,petercetera.net",
       "search_context" -> "opendata-demo.socrata.com"
     ).mapValues(Seq(_))
-    // of those fxfs, only show: fxf-1 is approved and fxf-8 & fxf-13 are default views
-    val expectedFxfs = Set("fxf-1", "fxf-8", "fxf-13", "zeta-0007")
+    // of those fxfs, only show: d1-v0 is approved and d0-v2 & d0-v3 are default views
+    val expectedFxfs = Set("d1-v0", "d0-v2", "d0-v3", "d0-v7")
     val res = service.doSearch(params, AuthParams(), None, None)._2
     val actualFxfs = fxfs(res)
     actualFxfs should contain theSameElementsAs expectedFxfs
@@ -371,7 +371,7 @@ class SearchServiceSpecForAnonymousUsers
     actualFxfs should be('empty)
 
     // ensure something could have come back
-    val docFrom8 = docs(21)
+    val docFrom8 = docs.filter(d => d.socrataId.domainId == 8).headOption.get
     docFrom8.socrataId.domainId should be(domains(8).domainId)
     docFrom8.isPublic should be(true)
     docFrom8.isPublished should be(true)
@@ -405,15 +405,15 @@ class SearchServiceSpecForAnonymousUsers
   // TODO: consider searching for datasets by user screen name; using new custom analyzer
   ignore("if a user's name is queried, datasets with a matching owner:screen_name should show up") {
     val params = Map("q" -> "John").mapValues(Seq(_))
-    val expectedFxfs = Set("zeta-0002", "zeta-0005")
+    val expectedFxfs = Set("d3-v4", "d2-v4")
     val res = service.doSearch(params, AuthParams(), None, None)._2
     val actualFxfs = fxfs(res)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
 
   test("if a parent dataset is provided, response should only include anonymously viewable views derived from that dataset") {
-    val params = Map(Params.derivedFrom -> "fxf-0").mapValues(Seq(_))
-    val expectedFxfs = anonymouslyViewableDocs.filter(d => d.socrataId.parentDatasetId.getOrElse(Set.empty).contains("fxf-0")).map(_.socrataId.datasetId)
+    val params = Map(Params.derivedFrom -> "d0-v0").mapValues(Seq(_))
+    val expectedFxfs = anonymouslyViewableDocs.filter(d => d.socrataId.parentDatasetId.getOrElse(Set.empty).contains("d0-v0")).map(_.socrataId.datasetId)
     val res = service.doSearch(params, AuthParams(), None, None)._2
     val actualFxfs = fxfs(res)
     actualFxfs should contain theSameElementsAs expectedFxfs
@@ -427,7 +427,7 @@ class SearchServiceSpecForAnonymousUsers
     actualFxfs should be('empty)
 
     // confirm there were documents that were excluded.
-    val doc = anonymouslyViewableDocs.find(_.socrataId.datasetId == "fxf-8")
+    val doc = anonymouslyViewableDocs.find(_.socrataId.datasetId == "d0-v2")
     doc.map(
       _.privateCustomerMetadataFlattened.exists(_.value == privateValue)
     ) should be(Some(true))
@@ -442,7 +442,7 @@ class SearchServiceSpecForAnonymousUsers
     actualFxfs should be('empty)
 
     // confirm there were documents that were excluded.
-    val doc = anonymouslyViewableDocs.find(_.socrataId.datasetId == "fxf-8")
+    val doc = anonymouslyViewableDocs.find(_.socrataId.datasetId == "d0-v2")
     doc.map(
       _.privateCustomerMetadataFlattened.exists(m => m.value == privateValue && m.key == privateKey)
     ) should be(Some(true))
@@ -698,7 +698,7 @@ class SearchServiceSpecForAnonymousUsers
   }
 
   test("sorting by name ignores case") {
-    val params = Map("order" -> Seq("name"), "ids" -> Seq("1234-5680", "1234-5682"))
+    val params = Map("order" -> Seq("name"), "ids" -> Seq("d9-v2", "d9-v4"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     results.results.head.resource.name should be("'bravo")
     results.results.last.resource.name should be("Charlie")
@@ -711,7 +711,7 @@ class SearchServiceSpecForAnonymousUsers
   test("filtering by attribution works") {
     val params = Map("attribution" -> Seq("The Merry Men"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    val expectedFxfs = Set("zeta-0007")
+    val expectedFxfs = Set("d0-v7")
     val actualFxfs = fxfs(results)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -727,7 +727,7 @@ class SearchServiceSpecForAnonymousUsers
   test("searching for attribution via keyword searches should include individual term matches regardless of case") {
     val params = Map("q" -> Seq("merry men"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
-    val expectedFxfs = Set("zeta-0007")
+    val expectedFxfs = Set("d0-v7")
     val actualFxfs = fxfs(results)
     actualFxfs should contain theSameElementsAs expectedFxfs
   }
@@ -781,14 +781,14 @@ class SearchServiceSpecForAnonymousUsers
   //////////////////////////////////////////////////
 
   test("preview_image_url should be included in the search result when available") {
-    val params = Map("ids" -> Seq("zeta-0007"))
+    val params = Map("ids" -> Seq("d0-v7"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     val firstPreviewImageUrl = results.results(0).previewImageUrl
-    firstPreviewImageUrl should be(Some("https://petercetera.net/views/zeta-0007/files/123456789"))
+    firstPreviewImageUrl should be(Some("https://petercetera.net/views/d0-v7/files/123456789"))
   }
 
   test("preview_image_url should be None in the search result when not available") {
-    val params = Map("ids" -> Seq("fxf-0"))
+    val params = Map("ids" -> Seq("d0-v0"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     val firstPreviewImageUrl = results.results(0).previewImageUrl
     firstPreviewImageUrl should be(None)

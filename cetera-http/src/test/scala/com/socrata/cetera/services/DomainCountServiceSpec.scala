@@ -109,7 +109,7 @@ class DomainCountServiceSpec extends WordSpec with ShouldMatchers with BeforeAnd
       val context = domains(contextId).domainCname
       val expectedResults = List(
         Count(context, docCountsByDomain.getOrElse(contextId, 0)), // the context's counts should stay the same
-        Count("petercetera.net", 3)) // the federated domain only has 3 anon-visible views approved by the context: zeta-0001, zeta-0007, zeta-0012,
+        Count("petercetera.net", 3)) // the federated domain only has 3 anon-visible views approved by the context: d0-v4, d0-v7, d0-v9,
       val (_, res, _, _) = domainCountService.doAggregate(Map(
           Params.searchContext -> context,
           Params.domains -> s"$context,petercetera.net")
@@ -124,7 +124,7 @@ class DomainCountServiceSpec extends WordSpec with ShouldMatchers with BeforeAnd
       val contextId = 1
       val context = domains(contextId).domainCname
       val expectedResults = List(
-        Count("petercetera.net", 3), // the federated domain has 3 anon-visible default views: fxf-8, fxf-13, and zeta-0007
+        Count("petercetera.net", 3), // the federated domain has 3 anon-visible default views: d0-v2, d0-v3, and d0-v7
         Count(context, docCountsByDomain.getOrElse(contextId, 0))) // the context's counts should stay the same
       val (_, res, _, _) = domainCountService.doAggregate(Map(
           Params.searchContext -> context,
@@ -141,7 +141,7 @@ class DomainCountServiceSpec extends WordSpec with ShouldMatchers with BeforeAnd
       val context = domains(contextId).domainCname
       val expectedResults = List(
         Count(context, docCountsByDomain.getOrElse(contextId, 0)), // the context's counts should stay the same
-        Count("blue.org", 1), // blue.org has 1 qualifying dataset: fxf-10
+        Count("blue.org", 1), // blue.org has 1 qualifying dataset: d2-v2
         Count("petercetera.net", 0)) // petercetera.net has no qualifying datasets
       val (_, res, _, _) = domainCountService.doAggregate(Map(
           Params.searchContext -> context,
@@ -200,11 +200,11 @@ class DomainCountServiceSpec extends WordSpec with ShouldMatchers with BeforeAnd
   }
 
   "counting documents by domains with the parentDatasetId param" should {
-    haveMatchingDocAndDomSearchCounts(Map(Params.derivedFrom -> "fxf-0"))
+    haveMatchingDocAndDomSearchCounts(Map(Params.derivedFrom -> "d0-v0"))
   }
 
   "counting documents by domains with the ids param" should {
-    haveMatchingDocAndDomSearchCounts(Map(Params.ids -> "fxf-10"))
+    haveMatchingDocAndDomSearchCounts(Map(Params.ids -> "d2-v2"))
   }
 
   "counting documents by domains with the license param" should {
@@ -240,7 +240,7 @@ class DomainCountServiceSpec extends WordSpec with ShouldMatchers with BeforeAnd
   "counting documents by domains with a bucket of search params - noting the lack of search context and use of socrata cats/tags" should {
     "have the correct counts " in {
       val context = "petercetera.net"
-      val expectedResults = List(Count(context, 1)) // this describes fxf-0 and only fxf-0
+      val expectedResults = List(Count(context, 1)) // this describes d0-v0 and only d0-v0
       val (_, res, _, _) = domainCountService.doAggregate(Map(
           Params.domains -> context,
           Params.only -> "calendars",
@@ -257,7 +257,7 @@ class DomainCountServiceSpec extends WordSpec with ShouldMatchers with BeforeAnd
   "counting documents by domains with a bucket of search params - noting the presence of a search context and customer cats/tags" should {
     "have the correct counts " in {
       val context = "petercetera.net"
-      val expectedResults = List(Count(context, 1)) // this describes fxf-0 and only fxf-0
+      val expectedResults = List(Count(context, 1)) // this describes d0-v0 and only d0-v0
       val (_, res, _, _) = domainCountService.doAggregate(Map(
           Params.searchContext -> context,
           Params.domains -> context,
