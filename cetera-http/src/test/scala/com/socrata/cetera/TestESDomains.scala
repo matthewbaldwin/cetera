@@ -2,7 +2,7 @@ package com.socrata.cetera
 
 import scala.io.Source
 
-import com.socrata.cetera.types.Domain
+import com.socrata.cetera.types.{Document, Domain}
 
 trait TestESDomains {
 
@@ -19,16 +19,22 @@ trait TestESDomains {
         case _ => None
       }
       Domain(
-        domainId = domainId,
-        domainCname = tsvLine(1),
+        id = domainId,
+        cname = tsvLine(1),
         aliases = aliases,
         siteTitle = Option(tsvLine(2)).filter(_.nonEmpty),
         organization = Option(tsvLine(3)).filter(_.nonEmpty),
         isCustomerDomain = tsvLine(4).toBoolean,
-        moderationEnabled = tsvLine(5).toBoolean,
-        routingApprovalEnabled = tsvLine(6).toBoolean,
-        lockedDown = tsvLine(7).toBoolean,
-        apiLockedDown = tsvLine(8).toBoolean)
+        hasFontanaApprovals = tsvLine(5).toBoolean,
+        moderationEnabled = tsvLine(6).toBoolean,
+        routingApprovalEnabled = tsvLine(7).toBoolean,
+        lockedDown = tsvLine(8).toBoolean,
+        apiLockedDown = tsvLine(9).toBoolean)
     }.toSeq
   }
+
+  val fontanaDomain = domains(0)
+  val vmDomain = domains(1)
+  val raDomain = domains(2)
+  val vmRaDomain = domains(3)
 }

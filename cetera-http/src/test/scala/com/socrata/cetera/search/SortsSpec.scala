@@ -94,7 +94,7 @@ class SortsSpec extends WordSpec with ShouldMatchers {
 
     "order by score desc when given a simple query" in {
       val expected = Sorts.sortScoreDesc
-      val searchContext = Domain(1, "peterschneider.net", None, None, None, false, false, true, false, false)
+      val searchContext = Domain(1, "peterschneider.net", None, None, None, false, false, false, true, false, false)
       val searchParams = SearchParamSet(searchQuery = SimpleQuery("soup salad sandwich"))
       val actual = Sorts.chooseSort(Some(searchContext), searchParams)
       actual should be(expected)

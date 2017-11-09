@@ -81,8 +81,8 @@ class DomainClient(esClient: ElasticSearchClient, coreClient: CoreClient, indexA
       user match {
         case Some(u) =>
           val authedUser = u.convertToAuthedUser(extendedHost)
-          val viewableContext = context.filter(c => !c.isLocked || authedUser.canViewLockedDownCatalog(c.domainId))
-          val viewableLockedDomains = lockedDomains.filter(d => authedUser.canViewLockedDownCatalog(d.domainId))
+          val viewableContext = context.filter(c => !c.isLocked || authedUser.canViewLockedDownCatalog(c.id))
+          val viewableLockedDomains = lockedDomains.filter(d => authedUser.canViewLockedDownCatalog(d.id))
           DomainSet(unlockedDomains ++ viewableLockedDomains, viewableContext, extendedHost)
         case None => DomainSet(unlockedDomains, context.filterNot(_.isLocked), extendedHost)
       }
@@ -177,7 +177,7 @@ class DomainClient(esClient: ElasticSearchClient, coreClient: CoreClient, indexA
       searchParams: SearchParamSet,
       user: Option[AuthedUser])
     : SearchRequestBuilder = {
-    val domainQuery = idQuery(domainSet.domains.map(_.domainId))
+    val domainQuery = idQuery(domainSet.domains.map(_.id))
     // NOTE: this limits the selection set based on facet constraints, but pays no attention to the
     // 'q' parameter
     val docQuery = DocumentQuery(forDomainSearch = true).compositeQuery(domainSet, searchParams, user)

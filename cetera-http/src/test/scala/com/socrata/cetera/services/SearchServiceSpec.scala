@@ -95,7 +95,7 @@ class SearchServiceSpec extends FunSuiteLike
   }
 
   test("when requested, include post-calculated anonymous visibility field") {
-    val host = domains(3).domainCname
+    val host = domains(3).cname
     val authedUserBody =
       j"""{
         "id" : "lil-john",
@@ -122,7 +122,7 @@ class SearchServiceSpec extends FunSuiteLike
   }
 
   test("federated search results also know their own visibility") {
-    val host = domains(0).domainCname
+    val host = domains(0).cname
     val authedUserBody =
       j"""{
         "id" : "cook-mons",
@@ -176,7 +176,7 @@ class SearchServiceSpec extends FunSuiteLike
     val domain3Docs = docs.filter(d => d.socrataId.domainId == 3)
     val expectedFxfs = fxfs(domain3Docs.filter(d => d.datatype == "href" || d.datatype == "federated_href"))
 
-    val host = domain.domainCname
+    val host = domain.cname
     val params = Map("only" -> "links", "domains" -> host, "search_context" -> host).mapValues(Seq(_))
     val res = service.doSearch(params, AuthParams(), None, None)
     val actualFxfs = fxfs(res._2)
@@ -189,7 +189,7 @@ class SearchServiceSpec extends FunSuiteLike
     val domain0Docs = anonymouslyViewableDocs.filter(d => d.socrataId.domainId == 0)
     val expectedFxfs = fxfs(domain0Docs.filter(d => d.approvals.isDefined && d.approvals.get.forall(_.submitterId == "robin-hood")))
 
-    val host = domain.domainCname
+    val host = domain.cname
     val params = Map("submitter_id" -> "robin-hood", "domains" -> host, "search_context" -> host).mapValues(Seq(_))
     val res = service.doSearch(params, AuthParams(), None, None)
     val actualFxfs = fxfs(res._2)
@@ -202,7 +202,7 @@ class SearchServiceSpec extends FunSuiteLike
     val domain0Docs = anonymouslyViewableDocs.filter(d => d.socrataId.domainId == 0)
     val expectedFxfs = fxfs(domain0Docs.filter(d => d.approvals.isDefined && d.approvals.get.forall(_.reviewerId.getOrElse("") == "honorable.sheriff")))
 
-    val host = domain.domainCname
+    val host = domain.cname
     val params = Map("reviewer_id" -> "honorable.sheriff", "domains" -> host, "search_context" -> host).mapValues(Seq(_))
     val res = service.doSearch(params, AuthParams(), None, None)
     val actualFxfs = fxfs(res._2)
@@ -215,7 +215,7 @@ class SearchServiceSpec extends FunSuiteLike
     val domain0Docs = anonymouslyViewableDocs.filter(d => d.socrataId.domainId == 0)
     val expectedFxfs = fxfs(domain0Docs.filter(d => d.approvals.isDefined && d.approvals.get.forall(_.reviewedAutomatically.getOrElse(false))))
 
-    val host = domain.domainCname
+    val host = domain.cname
     val params = Map("reviewed_automatically" -> "true", "domains" -> host, "search_context" -> host).mapValues(Seq(_))
     val res = service.doSearch(params, AuthParams(), None, None)
     val actualFxfs = fxfs(res._2)
@@ -228,7 +228,7 @@ class SearchServiceSpec extends FunSuiteLike
     val domain0Docs = anonymouslyViewableDocs.filter(d => d.socrataId.domainId == 0)
     val expectedFxfs = fxfs(domain0Docs.filter(d => d.approvals.isDefined && d.approvals.get.forall(!_.reviewedAutomatically.getOrElse(true))))
 
-    val host = domain.domainCname
+    val host = domain.cname
     val params = Map("reviewed_automatically" -> "false", "domains" -> host, "search_context" -> host).mapValues(Seq(_))
     val res = service.doSearch(params, AuthParams(), None, None)
     val actualFxfs = fxfs(res._2)
@@ -241,7 +241,7 @@ class SearchServiceSpec extends FunSuiteLike
     val domain3Docs = docs.filter(d => d.socrataId.domainId == 3)
     val expectedFxfs = fxfs(domain3Docs.filter(d => d.datatype == "federated_href"))
 
-    val host = domain.domainCname
+    val host = domain.cname
     val params = Map("only" -> "federated_hrefs", "domains" -> host, "search_context" -> host).mapValues(Seq(_))
     val res = service.doSearch(params, AuthParams(), None, None)
     val actualFxfs = fxfs(res._2)
@@ -264,7 +264,7 @@ class SearchServiceSpec extends FunSuiteLike
   }
 
   test("if scroll_id is specified, then results will be sorted by dataset ID") {
-    val params = Map("scroll_id" -> Seq(""), "domains" -> Seq(domains.map(_.domainCname).mkString(",")))
+    val params = Map("scroll_id" -> Seq(""), "domains" -> Seq(domains.map(_.cname).mkString(",")))
 
     val results = service.doSearch(params, AuthParams(), None, None)._2.results
 
@@ -274,7 +274,7 @@ class SearchServiceSpec extends FunSuiteLike
   }
 
   test("the expected results are returned when scroll_id and limit are specified") {
-    val params = Map("scroll_id" -> Seq("d0-v2"), "limit" -> Seq("5"), "domains" -> Seq(domains.map(_.domainCname).mkString(",")))
+    val params = Map("scroll_id" -> Seq("d0-v2"), "limit" -> Seq("5"), "domains" -> Seq(domains.map(_.cname).mkString(",")))
     val anonymouslyViewableDocIdsSorted = anonymouslyViewableDocIds.sorted
     val dropIndex = anonymouslyViewableDocIdsSorted.indexOf("d0-v2") + 1
 

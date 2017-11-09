@@ -15,7 +15,7 @@ import com.socrata.cetera.auth.AuthParams
 import com.socrata.cetera.errors.DomainNotFoundError
 import com.socrata.cetera.handlers.Params
 import com.socrata.cetera.search._
-import com.socrata.cetera.types.Count
+import com.socrata.cetera.types.{Count, Domain}
 
 class DomainCountServiceSpec extends WordSpec with ShouldMatchers with BeforeAndAfterAll with TestESData {
   val domainCountService = new DomainCountService(domainClient, coreClient)
@@ -59,98 +59,137 @@ class DomainCountServiceSpec extends WordSpec with ShouldMatchers with BeforeAnd
     }
   }
 
-  "counting documents by domains when no params are passed - and thus hitting up customer domains" should {
+  def haveCorrectContextAndFederationCounts(context: Domain, federation: Domain, counts: Option[List[Count]]) = {
+    s"have the correct counts for context: ${context.cname} and federation: ${federation.cname}" in {
+      val (_, res, _, _) = domainCountService.doAggregate(Map(
+        Params.searchContext -> context.cname,
+        Params.domains -> s"${context.cname},${federation.cname}")
+        .mapValues(Seq(_)), AuthParams(), None, None)
+      // expect all anonymously viewable docs unless different counts are provided.
+      val expectedCounts = counts.getOrElse(
+        List(Count(context.cname, docCountsByDomain.getOrElse(context.id, 0)),
+             Count(federation.cname, docCountsByDomain.getOrElse(federation.id, 0)))
+      )
+      res.results should contain theSameElementsAs expectedCounts
+    }
+  }
+
+  "customer domain counts" should {
     "have the correct counts" in {
       val expectedResults = List(
-        Count(domains(0).domainCname, docCountsByDomain.getOrElse(0, 0)),
-        Count(domains(2).domainCname, docCountsByDomain.getOrElse(2, 0)),
-        Count(domains(3).domainCname, docCountsByDomain.getOrElse(3, 0)),
-        Count(domains(4).domainCname, docCountsByDomain.getOrElse(4, 0)),
-        Count(domains(9).domainCname, docCountsByDomain.getOrElse(9, 0)))
+        Count(domains(0).cname, docCountsByDomain.getOrElse(0, 0)),
+        Count(domains(2).cname, docCountsByDomain.getOrElse(2, 0)),
+        Count(domains(3).cname, docCountsByDomain.getOrElse(3, 0)),
+        Count(domains(4).cname, docCountsByDomain.getOrElse(4, 0)),
+        Count(domains(9).cname, docCountsByDomain.getOrElse(9, 0)))
       val (_, res, _, _) = domainCountService.doAggregate(Map.empty, AuthParams(), None, None)
       res.results should contain theSameElementsAs expectedResults
     }
   }
 
-  "counting documents by domains when allDomainsParams are passed - noting that locked domains will not be returned b/c of lack of auth" should {
+  "all domains counts - noting that locked domains will not be returned b/c of lack of auth" should {
     "have the correct counts" in {
       val expectedResults = List(
-        Count(domains(0).domainCname, docCountsByDomain.getOrElse(0, 0)),
-        Count(domains(1).domainCname, docCountsByDomain.getOrElse(1, 0)),
-        Count(domains(2).domainCname, docCountsByDomain.getOrElse(2, 0)),
-        Count(domains(3).domainCname, docCountsByDomain.getOrElse(3, 0)),
-        Count(domains(4).domainCname, docCountsByDomain.getOrElse(4, 0)),
-        Count(domains(5).domainCname, docCountsByDomain.getOrElse(5, 0)),
-        Count(domains(9).domainCname, docCountsByDomain.getOrElse(9, 0)))
+        Count(domains(0).cname, docCountsByDomain.getOrElse(0, 0)),
+        Count(domains(1).cname, docCountsByDomain.getOrElse(1, 0)),
+        Count(domains(2).cname, docCountsByDomain.getOrElse(2, 0)),
+        Count(domains(3).cname, docCountsByDomain.getOrElse(3, 0)),
+        Count(domains(4).cname, docCountsByDomain.getOrElse(4, 0)),
+        Count(domains(5).cname, docCountsByDomain.getOrElse(5, 0)),
+        Count(domains(9).cname, docCountsByDomain.getOrElse(9, 0)))
       val (_, res, _, _) = domainCountService.doAggregate(allDomainsParams, AuthParams(), None, None)
       res.results should contain theSameElementsAs expectedResults
     }
   }
 
-  "counting documents by domains when an unmoderated, R&A-disabled search context is given - which should match the regular domain counts as no additional filtering is happening" should {
-    "have the correct counts" in {
-      val contextId = 0
-      val context = domains(contextId).domainCname
-      val expectedResults = List(
-        Count(context, docCountsByDomain.getOrElse(contextId, 0)),
-        Count(domains(2).domainCname, docCountsByDomain.getOrElse(2, 0)),
-        Count(domains(3).domainCname, docCountsByDomain.getOrElse(3, 0)))
-      val (_, res, _, _) = domainCountService.doAggregate(Map(
-        Params.searchContext -> context,
-        Params.domains -> s"$context,blue.org,annabelle.island.net")
-        .mapValues(Seq(_)), AuthParams(), None, None)
-      res.results should contain theSameElementsAs expectedResults
-    }
+  // with a fontana domain as context, no extra filtering is done, since fontana domains have a trusted approval process
+  "fontana context federates in fontana domain" should {
+    haveCorrectContextAndFederationCounts(fontanaDomain, domains(9), None)
   }
 
-  "counting documents by domains when an unmoderated and R&A-enabled search context - which will reduce results since only approved-by-the-context views will federate" should {
-    "have the correct counts" in {
-      val contextId = 2
-      val context = domains(contextId).domainCname
-      val expectedResults = List(
-        Count(context, docCountsByDomain.getOrElse(contextId, 0)), // the context's counts should stay the same
-        Count("petercetera.net", 3)) // the federated domain only has 3 anon-visible views approved by the context: d0-v4, d0-v7, d0-v9,
-      val (_, res, _, _) = domainCountService.doAggregate(Map(
-          Params.searchContext -> context,
-          Params.domains -> s"$context,petercetera.net")
-          .mapValues(Seq(_)), AuthParams(), None, None)
-
-      res.results should contain theSameElementsAs expectedResults
-    }
+  "fontana context federates in VM domain" should {
+    haveCorrectContextAndFederationCounts(fontanaDomain, vmDomain, None)
   }
 
-  "counting documents by domains when a moderated and R&A-disabled search context - which will reduce results since only default views will federate" should {
-    "have the correct counts" in {
-      val contextId = 1
-      val context = domains(contextId).domainCname
-      val expectedResults = List(
-        Count("petercetera.net", 3), // the federated domain has 3 anon-visible default views: d0-v2, d0-v3, and d0-v7
-        Count(context, docCountsByDomain.getOrElse(contextId, 0))) // the context's counts should stay the same
-      val (_, res, _, _) = domainCountService.doAggregate(Map(
-          Params.searchContext -> context,
-          Params.domains -> s"$context,petercetera.net")
-          .mapValues(Seq(_)), AuthParams(), None, None)
-
-      res.results should contain theSameElementsAs expectedResults
-    }
+  "fontana context federates in RA domain" should {
+    haveCorrectContextAndFederationCounts(fontanaDomain, raDomain, None)
   }
 
-  "counting documents by domains when a moderated and R&A-enabled search context - which will reduce results since only default approved-by-the-context views will federate" should {
-    "have the correct counts" in {
-      val contextId = 3
-      val context = domains(contextId).domainCname
-      val expectedResults = List(
-        Count(context, docCountsByDomain.getOrElse(contextId, 0)), // the context's counts should stay the same
-        Count("blue.org", 1), // blue.org has 1 qualifying dataset: d2-v2
-        Count("petercetera.net", 0)) // petercetera.net has no qualifying datasets
-      val (_, res, _, _) = domainCountService.doAggregate(Map(
-          Params.searchContext -> context,
-          Params.domains -> s"$context,petercetera.net,blue.org")
-          .mapValues(Seq(_)), AuthParams(), None, None)
-
-      res.results should contain theSameElementsAs expectedResults
-    }
+  "fontana context federates in VM + RA domain" should {
+    haveCorrectContextAndFederationCounts(fontanaDomain, vmRaDomain, None)
   }
+
+  // with a VM domain as context, extra filtering is needed if the federated domain lacks VM or fontana approvals
+  "VM context federates in fontana domain" should {
+    haveCorrectContextAndFederationCounts(vmDomain, fontanaDomain, None)
+  }
+
+  "VM context federates in VM domain" should {
+    haveCorrectContextAndFederationCounts(vmDomain, vmRaDomain, None)
+  }
+
+  "VM context federates in RA domain" should {
+    val raDomainDefaultDocs = anonymouslyViewableDocs.filter(d => d.socrataId.domainId == raDomain.id && d.isDefaultView)
+    val expectedResults = List(
+      Count(vmDomain.cname, docCountsByDomain.getOrElse(vmDomain.id, 0)), // the context's counts should stay the same
+      Count(raDomain.cname, raDomainDefaultDocs.size)) // the RA domain's derived views should be removed
+    haveCorrectContextAndFederationCounts(vmDomain, raDomain, Some(expectedResults))
+  }
+
+  "VM context federates in VM + RA domain" should {
+    haveCorrectContextAndFederationCounts(vmDomain, vmRaDomain, None)
+  }
+
+  // with a RA domain as context, extra filtering is needed if the federated domain lacks fontana approvals
+  "RA context federates in fontana domain" should {
+    haveCorrectContextAndFederationCounts(raDomain, fontanaDomain, None)
+  }
+
+  "RA context federates in VM domain" should {
+    val vmDomainDocsApprovedByRAQueue = anonymouslyViewableDocs.filter(d => d.socrataId.domainId == vmDomain.id && d.isRaApproved(raDomain.id))
+    val expectedResults = List(
+      Count(raDomain.cname, docCountsByDomain.getOrElse(raDomain.id, 0)), // the context's counts should stay the same
+      Count(vmDomain.cname, vmDomainDocsApprovedByRAQueue.size)) // the federated views not approved by the RA domain should be removed
+    haveCorrectContextAndFederationCounts(raDomain, vmDomain, Some(expectedResults))
+  }
+
+  "RA context federates in RA domain" should {
+    val raDomainDocsInOtherRAQueue = anonymouslyViewableDocs.filter(d => d.socrataId.domainId == vmRaDomain.id && d.isInRaQueue(raDomain.id))
+    val expectedResults = List(
+      Count(raDomain.cname, docCountsByDomain.getOrElse(raDomain.id, 0)), // the context's counts should stay the same
+      Count(vmRaDomain.cname, raDomainDocsInOtherRAQueue.size)) // the federated domain's views not in the RA queue should be removed
+    haveCorrectContextAndFederationCounts(raDomain, vmRaDomain, Some(expectedResults))
+  }
+
+  "RA context federates in VM + RA domain" should {
+    val raDomainDocsInOtherRAQueue = anonymouslyViewableDocs.filter(d => d.socrataId.domainId == vmRaDomain.id && d.isInRaQueue(raDomain.id))
+    val expectedResults = List(
+      Count(raDomain.cname, docCountsByDomain.getOrElse(raDomain.id, 0)), // the context's counts should stay the same
+      Count(vmRaDomain.cname, raDomainDocsInOtherRAQueue.size)) // the federated domain's views not in the RA queue should be removed
+    haveCorrectContextAndFederationCounts(raDomain, vmRaDomain, Some(expectedResults))
+  }
+
+  // with a VM + RA domain as context, extra filtering is needed if the federated domain lacks VM or fontana approvals
+  "VM + RA context federates in fontana domain" should {
+    haveCorrectContextAndFederationCounts(vmRaDomain, fontanaDomain, None)
+  }
+
+  "VM + RA context federates in VM domain" should {
+    val vmDomainDefaultDocsInRAQueue = anonymouslyViewableDocs.filter(d => d.socrataId.domainId == vmDomain.id && d.isInRaQueue(vmRaDomain.id))
+    val expectedResults = List(
+      Count(vmRaDomain.cname, docCountsByDomain.getOrElse(vmRaDomain.id, 0)), // the context's counts should stay the same
+      Count(vmDomain.cname, vmDomainDefaultDocsInRAQueue.size)) // the federated domain's views not in the RA queue should be removed, as should be any dervied views
+    haveCorrectContextAndFederationCounts(vmRaDomain, vmDomain, Some(expectedResults))
+  }
+
+  "VM + RA context federates in RA domain" should {
+    val vmDomainDefaultDocsInRAQueue = anonymouslyViewableDocs.filter(d => d.socrataId.domainId == raDomain.id && d.isDefaultView && d.isInRaQueue(vmRaDomain.id))
+    val expectedResults = List(
+      Count(vmRaDomain.cname, docCountsByDomain.getOrElse(vmRaDomain.id, 0)), // the context's counts should stay the same
+      Count(raDomain.cname, vmDomainDefaultDocsInRAQueue.size)) // the federated domain's views not in the RA queue should be removed
+    haveCorrectContextAndFederationCounts(vmRaDomain, raDomain, Some(expectedResults))
+  }
+
 
   // ------------------------------------------------------------------------------------------------
   // the series of tests below check that the counts returned from document search match those returned
@@ -159,7 +198,7 @@ class DomainCountServiceSpec extends WordSpec with ShouldMatchers with BeforeAnd
   //   the q param: since that isn't supported at all and we expect counts to differ
   // ------------------------------------------------------------------------------------------------
   "counting documents by domains with the domains param" should {
-    haveMatchingDocAndDomSearchCounts(Map(Params.domains -> domains(0).domainCname))
+    haveMatchingDocAndDomSearchCounts(Map(Params.domains -> domains(0).cname))
   }
 
   "counting documents by domains with a custom metadata param" should {
@@ -171,7 +210,7 @@ class DomainCountServiceSpec extends WordSpec with ShouldMatchers with BeforeAnd
   }
 
   "counting documents by domains with the categories and search context params - thus using customer categories" should {
-    haveMatchingDocAndDomSearchCounts(Map(Params.categories -> "Alpha to Omega", Params.searchContext -> domains(0).domainCname))
+    haveMatchingDocAndDomSearchCounts(Map(Params.categories -> "Alpha to Omega", Params.searchContext -> domains(0).cname))
   }
 
   "counting documents by domains with only the tags param - thus using socrata tags" should {
@@ -179,7 +218,7 @@ class DomainCountServiceSpec extends WordSpec with ShouldMatchers with BeforeAnd
   }
 
   "counting documents by domains with the tags and search context params  - thus using customer tags" should {
-    haveMatchingDocAndDomSearchCounts(Map(Params.tags -> "1-one", Params.searchContext -> domains(0).domainCname))
+    haveMatchingDocAndDomSearchCounts(Map(Params.tags -> "1-one", Params.searchContext -> domains(0).cname))
   }
 
   "counting documents by domains with the datatypes param" should {
@@ -212,28 +251,28 @@ class DomainCountServiceSpec extends WordSpec with ShouldMatchers with BeforeAnd
   }
 
   "counting documents by domains with the sharedTo param" should {
-    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.sharedTo -> "lil-john"), domains(0).domainCname)
+    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.sharedTo -> "lil-john"), domains(0).cname)
   }
 
   "counting documents by domains with the public param" should {
-    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.public -> "false"), domains(0).domainCname)
-    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.public -> "true"), domains(0).domainCname)
+    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.public -> "false"), domains(0).cname)
+    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.public -> "true"), domains(0).cname)
   }
 
   "counting documents by domains with the published param" should {
-    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.published -> "false"), domains(0).domainCname)
-    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.published -> "true"), domains(0).domainCname)
+    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.published -> "false"), domains(0).cname)
+    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.published -> "true"), domains(0).cname)
   }
 
   "counting documents by domains with the approvalStatus param" should {
-    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.approvalStatus -> "pending"), domains(0).domainCname)
-    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.approvalStatus -> "rejected"), domains(0).domainCname)
-    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.approvalStatus -> "approved"), domains(0).domainCname)
+    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.approvalStatus -> "pending"), domains(0).cname)
+    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.approvalStatus -> "rejected"), domains(0).cname)
+    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.approvalStatus -> "approved"), domains(0).cname)
   }
 
   "counting documents by domains with the explicitlyHidden param" should {
-    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.explicitlyHidden -> "false"), domains(0).domainCname)
-    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.explicitlyHidden -> "true"), domains(0).domainCname)
+    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.explicitlyHidden -> "false"), domains(0).cname)
+    haveMatchingDocAndDomSearchCountsWhenAuthed(Map(Params.explicitlyHidden -> "true"), domains(0).cname)
   }
   // ------------------------------------------------------------------------------------------------
 

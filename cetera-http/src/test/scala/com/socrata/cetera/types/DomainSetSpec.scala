@@ -86,7 +86,7 @@ class DomainSetSpec extends WordSpec with ShouldMatchers with TestESDomains {
     "return all the ids" in {
       val domainSet = DomainSet(domains.toSet, Some(domains(1)))
       val actualIds = domainSet.allIds
-      val expectedIds = domains.map(_.domainId).toSet
+      val expectedIds = domains.map(_.id).toSet
 
       actualIds should be(expectedIds)
     }

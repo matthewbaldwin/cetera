@@ -75,7 +75,18 @@
     "grants": [
       {"user_id": "jane-doe", "type": "view"},
       {"user_id": "jack-joe", "type": "gobble"}
-    ]
+    ],
+    "approvals": [ {
+      "outcome": "publicize",
+      "state": "approved",
+      "submitted_at": "2017-10-31T12:00:00.000Z",
+      "submitter_id" : "robin-hood",
+      "submitter_name" : "Robin Hood",
+      "reviewed_automatically": false,
+      "reviewed_at": "2017-11-01T12:00:00.000Z",
+      "reviewer_id" : "honorable.sheriff",
+      "reviewer_name" : "The Honorable Sheriff of Nottingham"
+    } ]
   },
   "owner": {
     "screen_name": "Drew",

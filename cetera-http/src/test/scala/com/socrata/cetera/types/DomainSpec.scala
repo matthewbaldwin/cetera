@@ -13,11 +13,12 @@ class DomainSpec extends WordSpec with ShouldMatchers with TestESData with Befor
   "domain 0" should {
     "have the expected state" in {
       val dom = domains(0)
-      dom.domainId should be(0)
-      dom.domainCname should be("petercetera.net")
+      dom.id should be(0)
+      dom.cname should be("petercetera.net")
       dom.siteTitle.get should be("Temporary URI")
       dom.organization.get should be("org")
       dom.isCustomerDomain should be(true)
+      dom.hasFontanaApprovals should be(true)
       dom.moderationEnabled should be(false)
       dom.routingApprovalEnabled should be(false)
       dom.isLocked should be(false)
@@ -30,11 +31,12 @@ class DomainSpec extends WordSpec with ShouldMatchers with TestESData with Befor
   "domain 1" should {
     "have the expected state" in {
       val dom = domains(1)
-      dom.domainId should be(1)
-      dom.domainCname should be("opendata-demo.socrata.com")
+      dom.id should be(1)
+      dom.cname should be("opendata-demo.socrata.com")
       dom.siteTitle.get should be("And other things")
       dom.organization.get should be("org")
       dom.isCustomerDomain should be(false)
+      dom.hasFontanaApprovals should be(false)
       dom.moderationEnabled should be(true)
       dom.routingApprovalEnabled should be(false)
       dom.isLocked should be(false)
@@ -47,11 +49,12 @@ class DomainSpec extends WordSpec with ShouldMatchers with TestESData with Befor
   "domain 2" should {
     "have the expected state" in {
       val dom = domains(2)
-      dom.domainId should be(2)
-      dom.domainCname should be("blue.org")
+      dom.id should be(2)
+      dom.cname should be("blue.org")
       dom.siteTitle.get should be("Fame and Fortune")
       dom.organization.get should be("org")
       dom.isCustomerDomain should be(true)
+      dom.hasFontanaApprovals should be(false)
       dom.moderationEnabled should be(false)
       dom.routingApprovalEnabled should be(true)
       dom.isLocked should be(false)
@@ -64,11 +67,12 @@ class DomainSpec extends WordSpec with ShouldMatchers with TestESData with Befor
   "domain 3" should {
     "have the expected state" in {
       val dom = domains(3)
-      dom.domainId should be(3)
-      dom.domainCname should be("annabelle.island.net")
+      dom.id should be(3)
+      dom.cname should be("annabelle.island.net")
       dom.siteTitle.get should be("Socrata Demo")
       dom.organization.get should be("org")
       dom.isCustomerDomain should be(true)
+      dom.hasFontanaApprovals should be(false)
       dom.moderationEnabled should be(true)
       dom.routingApprovalEnabled should be(true)
       dom.isLocked should be(false)
@@ -81,11 +85,12 @@ class DomainSpec extends WordSpec with ShouldMatchers with TestESData with Befor
   "domain 4" should {
     "have the expected state" in {
       val dom = domains(4)
-      dom.domainId should be(4)
-      dom.domainCname should be("dylan.demo.socrata.com")
+      dom.id should be(4)
+      dom.cname should be("dylan.demo.socrata.com")
       dom.siteTitle.get should be("Skid Row")
       dom.organization.get should be("Hair Metal Bands")
       dom.isCustomerDomain should be(true)
+      dom.hasFontanaApprovals should be(false)
       dom.moderationEnabled should be(false)
       dom.routingApprovalEnabled should be(true)
       dom.isLocked should be(false)
@@ -96,11 +101,12 @@ class DomainSpec extends WordSpec with ShouldMatchers with TestESData with Befor
   "domain 5" should {
     "have the expected state" in {
       val dom = domains(5)
-      dom.domainId should be(5)
-      dom.domainCname should be("dylan2.demo.socrata.com")
+      dom.id should be(5)
+      dom.cname should be("dylan2.demo.socrata.com")
       dom.siteTitle.get should be("Mötley Crüe")
       dom.organization.get should be("Hair Metal Bands")
       dom.isCustomerDomain should be(false)
+      dom.hasFontanaApprovals should be(false)
       dom.moderationEnabled should be(false)
       dom.routingApprovalEnabled should be(false)
       dom.isLocked should be(false)
@@ -111,11 +117,12 @@ class DomainSpec extends WordSpec with ShouldMatchers with TestESData with Befor
   "domain 6" should {
     "have the expected state" in {
       val dom = domains(6)
-      dom.domainId should be(6)
-      dom.domainCname should be("locked.demo.com")
+      dom.id should be(6)
+      dom.cname should be("locked.demo.com")
       dom.siteTitle.get should be("Locked Down")
       dom.organization.get should be("org")
       dom.isCustomerDomain should be(false)
+      dom.hasFontanaApprovals should be(false)
       dom.moderationEnabled should be(true)
       dom.routingApprovalEnabled should be(true)
       dom.isLocked should be(true)
@@ -126,11 +133,12 @@ class DomainSpec extends WordSpec with ShouldMatchers with TestESData with Befor
   "domain 7" should {
     "have the expected state" in {
       val dom = domains(7)
-      dom.domainId should be(7)
-      dom.domainCname should be("api.locked.demo.com")
+      dom.id should be(7)
+      dom.cname should be("api.locked.demo.com")
       dom.siteTitle.get should be("Api Locked Down")
       dom.organization.get should be("org")
       dom.isCustomerDomain should be(true)
+      dom.hasFontanaApprovals should be(false)
       dom.moderationEnabled should be(true)
       dom.routingApprovalEnabled should be(false)
       dom.isLocked should be(true)
@@ -141,11 +149,12 @@ class DomainSpec extends WordSpec with ShouldMatchers with TestESData with Befor
   "domain 8" should {
     "have the expected state" in {
       val dom = domains(8)
-      dom.domainId should be(8)
-      dom.domainCname should be("double.locked.demo.com")
+      dom.id should be(8)
+      dom.cname should be("double.locked.demo.com")
       dom.siteTitle.get should be("Doubly Locked Down")
       dom.organization.get should be("org")
       dom.isCustomerDomain should be(true)
+      dom.hasFontanaApprovals should be(false)
       dom.moderationEnabled should be(true)
       dom.routingApprovalEnabled should be(true)
       dom.isLocked should be(true)
@@ -156,11 +165,12 @@ class DomainSpec extends WordSpec with ShouldMatchers with TestESData with Befor
   "domain 9" should {
     "have the expected state" in {
       val dom = domains(9)
-      dom.domainId should be(9)
-      dom.domainCname should be("robert.demo.socrata.com")
+      dom.id should be(9)
+      dom.cname should be("robert.demo.socrata.com")
       dom.siteTitle.get should be("Robert's Demo Site")
       dom.organization.get should be("Awesometown USA")
       dom.isCustomerDomain should be(true)
+      dom.hasFontanaApprovals should be(true)
       dom.moderationEnabled should be(false)
       dom.routingApprovalEnabled should be(false)
       dom.isLocked should be(false)

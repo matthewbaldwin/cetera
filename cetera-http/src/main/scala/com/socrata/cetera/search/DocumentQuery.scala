@@ -92,6 +92,9 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
   def reviewedAutomaticallyQuery(auto: Boolean = true): NestedQueryBuilder =
     nestedApprovalQuery(termQuery(ReviewerAutomaticallyFieldType.fieldName, auto))
 
+  def fontanaStateQuery(status: ApprovalStatus): NestedQueryBuilder =
+    nestedApprovalQuery(termQuery(FontanaStateFieldType.fieldName, status.status))
+
   // this query limits documents to those with metadata keys/values that
   // match the given metadata. If public is true, this matches against the public metadata fields,
   // otherwise, this matches against the private metadata fields.
@@ -135,7 +138,7 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
   // combo right that core uses to determine private metadata visibility.
   def privateMetadataUserRestrictionsQuery(user: AuthedUser): BoolQueryBuilder = {
     val userId = user.id
-    val authingDomainId = user.authenticatingDomain.domainId
+    val authingDomainId = user.authenticatingDomain.id
     val ownIt = userQuery(userId)
     val sharedIt = sharedToQuery(userId)
     val beOnUsersDomain = domainIdQuery(Set(authingDomainId))
@@ -205,33 +208,59 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
     }
   }
 
+  // if this domainSet represents a federated case, this query limits results to
+  // - docs on the context
+  // - anonymously viewable docs on the federated domains
+  def federationQuery(domainSet: DomainSet): Option[BoolQueryBuilder] =
+    domainSet.searchContext.flatMap { context =>
+      val federatedDomains = domainSet.domains - context
+      if (federatedDomains.size == 0) {
+        None
+      } else {
+        val beFromContext = domainIdQuery(Set(context.id))
+        val beFromFederatedDomains = domainIdQuery(federatedDomains.map(_.id))
+        val beAnonymouslyViewable = anonymousQuery(DomainSet(federatedDomains))
+        val beAnonymouslyViewableOnFederatedDomains =
+          boolQuery().must(beFromFederatedDomains).must(beAnonymouslyViewable)
+        Some(boolQuery().should(beFromContext).should(beAnonymouslyViewableOnFederatedDomains))
+      }
+    }
 
-  // if the context is moderated this will limit results to views from moderated domains + default
+  // if the context is moderated this will limit results to views from moderated/fontana domains + default
   // views from unmoderated sites
   def vmSearchContextQuery(domainSet: DomainSet): Option[BoolQueryBuilder] =
     domainSet.searchContext.collect { case c: Domain if c.moderationEnabled =>
       val beDefault = defaultViewQuery(default = true)
       val beFromModeratedDomain = domainIdQuery(domainSet.moderationEnabledIds)
-      boolQuery().should(beDefault).should(beFromModeratedDomain)
+      val beFromFontanaDomain = domainIdQuery(domainSet.hasFontanaApprovals)
+      boolQuery().should(beDefault).should(beFromModeratedDomain).should(beFromFontanaDomain)
     }
 
   // if the context has RA enabled, this will limit results to only those having been through or
-  // are presently in the context's RA queue
+  // are presently in the context's RA queue or are from a fontana domain
   def raSearchContextQuery(domainSet: DomainSet): Option[BoolQueryBuilder] =
     domainSet.searchContext.collect { case c: Domain if c.routingApprovalEnabled =>
-      val beApprovedByContext = raStatusAccordingToContextQuery(ApprovalStatus.approved, c.domainId)
-      val beRejectedByContext = raStatusAccordingToContextQuery(ApprovalStatus.rejected, c.domainId)
-      val bePendingWithinContextsQueue = raStatusAccordingToContextQuery(ApprovalStatus.pending, c.domainId)
-      boolQuery().should(beApprovedByContext).should(beRejectedByContext).should(bePendingWithinContextsQueue)
+      val beApprovedByContext = raStatusAccordingToContextQuery(ApprovalStatus.approved, c.id)
+      val beRejectedByContext = raStatusAccordingToContextQuery(ApprovalStatus.rejected, c.id)
+      val bePendingWithinContextsQueue = raStatusAccordingToContextQuery(ApprovalStatus.pending, c.id)
+      val beFromFontanaDomain = domainIdQuery(domainSet.hasFontanaApprovals)
+      boolQuery()
+        .should(beApprovedByContext)
+        .should(beRejectedByContext)
+        .should(bePendingWithinContextsQueue)
+        .should(beFromFontanaDomain)
     }
 
   // this query limits results based on search context
-  //  - if view moderation is enabled, all derived views from unmoderated federated domains are removed
-  //  - if R&A is enabled, all views whose self or parent has not been through the context's RA queue are removed
+  //  - if the context has incoming federated data, it must be anonymously viewable
+  //  - if view moderation is enabled, all derived views from unmoderated/non-fontana federated domains are removed
+  //  - if R&A is enabled, all views from non-fontana domains whose self or parent
+  //    has not been through the context's RA queue are removed
   def searchContextQuery(domainSet: DomainSet): Option[BoolQueryBuilder] = {
+    val fedQuery = federationQuery(domainSet)
     val vmQuery = vmSearchContextQuery(domainSet)
     val raQuery = raSearchContextQuery(domainSet)
-    List(vmQuery, raQuery).flatten match {
+    List(fedQuery, vmQuery, raQuery).flatten match {
       case Nil => None
       case queries: Seq[QueryBuilder] => Some(queries.foldLeft(boolQuery()) { (b, f) => b.must(f) })
     }
@@ -241,7 +270,7 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
   //  - from the set of requested domains
   //  - should be included according to the search context and our funky federation rules
   def domainSetQuery(domainSet: DomainSet): BoolQueryBuilder = {
-    val domainsQuery = domainIdQuery(domainSet.domains.map(_.domainId))
+    val domainsQuery = domainIdQuery(domainSet.domains.map(_.id))
     val contextQuery = searchContextQuery(domainSet)
     val queries = List(domainsQuery) ++ contextQuery
     queries.foldLeft(boolQuery()) { (b, f) => b.must(f) }
@@ -291,15 +320,17 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
   // this limits results to those with the given R&A status on a given context
   def raStatusOnContextQuery(status: ApprovalStatus, domainSet: DomainSet): Option[TermQueryBuilder] =
     domainSet.searchContext.collect {
-      case c: Domain if c.routingApprovalEnabled => raStatusAccordingToContextQuery(status, c.domainId)
+      case c: Domain if c.routingApprovalEnabled => raStatusAccordingToContextQuery(status, c.id)
     }
 
   // this limits results to those with a given approval status
-  // - approved views must pass all 3 processes:
+  // - approved views must pass all 3 processes on non-Fontana domains:
   //   1. viewModeration (if enabled on the domain)
   //   2. R&A on the parent domain (if enabled on the parent domain)
   //   3. R&A on the context (if enabled on the context and you choose to include contextApproval)
-  // - rejected/pending views need be rejected/pending by 1 or more processes
+  // - approved views must be approved by the one workflow for Fontana domains
+  // - rejected/pending views need be rejected/pending by 1 or more processes for non-Fontana domains
+  // - rejected/pending views need be rejected/pending by the one workflow for Fontana domains
   def approvalStatusQuery(
       status: ApprovalStatus,
       domainSet: DomainSet,
@@ -308,8 +339,11 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
     val haveGivenVMStatus = moderationStatusQuery(status, domainSet)
     val haveGivenRAStatus = raStatusQuery(status, domainSet)
     val haveGivenRAStatusOnContext = raStatusOnContextQuery(status, domainSet)
+    val beFromNonFontanaApprovalsDomain = domainIdQuery(domainSet.lacksFontanaApprovals)
+    val haveFontanaApprovalStatus = fontanaStateQuery(status)
+    val beFromFontanaApprovalsDomain = domainIdQuery(domainSet.hasFontanaApprovals)
 
-    status match {
+    val haveOldStatus = status match {
       case ApprovalStatus.approved =>
         // if we are looking for approvals, a view must be approved according to all 3 processes
         val query = boolQuery().must(haveGivenVMStatus).must(haveGivenRAStatus)
@@ -321,6 +355,10 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
         if (includeContextApproval) haveGivenRAStatusOnContext.foreach(query.should)
         query
     }
+    val haveOldStatusOnNonFontanaDomains = boolQuery().must(beFromNonFontanaApprovalsDomain).must(haveOldStatus)
+    val haveNewStatusOnFontanaDomains = boolQuery().must(beFromFontanaApprovalsDomain).must(haveFontanaApprovalStatus)
+
+    boolQuery().should(haveOldStatusOnNonFontanaDomains).should(haveNewStatusOnFontanaDomains)
   }
 
   // this limits results to only
@@ -444,7 +482,7 @@ case class DocumentQuery(forDomainSearch: Boolean = false) {
           // if user is super admin, no vis query needed
           None
         } else {
-          val authingDomainId = u.authenticatingDomain.domainId
+          val authingDomainId = u.authenticatingDomain.id
           // the user may see everything they own or share
           val ownIt = userQuery(u.id)
           val sharedIt = sharedToQuery(u.id)

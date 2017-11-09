@@ -5,7 +5,7 @@ import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, FunSuiteLike, Match
 
 import com.socrata.cetera.auth.AuthParams
 import com.socrata.cetera.handlers.Params
-import com.socrata.cetera.types.{Document, DomainSet}
+import com.socrata.cetera.types.{ApprovalStatus, Document, Domain, DomainSet}
 import com.socrata.cetera.{response => _, _}
 
 class SearchServiceSpecForUsersWithAllTheRights
@@ -29,26 +29,97 @@ class SearchServiceSpecForUsersWithAllTheRights
   val cookieMonsUserBody = authedUserBodyWithRoleAndRights(allRights)
   val ownerOfNothingUserBody = authedUserBodyWithRoleAndRights(allRights, "user-but-not-owner")
 
+  private def testApprovalSingleDomain(domain: Domain) = {
+    val domDocs = docsForDomain(domain)
+    val expectedApprovedFxfs = fxfs(domDocs.filter(d => d.isApproved(domain)))
+    val expectedRejectedFxfs = fxfs(domDocs.filter(d => d.isPendingOrRejected(domain, ApprovalStatus.rejected)))
+    val expectedPendingFxfs = fxfs(domDocs.filter(d => d.isPendingOrRejected(domain, ApprovalStatus.pending)))
+
+    val host = domain.cname
+    prepareAuthenticatedUser(cookie, host, cookieMonsUserBody)
+
+    val params = Map("search_context" -> host, "domains" -> host).mapValues(Seq(_))
+    val actualApprovedFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("approved")),
+      AuthParams(cookie=Some(cookie)), Some(host), None)._2)
+    val actualRejectedFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("rejected")),
+      AuthParams(cookie=Some(cookie)), Some(host), None)._2)
+    val actualPendingFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("pending")),
+      AuthParams(cookie=Some(cookie)), Some(host), None)._2)
+
+    actualApprovedFxfs should contain theSameElementsAs expectedApprovedFxfs
+    actualRejectedFxfs should contain theSameElementsAs expectedRejectedFxfs
+    actualPendingFxfs should contain theSameElementsAs expectedPendingFxfs
+  }
+
+  def testApprovalFederatedDomains(context: Domain, federation: Domain,
+      expectedApprovals: Option[List[String]] = None,
+      expectedRejections: Option[List[String]] = None,
+      expectedPending: Option[List[String]] = None) = {
+    val contextDocs = docsForDomain(context)
+    val federationDocs = docsForDomain(federation)
+
+    val expectedApprovedFxfs = expectedApprovals.getOrElse(fxfs(
+      contextDocs.filter(d => d.isApproved(context)) ++
+      federationDocs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId))))
+
+    // the federation relationship simply will not bring in rejected or pending views from federated sites
+    val expectedRejectedFxfs = expectedRejections.getOrElse(fxfs(
+      contextDocs.filter(d => d.isPendingOrRejected(context, ApprovalStatus.rejected))))
+    val expectedPendingFxfs = expectedPending.getOrElse(fxfs(
+      contextDocs.filter(d => d.isPendingOrRejected(context, ApprovalStatus.pending))))
+
+    prepareAuthenticatedUser(cookie, context.cname, cookieMonsUserBody)
+    val params = Map("search_context" -> Seq(context.cname), "domains" -> Seq(s"${context.cname},${federation.cname}"))
+    val actualApprovedFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("approved")),
+      AuthParams(cookie=Some(cookie)), Some(context.cname), None)._2)
+    val actualRejectedFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("rejected")),
+      AuthParams(cookie=Some(cookie)), Some(context.cname), None)._2)
+    val actualPendingFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("pending")),
+      AuthParams(cookie=Some(cookie)), Some(context.cname), None)._2)
+
+    actualApprovedFxfs should contain theSameElementsAs expectedApprovedFxfs
+    actualRejectedFxfs should contain theSameElementsAs expectedRejectedFxfs
+    actualPendingFxfs should contain theSameElementsAs expectedPendingFxfs
+  }
+
+  def testVisibilitySingleDomain(dom: Domain) = {
+    prepareAuthenticatedUser(cookie, dom.cname, cookieMonsUserBody)
+    val params = Map("domains" -> dom.cname).mapValues(Seq(_))
+    val domDocs = docsForDomain(dom)
+    val (expectedOpenDocs, expectedInternalDocs) = domDocs.partition(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId))
+
+    val openParams = Map("domains" -> dom.cname, "visibility" -> "open").mapValues(Seq(_))
+    val internalParams = Map("domains" -> dom.cname, "visibility" -> "internal").mapValues(Seq(_))
+    val actualOpenFxfs = fxfs(service.doSearch(openParams, AuthParams(cookie=Some(cookie)), Some(dom.cname), None)._2)
+    val actualInternalFxfs = fxfs(service.doSearch(internalParams, AuthParams(cookie=Some(cookie)), Some(dom.cname), None)._2)
+
+    actualOpenFxfs shouldNot be('empty)
+    actualInternalFxfs shouldNot be('empty)
+
+    actualOpenFxfs should contain theSameElementsAs fxfs(expectedOpenDocs)
+    actualInternalFxfs should contain theSameElementsAs fxfs(expectedInternalDocs)
+  }
+
   test("searching across all domains finds " +
     "a) everything from their domain " +
     "b) anonymously visible views from unlocked domains " +
     "c) views they own/share ") {
     val raDisabledDomain = domains(0)
-    val withinDomain = docs.filter(d => d.socrataId.domainId == raDisabledDomain.domainId).map(d => d.socrataId.datasetId)
+    val withinDomain = docs.filter(d => d.socrataId.domainId == raDisabledDomain.id).map(d => d.socrataId.datasetId)
     val ownedByCookieMonster = docs.collect{ case d: Document if d.owner.id == "cook-mons" => d.socrataId.datasetId }
     ownedByCookieMonster should be(List("d0-v6"))
     val sharedToCookieMonster = docs.collect{ case d: Document if d.sharedTo.contains("cook-mons") => d.socrataId.datasetId }
     sharedToCookieMonster should be(List("d0-v5"))
     val expectedFxfs = (withinDomain ++ ownedByCookieMonster ++ sharedToCookieMonster ++ anonymouslyViewableDocIds).distinct
 
-    val host = raDisabledDomain.domainCname
+    val host = raDisabledDomain.cname
     prepareAuthenticatedUser(cookie, host, cookieMonsUserBody)
     val res = service.doSearch(allDomainsParams, AuthParams(cookie = Some(cookie)), Some(host), None)
     fxfs(res._2) should contain theSameElementsAs expectedFxfs
   }
 
   test("searching on a locked domains shows data from that domain") {
-    val lockedDomain = domains(8).domainCname
+    val lockedDomain = domains(8).cname
       val params = Map(
         "domains" -> lockedDomain,
         "search_context" -> lockedDomain
@@ -64,7 +135,7 @@ class SearchServiceSpecForUsersWithAllTheRights
     " a) any views that robin-hood owns on cook-mons' domain " +
     " b) anonymously viewable views that robin-hood owns on any unlocked domain ") {
     // this has cook-mons (admin on domain 0) checking up on robin-hood
-    val authenticatingDomain = domains(0).domainCname
+    val authenticatingDomain = domains(0).cname
     val params = Map("for_user" -> Seq("robin-hood"))
     prepareAuthenticatedUser(cookie, authenticatingDomain, cookieMonsUserBody)
 
@@ -81,7 +152,7 @@ class SearchServiceSpecForUsersWithAllTheRights
   }
 
   test("hidden documents on the user's domain should be visible") {
-    val host = domains(0).domainCname
+    val host = domains(0).cname
     val hiddenDoc = docs.filter(d => d.socrataId.domainId == 0 && !d.isHiddenFromCatalog).headOption.get
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
 
@@ -93,7 +164,7 @@ class SearchServiceSpecForUsersWithAllTheRights
   }
 
   test("hidden documents on a domain other than the users should be hidden") {
-    val host = domains(1).domainCname
+    val host = domains(1).cname
     val hiddenDoc = docs.filter(d => d.socrataId.domainId == 0 && d.isHiddenFromCatalog).headOption.get
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
 
@@ -105,7 +176,7 @@ class SearchServiceSpecForUsersWithAllTheRights
   }
 
   test("private documents on the user's domain should be visible") {
-    val host = domains(2).domainCname
+    val host = domains(2).cname
     val privateDoc = docs.filter(d => d.socrataId.domainId == 2 && !d.isPublic).headOption.get
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
 
@@ -117,7 +188,7 @@ class SearchServiceSpecForUsersWithAllTheRights
   }
 
   test("private documents on a domain other than the users should be hidden") {
-    val host = domains(4).domainCname
+    val host = domains(4).cname
     val privateDoc = docs.filter(d => d.socrataId.domainId == 2 && !d.isPublic).headOption.get
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
 
@@ -129,7 +200,7 @@ class SearchServiceSpecForUsersWithAllTheRights
   }
 
   test("unpublished documents on the user's domain should be visible") {
-    val host = domains(0).domainCname
+    val host = domains(0).cname
     val unpublishedDoc = docs.filter(d => d.socrataId.domainId == 0 && !d.isPublished).headOption.get
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
 
@@ -141,7 +212,7 @@ class SearchServiceSpecForUsersWithAllTheRights
   }
 
   test("unpublished documents on a domain other than the users should be hidden") {
-    val host = domains(6).domainCname
+    val host = domains(6).cname
     val unpublishedDoc = docs.filter(d => d.socrataId.domainId == 0 && !d.isPublished).headOption.get
     prepareAuthenticatedUser(cookie, host, ownerOfNothingUserBody)
 
@@ -152,248 +223,159 @@ class SearchServiceSpecForUsersWithAllTheRights
     actualFxfs should be('empty)
   }
 
-  def testApprovalStatusFxfs(domainSet: DomainSet, userBody: JValue, expectedApprovedFxfs: Seq[String],
-      expectedRejectedFxfs: Seq[String], expectedPendingFxfs: Seq[String]): Unit = {
-    val context = domainSet.searchContext.get.domainCname
-    val doms = domainSet.domains.map(_.domainCname).mkString(",")
-
-    prepareAuthenticatedUser(cookie, context, userBody)
-
-    val params = Map("search_context" -> Seq(context), "domains" -> Seq(doms))
-    val actualApprovedFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("approved")),
-      AuthParams(cookie=Some(cookie)), Some(context), None)._2)
-    val actualRejectedFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("rejected")),
-      AuthParams(cookie=Some(cookie)), Some(context), None)._2)
-    val actualPendingFxfs = fxfs(service.doSearch(params ++ Map("approval_status" -> Seq("pending")),
-      AuthParams(cookie=Some(cookie)), Some(context), None)._2)
-
-    actualApprovedFxfs should contain theSameElementsAs expectedApprovedFxfs
-    actualRejectedFxfs should contain theSameElementsAs expectedRejectedFxfs
-    actualPendingFxfs should contain theSameElementsAs expectedPendingFxfs
+  test("searching on a fontana domain should find the correct set of views for the given approval_status") {
+    testApprovalSingleDomain(fontanaDomain)
   }
 
-  test("searching on a basic domain (as both search_context & domain), should find the correct set of views for the given approval_status") {
-    // domain 0 has no R&A and no view moderation
-    val basicDomain = domains(0)
-    val allPossibleResults = getAllPossibleResults()
-    val domain0Docs = docs.filter(d => d.socrataId.domainId == 0)
-    val approvedFxfs = allPossibleResults.filter(isApproved).map(fxfs)
-
-    // approved views are views that pass all 3 types of approval (though in this case, only two are relevant)
-    val expectedApprovedFxfs = fxfs(domain0Docs.filter(d => approvedFxfs.contains(d.socrataId.datasetId)))
-
-    val domainSet = DomainSet(Set(basicDomain), Some(basicDomain))
-    testApprovalStatusFxfs(domainSet, cookieMonsUserBody, expectedApprovedFxfs,
-      // Since view moderation isn't on on this domain, don't filter out pending and rejected views
-      List.empty, List.empty)
+  test("searching on a VM domain should find the correct set of views for the given approval_status") {
+    testApprovalSingleDomain(vmDomain)
   }
 
-  test("searching on a moderated domain (as both search_context & domain), should find the correct set of views for the given approval_status") {
-    val moderatedDomain = domains(1)
-    val allPossibleResults = getAllPossibleResults()
-    val approvedFxfs = allPossibleResults.filter(isApproved).map(fxfs)
-    val domain1Docs = docs.filter(d => d.socrataId.domainId == 1)
-    // approved views are views that pass all 3 types of approval
-    val expectedApprovedFxfs = fxfs(domain1Docs.filter(d => approvedFxfs.contains(d.socrataId.datasetId)))
-    // rejected views are simply any views that are rejected
-    val expectedRejectedFxfs = fxfs(domain1Docs.filter(d => d.isVmRejected))
-    // pending views are simply any views that are pending
-    val expectedPendingFxfs = fxfs(domain1Docs.filter(d => d.isVmPending))
-
-    val domainSet = DomainSet(Set(moderatedDomain), Some(moderatedDomain))
-    testApprovalStatusFxfs(domainSet, cookieMonsUserBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
+  test("searching on an RA domain should find the correct set of views for the given approval_status") {
+    testApprovalSingleDomain(raDomain)
   }
 
-  test("searching on an RA-enabled domain (as both search_context & domain), should find the correct set of views for the given approval_status") {
-    val raDomain = domains(2)
-    val allPossibleResults = getAllPossibleResults()
-    val approvedFxfs = allPossibleResults.filter(isApproved).map(fxfs)
-    val domain2Docs = docs.filter(d => d.socrataId.domainId == 2)
-    // approved views are views that pass all 3 types of approval
-    val expectedApprovedFxfs = fxfs(domain2Docs.filter(d => approvedFxfs.contains(d.socrataId.datasetId)))
-    // rejected views are those rejected as a DL or rejected by the context's RA process
-    val expectedRejectedFxfs = fxfs(domain2Docs.filter(d => d.isRejectedByParentDomain || d.isVmRejected))
-    // pending views are those pending as a DL or pending by the context's RA process
-    val expectedPendingFxfs = fxfs(domain2Docs.filter(d => d.isPendingOnParentDomain || d.isVmPending))
-
-    val domainSet = DomainSet(Set(raDomain), Some(raDomain))
-    testApprovalStatusFxfs(domainSet, cookieMonsUserBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
+  test("searching on a VM + RA domain should find the correct set of views for the given approval_status") {
+    testApprovalSingleDomain(vmRaDomain)
   }
 
-  test("searching on a moderated & RA-enabled domain (as both search_context & domain), should find the correct set of views for the given approval_status") {
-    val raVmDomain = domains(3)
-    val allPossibleResults = getAllPossibleResults()
-    val approvedFxfs = allPossibleResults.filter(isApproved).map(fxfs)
-    val domain3Docs = docs.filter(d => d.socrataId.domainId == 3)
-    // approved views are views that pass all 3 types of approval
-    val expectedApprovedFxfs = fxfs(domain3Docs.filter(d => approvedFxfs.contains(d.socrataId.datasetId)))
-    // rejected views are those rejected by view moderation/DL status or rejected by the context's RA process
-    val expectedRejectedFxfs = fxfs(domain3Docs.filter(d => d.isRejectedByParentDomain || d.isVmRejected))
-    // pending views are those pending by view moderation/DL status or rejected by the context's RA process
-    val expectedPendingFxfs = fxfs(domain3Docs.filter(d => d.isPendingOnParentDomain || d.isVmPending))
-
-    val domainSet = DomainSet(Set(raVmDomain), Some(raVmDomain))
-    testApprovalStatusFxfs(domainSet, cookieMonsUserBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
+  // When a fontana domain is the context - everything is easy, b/c no extra context filtering is needed
+  test("searching on a fontana domain federating in a fontana domain should find the correct set of views for the given approval_status") {
+    testApprovalFederatedDomains(fontanaDomain, domains(9))
   }
 
-  test("searching on an unmoderated domain that federates in data from a moderated domain, should find the correct set of views for the given approval_status") {
-    // domain 0 is an unmoderated domain
-    // domain 1 is a moderated domain
-    val unmoderatedDomain = domains(0)
-    val moderatedDomain = domains(1)
-    val domain0Docs = docs.filter(d => d.socrataId.domainId == 0)
-    val domain1Docs = docs.filter(d => d.socrataId.domainId == 1)
-    val allPossibleResults = getAllPossibleResults()
-    val approvedFxfs = allPossibleResults.filter(isApproved).map(fxfs)
-
-    // on both 0 and 1, approved views are those that pass all 3 types of approval
-    val approvedOn0 = fxfs(domain0Docs.filter(d => approvedFxfs.contains(d.socrataId.datasetId)))
-    val approvedOn1 = fxfs(domain1Docs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId)))
-    val expectedApprovedFxfs = approvedOn0 ++ approvedOn1
-
-    // on 1, nothing should come back rejected, b/c an admin on domain 0 doesn't have the rights to see rejected views on domain 1
-    val rejectedOn1 = List.empty
-    // confirm there are rejected views on domain 1 that could have come back:
-    domain1Docs.filter(d => d.isVmRejected) shouldNot be('empty)
-
-    // on 1, nothing should come back pending, b/c an admin on domain 0 doesn't have the rights to see pendings views on domain 1
-    val pendingOn1 = List.empty
-    // confirm there are pending views on domain 1 that could have come back:
-    domain1Docs.filter(d => d.isVmPending) shouldNot be('empty)
-
-    val domainSet = DomainSet(Set(unmoderatedDomain, moderatedDomain), Some(unmoderatedDomain))
-    testApprovalStatusFxfs(domainSet, cookieMonsUserBody, expectedApprovedFxfs, rejectedOn1, pendingOn1)
+  test("searching on a fontana domain federating in a VM domain should find the correct set of views for the given approval_status") {
+    testApprovalFederatedDomains(fontanaDomain, vmDomain)
   }
 
-  test("searching on a moderated domain that federates in data from an unmoderated domain, should find the correct set of views for the given approval_status") {
-    // domain 1 is a moderated domain with approved/pending/rejected views
-    // domain 0 is an unmoderated domain
-    val moderatedDomain = domains(1)
-    val unmoderatedDomain = domains(0)
-    val domain1Docs = docs.filter(d => d.socrataId.domainId == 1)
-    val domain0Docs = docs.filter(d => d.socrataId.domainId == 0)
-    val allPossibleResults = getAllPossibleResults()
-    val approvedFxfs = allPossibleResults.filter(isApproved).map(fxfs)
-
-    // domain 1 only has view moderation on
-    val approvedOn1 = fxfs(domain1Docs.filter(d => d.isVmApproved))
-    // on 0, b/c federating in unmoderated data to a moderated domain removes all derived views, only default views are approved
-    val approvedOn0 = fxfs(domain0Docs.filter(d => d.isDefaultView &&
-      (anonymouslyViewableDocIds.contains(d.socrataId.datasetId) || d.isSharedOrOwned("cook-mons"))))
-    val expectedApprovedFxfs = approvedOn1 ++ approvedOn0
-
-    // on 1, b/c it's moderated, rejected views are just that - rejected views
-    val rejectedOn1 = fxfs(domain1Docs.filter(d => d.isVmRejected))
-    // on 0, nothing should come back rejected for 2 reasons:
-    //   1) b/c an admin on domain 1 doesn't have the rights to see rejected views on domain 0
-    //   2) b/c federating in unmoderated data to a moderated domain removes all derived views
-    //   note though, that cook-mons could own/share a rejected view on 0, but this isn't the case
-    val expectedRejectedFxfs = rejectedOn1
-
-    // on 1, b/c it's moderated, pending views are just that - pending views
-    val pendingOn1 = fxfs(domain1Docs.filter(d => d.isVmPending))
-    // on 0, nothing should come back pending for 2 reasons:
-    //   1) b/c an admin on domain 1 doesn't have the rights to see pending views on domain 0
-    //   2) b/c federating in unmoderated data to a moderated domain removes all derived views
-    //   note though, that cook-mons could own/share a pending view on 0, but this isn't the case
-    val expectedPendingFxfs = pendingOn1
-
-    val domainSet = DomainSet(Set(unmoderatedDomain, moderatedDomain), Some(moderatedDomain))
-    testApprovalStatusFxfs(domainSet, cookieMonsUserBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
+  test("searching on a fontana domain federating in an RA domain should find the correct set of views for the given approval_status") {
+    testApprovalFederatedDomains(fontanaDomain, raDomain)
   }
 
-  test("searching on an RA-disabled domain that federates in data from an RA-enabled domain, should find the correct set of views for the given approval_status") {
-    // domain 0, an RA-disabled domain, is federating in data from...
-    // domain 2, an RA-enabled domain
-    val raDisabledDomain = domains(0)
-    val raEnabledDomain = domains(2)
-    val domain0Docs = docs.filter(d => d.socrataId.domainId == 0)
-    val domain2Docs = docs.filter(d => d.socrataId.domainId == 2)
-    val allPossibleResults = getAllPossibleResults()
-    val approvedFxfs = allPossibleResults.filter(isApproved).map(fxfs)
-
-    // on both 0 and 2, approved views are those that pass all 3 types of approval
-    val approvedOn0 = fxfs(domain0Docs.filter(d => approvedFxfs.contains(d.socrataId.datasetId)))
-    val approvedOn2 = fxfs(domain2Docs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId)))
-    val expectedApprovedFxfs = approvedOn0 ++ approvedOn2
-
-    // on 2, nothing should come back rejected, b/c an admin on domain 0 doesn't have the rights to see rejected views on domain 2
-    val rejectedOn2 = List.empty
-    // confirm there are rejected views on domain 2 that could have come back
-    domain2Docs.filter(d => d.isRejectedByParentDomain) shouldNot be('empty)
-    val expectedRejectedFxfs = rejectedOn2
-
-    // on 1, nothing should come back pending, b/c an admin on domain 0 doesn't have the rights to see pendings views on domain 1
-    val pendingOn2 = List.empty
-    // confirm there are pending views on domain 1 that could have come back:
-    domain2Docs.filter(d => d.isPendingOnParentDomain) shouldNot be('empty)
-    val expectedPendingFxfs = pendingOn2
-
-    val domainSet = DomainSet(Set(raDisabledDomain, raEnabledDomain), Some(raDisabledDomain))
-    testApprovalStatusFxfs(domainSet, cookieMonsUserBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
+  test("searching on a fontana domain federating in a VM + RA domain should find the correct set of views for the given approval_status") {
+    testApprovalFederatedDomains(fontanaDomain, vmRaDomain)
   }
 
-  test("searching on an RA-enabled domain that federates in data from an RA-disabled domain, should find the correct set of views for the given approval_status") {
-    // domain 2 is an RA-enabled domain with no view moderation
-    // domain 0 is an RA-disabled domain with no view moderation
-    val raEnabledDomain = domains(2)
-    val raDisabledDomain = domains(0)
-    val domain2Docs = docs.filter(d => d.socrataId.domainId == 2)
-    val domain0Docs = docs.filter(d => d.socrataId.domainId == 0)
-
-    val allPossibleResults = getAllPossibleResults()
-    val approvedFxfs = allPossibleResults.filter(isApproved).map(fxfs)
-
-    // on 2, approved views are those that pass all 3 types of approval
-    val approvedOn2 = fxfs(domain2Docs.filter(d => approvedFxfs.contains(d.socrataId.datasetId)))
-    // on 0, views must be anonymously viewable (to be seen by a domain 2 admin) and pass all 3 types of approval and
-    // additionally be approved by domain 2's RA Queue
-    val approvedOn0 = fxfs(domain0Docs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId) &&
-      approvedFxfs.contains(d.socrataId.datasetId) && d.isRaApproved(2)))
-    val expectedApprovedFxfs = approvedOn2 ++ approvedOn0
-
-    // on 2, rejected views are those rejected by R&A only
-    val rejectedOn2 = fxfs(domain2Docs.filter(d => d.isRejectedByParentDomain))
-    // on 0, despite the fact that an admin on domain 2 doesn't have the rights to see rejected views on domain 0
-    // there can be views that are approved on 0, but rejected by domain 2's R&A process.
-    val rejectedOn0 = fxfs(domain0Docs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId) && d.isRaRejected(2)))
-    rejectedOn0 shouldNot be('empty)
-    val expectedRejectedFxfs = rejectedOn2 ++ rejectedOn0
-
-    // on 2, pending views those pending by R&A only
-    val pendingOn2 = fxfs(domain2Docs.filter(d => d.isPendingOnParentDomain))
-    // on 0, despite the fact that an admin on domain 2 doesn't have the rights to see pending views on domain 0
-    // there can be views that are approved on 0, but pending by domain 2's R&A process.
-    // heh, also an admin on 2 can see pending views on 0, if they've been shared the view, as is the case with d0-v5
-    val pendingOn0 = fxfs(domain0Docs.filter(d => (d.isRaPending(2) || d.isVmPending) &&
-      (anonymouslyViewableDocIds.contains(d.socrataId.datasetId) || d.isSharedOrOwned("cook-mons"))))
-    pendingOn0 shouldNot be('empty)
-    val expectedPendingFxfs = pendingOn2 ++ pendingOn0
-
-    val domainSet = DomainSet(Set(raDisabledDomain, raEnabledDomain), Some(raEnabledDomain))
-    testApprovalStatusFxfs(domainSet, cookieMonsUserBody, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
+  // When a VM domain is the context, extra context filtering is needed if the federation is not a fontana domain or
+  // if the federation lacks VM
+  test("searching on a VM domain federating in a fontana domain should find the correct set of views for the given approval_status") {
+    testApprovalFederatedDomains(vmDomain, fontanaDomain)
   }
 
-  test("searching with the 'q' param finds all items from the authenticating domain where q matches the private metadata") {
-    val host = domains(0).domainCname
-    val privateValue = "Pumas Inc."
-    val expectedFxfs = fxfs(docs.filter(d =>
-      d.privateCustomerMetadataFlattened.exists(m => m.value == privateValue &&
-      d.socrataId.domainId == 0)))
-    prepareAuthenticatedUser(cookie, host, cookieMonsUserBody)
-    val params = allDomainsParams ++ Map("q" -> privateValue, "min_should_match" -> "100%").mapValues(Seq(_))
-    val res = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
-    val actualFxfs = fxfs(res._2)
-    actualFxfs should contain theSameElementsAs expectedFxfs
+  test("searching on a VM domain federating in a VM domain should find the correct set of views for the given approval_status") {
+    testApprovalFederatedDomains(vmDomain, vmRaDomain)
+  }
 
-    // confirm there were documents on other domains that were excluded.
-    anonymouslyViewableDocs.find(_.socrataId.datasetId == "d1-v0").get.privateCustomerMetadataFlattened.exists(_.value == privateValue
-    ) should be(true)
-    actualFxfs should not contain theSameElementsAs(List("d1-v0"))
+  test("searching on a VM domain federating in an RA domain should find the correct set of views for the given approval_status") {
+    val context = vmDomain
+    val federation = raDomain
+    val contextDocs = docsForDomain(context)
+    val federationDocs = docsForDomain(federation)
+
+    val expectedApprovedFxfs = Some(fxfs(
+      contextDocs.filter(d => d.isApproved(context)) ++
+      federationDocs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId) && d.isDefaultView)
+    ))
+    testApprovalFederatedDomains(context, federation, expectedApprovedFxfs)
+  }
+
+  // When an RA domain is the context, extra context filtering is needed if the federation is not a fontana domain or
+  // the federation's view haven't gone through the context's RA queue
+  test("searching on an RA domain federating in a fontana domain should find the correct set of views for the given approval_status") {
+    testApprovalFederatedDomains(raDomain, fontanaDomain)
+  }
+
+  test("searching on an RA domain federating in a VM domain should find the correct set of views for the given approval_status") {
+    val context = raDomain
+    val federation = vmDomain
+    val contextDocs = docsForDomain(context)
+    val federationDocs = docsForDomain(federation)
+
+    val expectedApprovedFxfs = Some(fxfs(
+      contextDocs.filter(d => d.isApproved(context)) ++
+      federationDocs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId) && d.isRaApproved(context.id))
+    ))
+    val expectedRejectedFxfs = Some(fxfs(
+      contextDocs.filter(d => d.isPendingOrRejected(context, ApprovalStatus.rejected)) ++
+      federationDocs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId) && d.isRaRejected(context.id))
+    ))
+    val expectedPendingFxfs = Some(fxfs(
+      contextDocs.filter(d => d.isPendingOrRejected(context, ApprovalStatus.pending)) ++
+      federationDocs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId) && d.isRaPending(context.id))
+    ))
+    testApprovalFederatedDomains(context, federation, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
+  }
+
+  test("searching on an RA domain federating in an RA domain should find the correct set of views for the given approval_status") {
+    val context = raDomain
+    val federation = vmRaDomain
+    val contextDocs = docsForDomain(context)
+    val federationDocs = docsForDomain(federation)
+
+    val expectedApprovedFxfs = Some(fxfs(
+      contextDocs.filter(d => d.isApproved(context)) ++
+      federationDocs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId) && d.isRaApproved(context.id))
+    ))
+    val expectedRejectedFxfs = Some(fxfs(
+      contextDocs.filter(d => d.isPendingOrRejected(context, ApprovalStatus.rejected)) ++
+      federationDocs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId) && d.isRaRejected(context.id))
+    ))
+    val expectedPendingFxfs = Some(fxfs(
+      contextDocs.filter(d => d.isPendingOrRejected(context, ApprovalStatus.pending)) ++
+      federationDocs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId) && d.isRaPending(context.id))
+    ))
+    testApprovalFederatedDomains(context, federation, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
+  }
+
+  // When a VM + RA domain is the context, extra context filtering for both the defaultness of the view and being in the right RA queue
+  test("searching on a VM + RA domain federating in a fontana domain should find the correct set of views for the given approval_status") {
+    testApprovalFederatedDomains(vmRaDomain, fontanaDomain)
+  }
+
+  test("searching on a VM + RA domain federating in a VM domain should find the correct set of views for the given approval_status") {
+    val context = vmRaDomain
+    val federation = vmDomain
+    val contextDocs = docsForDomain(context)
+    val federationDocs = docsForDomain(federation)
+
+    val expectedApprovedFxfs = Some(fxfs(
+      contextDocs.filter(d => d.isApproved(context)) ++
+      federationDocs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId) && d.isRaApproved(context.id))
+    ))
+    val expectedRejectedFxfs = Some(fxfs(
+      contextDocs.filter(d => d.isPendingOrRejected(context, ApprovalStatus.rejected)) ++
+      federationDocs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId) && d.isRaRejected(context.id))
+    ))
+    val expectedPendingFxfs = Some(fxfs(
+      contextDocs.filter(d => d.isPendingOrRejected(context, ApprovalStatus.pending)) ++
+      federationDocs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId) && d.isRaPending(context.id))
+    ))
+    testApprovalFederatedDomains(context, federation, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
+  }
+
+  test("searching on a VM + RA domain federating in an RA domain should find the correct set of views for the given approval_status") {
+    val context = vmRaDomain
+    val federation = raDomain
+    val contextDocs = docsForDomain(context)
+    val federationDocs = docsForDomain(federation)
+
+    val expectedApprovedFxfs = Some(fxfs(
+      contextDocs.filter(d => d.isApproved(context)) ++
+      federationDocs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId) && d.isDefaultView && d.isRaApproved(context.id))
+    ))
+    val expectedRejectedFxfs = Some(fxfs(
+      contextDocs.filter(d => d.isPendingOrRejected(context, ApprovalStatus.rejected)) ++
+      federationDocs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId) && d.isRaRejected(context.id))
+    ))
+    val expectedPendingFxfs = Some(fxfs(
+      contextDocs.filter(d => d.isPendingOrRejected(context, ApprovalStatus.pending)) ++
+      federationDocs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId) && d.isRaPending(context.id))
+    ))
+    testApprovalFederatedDomains(context, federation, expectedApprovedFxfs, expectedRejectedFxfs, expectedPendingFxfs)
   }
 
   test("searching with a private metadata k/v pair param finds all items from the authenticating domain with that pair") {
-    val host = domains(0).domainCname
+    val host = domains(0).cname
     val privateKey = "Secret domain 0 cat organization"
     val privateValue = "Pumas Inc."
     val expectedFxfs = fxfs(docs.filter(d =>
@@ -411,37 +393,19 @@ class SearchServiceSpecForUsersWithAllTheRights
     actualFxfs should not contain theSameElementsAs(List("d3-v4"))
   }
 
-  test("searching with 'visibility=open' filters away the internal items the user can view") {
-    val host = domains(0).domainCname
-    prepareAuthenticatedUser(cookie, host, cookieMonsUserBody)
-    val params = Map("domains" -> host).mapValues(Seq(_))
-    val allRes = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
-    val allFxfs = fxfs(allRes._2)
-    val (openFxfs, internalFxfs) = allFxfs.partition(anonymouslyViewableDocIds.contains(_))
-
-    val openParams = Map("domains" -> host, "visibility" -> "open").mapValues(Seq(_))
-    val openRes = service.doSearch(openParams, AuthParams(cookie=Some(cookie)), Some(host), None)
-    val actualFxfs = fxfs(openRes._2)
-
-    // confirm that only open docs are returned and that there were internal docs removed.
-    actualFxfs should contain theSameElementsAs openFxfs
-    internalFxfs.nonEmpty should be(true)
+  test("searching on a fontana domain should find the correct set of views for the given visibility") {
+    testVisibilitySingleDomain(fontanaDomain)
   }
 
-  test("searching with 'visibility=internal' filters away the open items the user can view") {
-    val host = domains(0).domainCname
-    prepareAuthenticatedUser(cookie, host, cookieMonsUserBody)
-    val params = Map("domains" -> host).mapValues(Seq(_))
-    val allRes = service.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
-    val allFxfs = fxfs(allRes._2)
-    val (openFxfs, internalFxfs) = allFxfs.partition(anonymouslyViewableDocIds.contains(_))
+  test("searching on a VM domain should find the correct set of views for the given visibility") {
+    testVisibilitySingleDomain(vmDomain)
+  }
 
-    val internalParams = Map("domains" -> host, "visibility" -> "internal").mapValues(Seq(_))
-    val internalRes = service.doSearch(internalParams, AuthParams(cookie=Some(cookie)), Some(host), None)
-    val actualFxfs = fxfs(internalRes._2)
+  test("searching on an RA domain should find the correct set of views for the given visibility") {
+    testVisibilitySingleDomain(raDomain)
+  }
 
-    // confirm that only internal docs are returned and that there were open docs removed.
-    actualFxfs should contain theSameElementsAs internalFxfs
-    openFxfs.nonEmpty should be(true)
+  test("searching on a VM + RA domain should find the correct set of views for the given visibility") {
+    testVisibilitySingleDomain(vmRaDomain)
   }
 }

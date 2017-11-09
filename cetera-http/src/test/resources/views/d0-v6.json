@@ -74,10 +74,15 @@
   },
   "approvals" : [ {
     "outcome" : "publicize",
-    "state" : "pending",
+    "state" : "rejected",
     "submitted_at" : "2017-10-31T12:00:00.000Z",
     "submitter_id" : "cook-mons",
     "submitter_name" : "cookie Monsteer",
-    "submitter_email" : "cookie.monster@sesame.street.com"
+    "submitter_email" : "cookie.monster@sesame.street.com",
+    "reviewed_automatically": false,
+    "reviewed_at": "2017-11-01T12:00:00.000Z",
+    "reviewer_id" : "honorable.sheriff",
+    "reviewer_name" : "The Honorable Sheriff of Nottingham",
+    "reviewer_email" : "honorable.sheriff@nottingham.com"
   } ]
 }

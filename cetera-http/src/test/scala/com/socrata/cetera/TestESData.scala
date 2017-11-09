@@ -48,27 +48,49 @@ trait TestESData extends TestESDomains with TestESUsers {
   val cookie = "C = Cookie"
   val superAdminBody = j"""{"id" : "who-am-i", "flags" : [ "admin" ]}"""
   val allDomainsParams = Map(
-    "domains" -> domains.map(_.domainCname).mkString(","),
+    "domains" -> domains.map(_.cname).mkString(","),
     "show_visibility" -> "true"
   ).mapValues(Seq(_))
 
-  val domDocCount = Map(0->9, 1->2, 2->7, 3->9, 8->0 ,9->4)
-  val docs = {
-    val files = domDocCount.map { case (dom: Int, docCount: Int) =>
-      (0 to docCount).map(i => s"/views/d$dom-v$i.json")
-    }.flatten
-
-    files.map { f =>
+  def docsFromFiles(d: Int, v: Int): List[Document] =
+    (0 to v).map(i => s"/views/d$d-v$i.json").map { f =>
       val source = Source.fromInputStream(getClass.getResourceAsStream(f)).getLines().mkString("\n")
       Document(source).get
-    }
-  }.toList
+    }.toList
+
+  val dom0Docs = docsFromFiles(0, 9)
+  val dom1Docs = docsFromFiles(1, 4)
+  val dom2Docs = docsFromFiles(2, 7)
+  val dom3Docs = docsFromFiles(3, 9)
+  val dom8Docs = docsFromFiles(8, 0)
+  val dom9Docs = docsFromFiles(9, 4)
+
+  val docs = dom0Docs ++ dom1Docs ++ dom2Docs ++ dom3Docs ++ dom8Docs ++ dom9Docs
 
   val anonymouslyViewableDocIds = List(
-    "d0-v0", "d1-v0", "d0-v2", "d2-v2", "d3-v2", "d3-v3", "d0-v3", "d0-v4", "d3-v4",
-    "d2-v4", "d0-v7", "d0-v9", "d9-v0", "d9-v1", "d9-v2", "d9-v3", "d9-v4")
+    "d0-v0", "d0-v2", "d0-v3", "d0-v4", "d0-v7", "d0-v9",
+    "d1-v0", "d1-v3", "d1-v4",
+    "d2-v2", "d2-v4",
+    "d3-v2", "d3-v3", "d3-v4",
+    "d9-v0", "d9-v1", "d9-v2", "d9-v3", "d9-v4"
+  )
+
   val (anonymouslyViewableDocs, internalDocs) =
     docs.partition(d => anonymouslyViewableDocIds contains(d.socrataId.datasetId))
+
+  def docsForDomain(domain: Domain) = {
+    domain.id match {
+      case 0 => dom0Docs
+      case 1 => dom1Docs
+      case 2 => dom2Docs
+      case 3 => dom3Docs
+      case 9 => dom9Docs
+      case _ => docs
+    }
+  }
+
+  def isVisibleToUser(doc: Document, userId: String) =
+    doc.isSharedOrOwned(userId) || anonymouslyViewableDocIds.contains(doc.socrataId.datasetId)
 
   def bootstrapData(): Unit = {
     ElasticsearchBootstrap.ensureIndex(client, "yyyyMMddHHmm", testSuiteName)
@@ -77,7 +99,7 @@ trait TestESData extends TestESDomains with TestESUsers {
     domains.foreach { d =>
       client.client.prepareIndex(testSuiteName, esDomainType)
         .setSource(JsonUtil.renderJson[Domain](d), XContentType.JSON)
-        .setId(d.domainId.toString)
+        .setId(d.id.toString)
         .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
         .execute.actionGet
     }
@@ -152,31 +174,15 @@ trait TestESData extends TestESDomains with TestESUsers {
       .respond(expectedResponse)
   }
 
-  def getAllPossibleResults(): Seq[SearchResult] = {
-    val host = domains(0).domainCname
-    val authedUserBody = j"""{"id" : "who-am-i", "flags" : [ "admin" ]}"""
-    val adminCookie = "admin=super"
-    prepareAuthenticatedUser(adminCookie, host, authedUserBody)
-    service.doSearch(allDomainsParams, AuthParams(cookie=Some(adminCookie)), Some(host), None)._2.results
-  }
+  def fxfs(searchResults: SearchResults[SearchResult]): List[String] =
+    searchResults.results.map(_.resource.id).toList.sorted
 
-  def fxfs(searchResult: SearchResult): String = searchResult.resource.id
-
-  def fxfs(searchResults: SearchResults[SearchResult]): Seq[String] =
-    searchResults.results.map(fxfs)
-
-  def fxfs(docs: Seq[Document]): Seq[String] = docs.map(_.socrataId.datasetId).toSet.toSeq
+  def fxfs(docs: Seq[Document]): List[String] = docs.map(_.socrataId.datasetId).toList.sorted
 
   def emptyAndRemoveDir(dir: File): Unit = {
     if (dir.isDirectory) {
       dir.listFiles().foreach(f => f.delete())
     }
     dir.delete()
-  }
-
-  def isApproved(res: SearchResult): Boolean = {
-    val raApproved = res.metadata.isRoutingApproved.map(identity(_)).getOrElse(true) // None implies not relevant (so approved by default)
-    val vmApproved = res.metadata.isModerationApproved.map(identity(_)).getOrElse(true)
-    raApproved && vmApproved
   }
 }

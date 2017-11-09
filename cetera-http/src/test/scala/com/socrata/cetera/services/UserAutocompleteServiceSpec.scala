@@ -25,7 +25,7 @@ class UserAutocompleteServiceSpec extends FunSuiteLike with Matchers with TestES
   val basicAuth = "Basic cHJvZmVzc29yeDpjZXJlYnJvNGxpZmU="
   val oAuth = "OAuth 123456789"
   val context = domains(0)
-  val host = context.domainCname
+  val host = context.cname
   val adminUserBody = j"""
     {
       "id" : "boo-bear",
@@ -150,7 +150,7 @@ class UserAutocompleteServiceSpec extends FunSuiteLike with Matchers with TestES
         .withStatusCode(200)
         .withHeader("Content-Type", "application/json; charset=utf-8")
         .withBody(CompactJsonWriter.toString(adminUserBody))
-    )    
+    )
 
     val params = Map(Params.q -> "a").mapValues(Seq(_))
     val (status, results, _, _) = userAutocompleteService.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)
@@ -172,7 +172,7 @@ class UserAutocompleteServiceSpec extends FunSuiteLike with Matchers with TestES
         .withStatusCode(200)
         .withHeader("Content-Type", "application/json; charset=utf-8")
         .withBody(CompactJsonWriter.toString(adminUserBody))
-    )    
+    )
 
     val params = Map(Params.q -> "dark.star").mapValues(Seq(_))
     val (status, results, _, _) = userAutocompleteService.doSearch(params, AuthParams(cookie=Some(cookie)), Some(host), None)

@@ -24,7 +24,7 @@ class UserSearchServiceSpec extends FunSuiteLike with Matchers with TestESData
   val basicAuth = "Basic cHJvZmVzc29yeDpjZXJlYnJvNGxpZmU="
   val oAuth = "OAuth 123456789"
   val context = domains(0)
-  val host = context.domainCname
+  val host = context.cname
   val adminUserBody = j"""
     {
       "id" : "boo-bear",
@@ -265,7 +265,7 @@ class UserSearchServiceSpec extends FunSuiteLike with Matchers with TestESData
   }
 
   test("search from a given context with no domain param should return roles from the context") {
-    val context = domains(2).domainCname
+    val context = domains(2).cname
     val expectedRequest = request()
       .withMethod("GET")
       .withPath("/users.json")
@@ -292,8 +292,8 @@ class UserSearchServiceSpec extends FunSuiteLike with Matchers with TestESData
   }
 
   test("search from a given context about a different domain should return roles from the domain") {
-    val context = domains(2).domainCname
-    val domain = domains(1).domainCname
+    val context = domains(2).cname
+    val domain = domains(1).cname
     val expectedRequest = request()
       .withMethod("GET")
       .withPath("/users.json")

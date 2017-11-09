@@ -180,6 +180,10 @@ case object IsCustomerDomainFieldType extends DomainFieldType {
   val fieldName: String = "is_customer_domain"
 }
 
+case object FontanaStateFieldType extends DocumentFieldType {
+  val fieldName: String = "approvals.state"
+}
+
 case object IsModerationEnabledFieldType extends DomainFieldType {
   val fieldName: String = "moderation_enabled"
 }

@@ -55,15 +55,15 @@ object UserQueries {
     if (user.isSuperAdmin) {
       // no restrictions are needed for super admins
       None
-    } else if (domain.exists(d => d.domainId != user.authenticatingDomain.domainId)) {
+    } else if (domain.exists(d => d.id != user.authenticatingDomain.id)) {
       // if the user is searching for users on a domain, it must be the domain they are authed on
-      throw UnauthorizedError(Some(user.id), s"search for users on domain ${domain.get.domainCname}")
+      throw UnauthorizedError(Some(user.id), s"search for users on domain ${domain.get.cname}")
     } else if (user.canViewAllUsers) {
       // if the user can view all users, no restrictions are needed (other than the one above)
       None
-    } else if (user.canViewUsersOnDomain(user.authenticatingDomain.domainId)) {
+    } else if (user.canViewUsersOnDomain(user.authenticatingDomain.id)) {
       // if the user can view domain users, we restrict the user search to user's authenticating domain
-      nestedRoleQuery(None, Some(user.authenticatingDomain.domainId))
+      nestedRoleQuery(None, Some(user.authenticatingDomain.id))
     } else {
       // otherwise the user can't veiw any users
       throw UnauthorizedError(Some(user.id), "search users")
@@ -80,8 +80,8 @@ object UserQueries {
       emailQuery(searchParams.emails),
       screenNameQuery(searchParams.screenNames),
       flagQuery(searchParams.flags),
-      nestedRoleNamesQuery(searchParams.roleNames, domain.map(_.domainId)),
-      nestedRoleIdsQuery(searchParams.roleIds, domain.map(_.domainId)),
+      nestedRoleNamesQuery(searchParams.roleNames, domain.map(_.id)),
+      nestedRoleIdsQuery(searchParams.roleIds, domain.map(_.id)),
       authQuery(authorizedUser, domain)
     ).flatten
 

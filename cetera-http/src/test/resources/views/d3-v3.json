@@ -57,7 +57,7 @@
   "is_default_view": true,
   "moderation_status": null,
   "approving_domain_ids": [
-    3
+    2, 3
   ],
   "rejecting_domain_ids": [],
   "pending_domain_ids": [],
@@ -79,7 +79,6 @@
   "grants": [],
   "hide_from_catalog": false,
   "hide_from_data_json": false,
-  "license": "Academic Free License",
   "provenance": "official",
   "owner": {
     "id": "prince-john"

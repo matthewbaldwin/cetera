@@ -155,7 +155,35 @@ case class Document(
   def isStory: Boolean = datatype == StoryDatatype.singular
   def isHiddenFromCatalog: Boolean = hideFromCatalog.getOrElse(false)
 
-  def isVmApproved: Boolean = moderationStatus.exists(s => s == ApprovalStatus.approved.status) & !isDefaultView
+  def isApproved(domain: Domain): Boolean =
+    if (domain.hasFontanaApprovals) {
+      approvals.exists(a => a.exists(_.state == ApprovalStatus.approved.status))
+    } else {
+      val vmApproved = !domain.moderationEnabled ||
+        (domain.moderationEnabled &&
+          (isDefaultView || moderationStatus.exists(s => s == ApprovalStatus.approved.status)))
+      val raApproved = !domain.routingApprovalEnabled ||
+        (domain.routingApprovalEnabled && approvingDomainIds.getOrElse(Seq.empty).contains(domain.id))
+      vmApproved && raApproved
+  }
+
+  def isPendingOrRejected(domain: Domain, approvalStatus: ApprovalStatus): Boolean =
+    if (domain.hasFontanaApprovals) {
+      approvals.exists(a => a.exists(_.state == approvalStatus.status))
+    } else {
+      val hasVmState = domain.moderationEnabled && !isDefaultView &&
+        moderationStatus.exists(s => s == approvalStatus.status)
+      val hasRaState = domain.routingApprovalEnabled &&
+        (approvalStatus == ApprovalStatus.pending && pendingDomainIds.getOrElse(Seq.empty).contains(domain.id) ||
+        (approvalStatus == ApprovalStatus.rejected && rejectingDomainIds.getOrElse(Seq.empty).contains(domain.id)))
+      hasVmState || hasRaState
+    }
+
+  def isFontanaApproved: Boolean = approvals.exists(a => a.exists(_.state == ApprovalStatus.approved.status))
+  def isFontanaRejected: Boolean = approvals.exists(a => a.exists(_.state == ApprovalStatus.rejected.status))
+  def isFontanaPending: Boolean = approvals.exists(a => a.exists(_.state == ApprovalStatus.pending.status))
+
+  def isVmApproved: Boolean = moderationStatus.exists(s => s == ApprovalStatus.approved.status) || isDefaultView
   def isVmRejected: Boolean = moderationStatus.exists(s => s == ApprovalStatus.rejected.status) & !isDefaultView
   def isVmPending: Boolean = moderationStatus.exists(s => s == ApprovalStatus.pending.status) & !isDefaultView
 

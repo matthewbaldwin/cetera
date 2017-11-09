@@ -26,7 +26,7 @@
     "fts_raw": { "type": "keyword" },
     "is_customer_domain": { "type": "boolean" },
     "moderation_enabled": { "type": "boolean" },
-    "unmigrated_nbe_enabled": { "type": "boolean" },
+    "has_fontana_approvals": { "type": "boolean" },
     "routing_approval_enabled": { "type": "boolean" },
     "locked_down": { "type": "boolean" },
     "api_locked_down": { "type": "boolean" },

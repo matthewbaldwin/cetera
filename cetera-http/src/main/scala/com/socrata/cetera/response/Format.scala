@@ -80,89 +80,93 @@ object Format {
   private def approvalsContainId(doc: Document, id: Int): Boolean =
     doc.approvingDomainIds.exists(_.contains(id))
 
-  def moderationStatus(doc: Document, viewsDomain: Domain): Option[String] = {
-    viewsDomain.moderationEnabled match {
-      case true => if (doc.isDefaultView) Some(ApprovalStatus.approved.status) else doc.moderationStatus
-      case false => None
+  def moderationStatus(doc: Document, viewsDomain: Domain): Option[String] =
+    if (viewsDomain.hasFontanaApprovals) {
+      // we are pretending that fontana domains can never have VM
+      None
+    } else {
+      viewsDomain.moderationEnabled match {
+        case true => if (doc.isDefaultView) Some(ApprovalStatus.approved.status) else doc.moderationStatus
+        case false => None
+      }
     }
-  }
 
-  def moderationApproved(doc: Document, viewsDomain: Domain): Option[Boolean] = {
-    viewsDomain.moderationEnabled match {
-      case true => Some(doc.isDefaultView || literallyApproved(doc))
-      case false => None
+  def moderationApprovedByContext(doc: Document, viewsDomain: Domain, domainSet: DomainSet): Option[Boolean] =
+    if (viewsDomain.hasFontanaApprovals) {
+      // the context has no say in the approval of a view if it comes from a fontana domain
+      None
+    } else {
+      (domainSet.contextIsModerated, viewsDomain.moderationEnabled) match {
+        // if a view comes from a moderated domain, it must be a default view or approved
+        case (true, true) => Some(doc.isDefaultView || literallyApproved(doc))
+        // if a view comes from an unmoderated domain, it must be a default view
+        case (true, false) => Some(doc.isDefaultView)
+        // if the context isn't moderated, a views moderationApproval is decided by its parent domain, not the context
+        case (false, _) => None
+      }
     }
-  }
-
-  def moderationApprovedByContext(doc: Document, viewsDomain: Domain, domainSet: DomainSet): Option[Boolean] = {
-    (domainSet.contextIsModerated, viewsDomain.moderationEnabled) match {
-      // if a view comes from a moderated domain, it must be a default view or approved
-      case (true, true) => Some(doc.isDefaultView || literallyApproved(doc))
-      // if a view comes from an unmoderated domain, it must be a default view
-      case (true, false) => Some(doc.isDefaultView)
-      // if the context isn't moderated, a views moderationApproval is decided by its parent domain, not the context
-      case (false, _) => None
-    }
-  }
 
   def routingStatus(doc: Document, viewsDomain: Domain): Option[String] =
-    viewsDomain.routingApprovalEnabled match {
-      case true =>
-        if (doc.isApprovedByParentDomain) {
-          Some(ApprovalStatus.approved.status)
-        } else if (doc.isPendingOnParentDomain) {
-          Some(ApprovalStatus.pending.status)
-        } else if (doc.isRejectedByParentDomain) {
-          Some(ApprovalStatus.rejected.status)
-        } else {
-          None
-        }
-      case false => None
+    if (viewsDomain.hasFontanaApprovals) {
+      // we are pretending that fontana domains can never have R&A
+      None
+    } else {
+      viewsDomain.routingApprovalEnabled match {
+        case true =>
+          if (doc.isApprovedByParentDomain) {
+            Some(ApprovalStatus.approved.status)
+          } else if (doc.isPendingOnParentDomain) {
+            Some(ApprovalStatus.pending.status)
+          } else if (doc.isRejectedByParentDomain) {
+            Some(ApprovalStatus.rejected.status)
+          } else {
+            None
+          }
+        case false => None
+      }
     }
 
-  def routingApproved(doc: Document, viewsDomain: Domain): Option[Boolean] = {
-    val viewDomainId = viewsDomain.domainId
-    viewsDomain.routingApprovalEnabled match {
-      case true => Some(approvalsContainId(doc, viewsDomain.domainId))
-      case false => None
+  def routingApprovedByContext(doc: Document, viewsDomain: Domain, domainSet: DomainSet): Option[Boolean] =
+    if (viewsDomain.hasFontanaApprovals) {
+      // the context has no say in the approval of a view if it comes from a fontana domain
+      None
+    } else {
+      val contextDomainId = domainSet.searchContext.map(d => d.id).getOrElse(0)
+      domainSet.contextHasRoutingApproval match {
+        case true => Some(approvalsContainId(doc, contextDomainId))
+        case false => None
+      }
     }
-  }
-
-  def routingApprovedByContext(doc: Document, viewsDomain: Domain, domainSet: DomainSet): Option[Boolean] = {
-    val contextDomainId = domainSet.searchContext.map(d => d.domainId).getOrElse(0)
-    domainSet.contextHasRoutingApproval match {
-      case true => Some(approvalsContainId(doc, contextDomainId))
-      case false => None
-    }
-  }
 
   def contextApprovals(doc: Document, viewsDomain: Domain, domainSet: DomainSet): (Option[Boolean],Option[Boolean]) = {
-    val viewDomainId = viewsDomain.domainId
-    val contextDomainId = domainSet.searchContext.map(d => d.domainId).getOrElse(0)
+    val viewDomainId = viewsDomain.id
+    val contextDomainId = domainSet.searchContext.map(d => d.id).getOrElse(0)
     val moderationApprovalOnContext = moderationApprovedByContext(doc, viewsDomain, domainSet)
     val routingApprovalOnContext = routingApprovedByContext(doc, viewsDomain, domainSet)
     if (viewDomainId != contextDomainId) (moderationApprovalOnContext, routingApprovalOnContext) else (None, None)
   }
 
   def calculateVisibility(doc: Document, viewsDomain: Domain, domainSet: DomainSet): Metadata = {
-    val viewDomainId = viewsDomain.domainId
-    val contextDomainId = domainSet.searchContext.map(d => d.domainId).getOrElse(0)
-    val routingApproval = routingApproved(doc, viewsDomain)
-    val moderationApproval = moderationApproved(doc, viewsDomain)
+    val vmStatus = moderationStatus(doc, viewsDomain)
+    val raStatus = routingStatus(doc, viewsDomain)
+    val moderationApproval = vmStatus.map(_ == ApprovalStatus.approved.status)
+    val routingApproval = raStatus.map(_ == ApprovalStatus.approved.status)
+    val fontanaApproved = if (!viewsDomain.hasFontanaApprovals) true else doc.isFontanaApproved
     val(moderationApprovalOnContext, routingApprovalOnContext) = contextApprovals(doc, viewsDomain, domainSet)
     val viewGrants = if (doc.grants.isEmpty) None else Some(doc.grants)
     val anonymousVis =
       doc.isPublic & doc.isPublished & !doc.isHiddenFromCatalog &
       routingApproval.getOrElse(true) & routingApprovalOnContext.getOrElse(true) &
-      moderationApproval.getOrElse(true) & moderationApprovalOnContext.getOrElse(true)
+      moderationApproval.getOrElse(true) & moderationApprovalOnContext.getOrElse(true) &
+      fontanaApproved
 
     Metadata(
-      domain = viewsDomain.domainCname,
+      domain = viewsDomain.cname,
       license = doc.license,
       isPublic = Some(doc.isPublic),
       isPublished = Some(doc.isPublished),
       isHidden = Some(doc.isHiddenFromCatalog),
-      isModerationApproved = moderationApproved(doc, viewsDomain),
+      isModerationApproved = moderationApproval,
       isModerationApprovedOnContext = moderationApprovalOnContext,
       isRoutingApproved = routingApproval,
       isRoutingApprovedOnContext = routingApprovalOnContext,
@@ -184,14 +188,14 @@ object Format {
     : Option[SearchResult] = {
     try {
       val viewsDomainId = doc.socrataId.domainId.toInt
-      val domainIdCnames = domainSet.idMap.map { case (i, d) => i -> d.domainCname }
+      val domainIdCnames = domainSet.idMap.map { case (i, d) => i -> d.cname }
       val viewsDomain = domainSet.idMap.getOrElse(viewsDomainId, throw new NoSuchElementException)
 
       val viewLicense = doc.license
       val scorelessMetadata = if (showVisibility) {
         calculateVisibility(doc, viewsDomain, domainSet)
       } else {
-        Metadata(viewsDomain.domainCname, viewLicense)
+        Metadata(viewsDomain.cname, viewLicense)
       }
 
       val metadata = scorelessMetadata.copy(score = score)
@@ -244,7 +248,7 @@ object Format {
       domainSet: DomainSet,
       formatParams: FormatParamSet)
     : SearchResults[SearchResult] = {
-    val domainIdCnames = domainSet.idMap.map { case (i, d) => i -> d.domainCname }
+    val domainIdCnames = domainSet.idMap.map { case (i, d) => i -> d.cname }
     val hits = searchResponse.getHits
 
     val searchResult = hits.getHits().flatMap { hit =>

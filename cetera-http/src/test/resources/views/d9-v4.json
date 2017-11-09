@@ -65,5 +65,15 @@
   "owner": {
     "id": "lil-john",
     "display_name": "Little John"
-  }
+  },
+  "approvals": [ {
+    "outcome": "publicize",
+    "state": "approved",
+    "submitted_at": "2017-10-31T12:00:00.000Z",
+    "submitter_id" : "honorable.sheriff",
+    "submitter_name" : "The Honorable Sheriff of Nottingham",
+    "submittwer_email" : "honorable.sheriff@nottingham.com",
+    "reviewed_automatically": true,
+    "reviewed_at": "2017-11-01T12:00:00.000Z"
+  } ]
 }

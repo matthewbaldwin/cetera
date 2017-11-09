@@ -31,15 +31,17 @@ class SearchServiceSpecForAnonymousUsers
     "explicitly_hidden" -> "false"
   ).mapValues(Seq(_))
 
-  val domain0Docs = docs.filter(d => d.socrataId.domainId == BigInt(0))
+  val anonymousDomain0Docs = dom0Docs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId))
+  val baseOpenMetadata = Metadata(domain = "change_me", isPublic = Some(true), isPublished = Some(true), isHidden = Some(false), visibleToAnonymous = Some(true))
 
-  val anonymousDomain0Docs = docs.filter(d => d.socrataId.domainId == BigInt(0)
-    && anonymouslyViewableDocIds.contains(d.socrataId.datasetId))
-
-  def testResultSet(params: Map[String, Seq[String]], expectedFxfs: Iterable[String]): Unit = {
+  def testResultSet(params: Map[String, Seq[String]], expectedFxfs: Option[Seq[String]]): Unit = {
     val res = fxfs(service.doSearch(params, AuthParams(), None, None)._2)
-
-    res should contain theSameElementsAs expectedFxfs
+    expectedFxfs match {
+      case None => res should be('empty)
+      case Some(fxfs) =>
+        res shouldNot be('empty)
+        res should contain theSameElementsAs fxfs
+    }
   }
 
   def testCaseInsensitivity(params: Map[String, Seq[String]], expectedFxfs: Seq[String]): Unit = {
@@ -53,67 +55,59 @@ class SearchServiceSpecForAnonymousUsers
     resultsTitleCase.results should contain theSameElementsAs resultsLowerCase.results
     resultsTitleCase.results should contain theSameElementsAs resultsUpperCase.results
 
-    testResultSet(params, expectedFxfs)
+    testResultSet(params, Some(expectedFxfs))
+  }
+
+  def testMetaData(domCname: String, fxf: String, expectedMetadata: Metadata) = {
+    val params = Map(
+      Params.domains -> domCname,
+      Params.showVisibility -> "true",
+      Params.ids -> fxf
+    )
+    val res = service.doSearch(params.mapValues(Seq(_)), AuthParams(), None, None)._2.results
+    res.length should be(1)
+    res(0).metadata should be(expectedMetadata)
+  }
+
+  // the idea here is give a fxf from the domain, not the context, so the context's rules apply to the returned result
+  def testContextMetaData(contextName: String, domainName: String, fxf: String, expectedMetadata: Metadata) = {
+    val params = Map(
+      Params.domains -> s"$contextName,$domainName",
+      Params.searchContext -> contextName,
+      Params.showVisibility -> "true",
+      Params.ids -> fxf
+    )
+    val res = service.doSearch(params.mapValues(Seq(_)), AuthParams(), None, None)._2.results
+    res.length should be(1)
+    res(0).metadata should be(expectedMetadata)
   }
 
   //////////////////////////////////////////////////
   // General searches
   //////////////////////////////////////////////////
 
-  test("a basic search without auth on a basic domain (no VM, no RA) should return the expected results") {
-    val basicDomain = domains(0).domainCname
-    val domain0Docs = docs.filter(d => d.socrataId.domainId == 0)
-    val allPossibleResults = getAllPossibleResults()
-    val approvedFxfs = allPossibleResults.filter(isApproved).map(fxfs)
-    val expectedFxfs = fxfs(domain0Docs.filter(d =>
-      d.isPublic && d.isPublished && !d.isHiddenFromCatalog && approvedFxfs.contains(d.socrataId.datasetId)))
-
-    val params = Map("search_context" -> basicDomain, "domains" -> basicDomain).mapValues(Seq(_))
-    val actualFxfs = fxfs(service.doSearch(params, AuthParams(), None, None)._2)
-    expectedFxfs shouldNot be('empty)
-    actualFxfs should contain theSameElementsAs expectedFxfs
+  test("a basic search on a fontana domain should return the expected results") {
+    val expectedFxfs = fxfs(dom0Docs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId)))
+    val params = Map("search_context" -> fontanaDomain.cname, "domains" -> fontanaDomain.cname).mapValues(Seq(_))
+    testResultSet(params, Some(expectedFxfs))
   }
 
-  test("a basic search without auth on a moderated domain (but no RA) should return the expected results") {
-    val moderatedDomain = domains(1).domainCname
-    val domain1Docs = docs.filter(d => d.socrataId.domainId == 1)
-    val allPossibleResults = getAllPossibleResults()
-    val approvedFxfs = allPossibleResults.filter(isApproved).map(fxfs)
-    val expectedFxfs = fxfs(domain1Docs.filter(d =>
-      d.isPublic && d.isPublished && !d.isHiddenFromCatalog && approvedFxfs.contains(d.socrataId.datasetId)))
-
-    val params = Map("search_context" -> moderatedDomain, "domains" -> moderatedDomain).mapValues(Seq(_))
-    val actualFxfs = fxfs(service.doSearch(params, AuthParams(), None, None)._2)
-    expectedFxfs shouldNot be('empty)
-    actualFxfs should contain theSameElementsAs expectedFxfs
+  test("a basic search on a VM domain should return the expected results") {
+    val expectedFxfs = fxfs(dom1Docs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId)))
+    val params = Map("search_context" -> vmDomain.cname, "domains" -> vmDomain.cname).mapValues(Seq(_))
+    testResultSet(params, Some(expectedFxfs))
   }
 
-  test("a basic search without auth on an RA-enabled domain (but no VM) should return the expected results") {
-    val raEnabledDomain = domains(2).domainCname
-    val domain2Docs = docs.filter(d => d.socrataId.domainId == 2)
-    val allPossibleResults = getAllPossibleResults()
-    val approvedFxfs = allPossibleResults.filter(isApproved).map(fxfs)
-    val expectedFxfs = fxfs(domain2Docs.filter(d =>
-      d.isPublic && d.isPublished && !d.isHiddenFromCatalog && approvedFxfs.contains(d.socrataId.datasetId)))
-
-    val params = Map("search_context" -> raEnabledDomain, "domains" -> raEnabledDomain).mapValues(Seq(_))
-    val actualFxfs = fxfs(service.doSearch(params, AuthParams(), None, None)._2)
-    expectedFxfs shouldNot be('empty)
-    actualFxfs should contain theSameElementsAs expectedFxfs
+  test("a basic search on an RA domain should return the expected results") {
+    val expectedFxfs = fxfs(dom2Docs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId)))
+    val params = Map("search_context" -> raDomain.cname, "domains" -> raDomain.cname).mapValues(Seq(_))
+    testResultSet(params, Some(expectedFxfs))
   }
 
-  test("a basic search without auth on an RA & VM-enabled domain should return the expected results") {
-    val raAndVmEnabledDomain = domains(3).domainCname
-    val domain3Docs = docs.filter(d => d.socrataId.domainId == 3)
-    val allPossibleResults = getAllPossibleResults()
-    val approvedFxfs = allPossibleResults.filter(isApproved).map(fxfs)
-    val expectedFxfs = fxfs(domain3Docs.filter(d =>
-      d.isPublic && d.isPublished && !d.isHiddenFromCatalog && approvedFxfs.contains(d.socrataId.datasetId)))
-
-    val params = Map("search_context" -> raAndVmEnabledDomain, "domains" -> raAndVmEnabledDomain).mapValues(Seq(_))
-    val actualFxfs = fxfs(service.doSearch(params, AuthParams(), None, None)._2)
-    expectedFxfs shouldNot be('empty)
-    actualFxfs should contain theSameElementsAs expectedFxfs
+  test("a basic search on an VM + RA domain should return the expected results") {
+    val expectedFxfs = fxfs(dom3Docs.filter(d => anonymouslyViewableDocIds.contains(d.socrataId.datasetId)))
+    val params = Map("search_context" -> vmRaDomain.cname, "domains" -> vmRaDomain.cname).mapValues(Seq(_))
+    testResultSet(params, Some(expectedFxfs))
   }
 
   test("search with a non-existent search_context throws a DomainNotFoundError") {
@@ -139,42 +133,110 @@ class SearchServiceSpecForAnonymousUsers
     }
   }
 
-  test("search response contains visibility info if requested") {
-    val params = Map(
-      Params.domains -> "robert.demo.socrata.com",
-      Params.showVisibility -> "true",
-      Params.attribution -> "La comunidad"
-    )
-    val res = service.doSearch(params.mapValues(Seq(_)), AuthParams(), None, None)._2.results
-    res.length should be(1)
-    val expectedMetadata = Metadata("robert.demo.socrata.com", None, Some(true), Some(true), Some(false), None, None, None, None, Some(true), None, None, None, None, None, None)
-    res(0).metadata should be(expectedMetadata)
+  test("visibility info on a fontana domain") {
+    val approvals = Some(Vector(FlattenedApproval("publicize", "approved", "2017-10-31T12:00:00.000Z", "robin-hood", "Robin Hood", None,
+      Some(false), Some("2017-11-01T12:00:00.000Z"), Some("honorable.sheriff"), Some("The Honorable Sheriff of Nottingham"), None)))
+    val expectedMetadata = baseOpenMetadata.copy(domain = fontanaDomain.cname, approvals = approvals)
+    testMetaData(fontanaDomain.cname, "d0-v0", expectedMetadata)
   }
 
-  test("search response contains additional approvals visibility info if present") {
-    val params = Map(
-      Params.domains -> "petercetera.net",
-      Params.showVisibility -> "true",
-      Params.attribution -> "La comunidad"
-    )
-    val res = service.doSearch(params.mapValues(Seq(_)), AuthParams(), None, None)._2.results
-    res.length should be(1)
-    val expectedMetadata = Metadata("petercetera.net", None, Some(true), Some(true), Some(false), None, None, None, None,
-      Some(true), None, None, None, None, None,
-      Some(Vector(FlattenedApproval("publicize", "rejected", "2017-10-31T12:00:00.000Z", "robin-hood", "Robin Hood", None,
-        Some(false), Some("2017-11-01T12:00:00.000Z"), Some("honorable.sheriff"), Some("The Honorable Sheriff of Nottingham"), None))))
-    res(0).metadata should be(expectedMetadata)
+  test("visibility info on a VM domain") {
+    val expectedMetadata = baseOpenMetadata.copy(domain = vmDomain.cname, isModerationApproved = Some(true), moderationStatus = Some("approved"))
+    testMetaData(vmDomain.cname, "d1-v0", expectedMetadata)
+  }
+
+  test("visibility info on an RA domain") {
+    val expectedMetadata = baseOpenMetadata.copy(domain = raDomain.cname, isRoutingApproved = Some(true), routingStatus = Some("approved"))
+    testMetaData(raDomain.cname, "d2-v2", expectedMetadata)
+  }
+
+  test("visibility info on a VM + RA domain") {
+    val expectedMetadata = baseOpenMetadata.copy(domain = vmRaDomain.cname, isModerationApproved = Some(true), isRoutingApproved = Some(true),
+      moderationStatus = Some("approved"), routingStatus = Some("approved"))
+    testMetaData(vmRaDomain.cname, "d3-v3", expectedMetadata)
+  }
+
+  // views from fontana domains are special - their status isn't changed by the context, so their vis info should be constant regardless of context
+  test("visibility info for a fontana domain with a VM context") {
+    val approvals = Some(Vector(FlattenedApproval("publicize", "approved", "2017-10-31T12:00:00.000Z", "robin-hood", "Robin Hood", None,
+      Some(false), Some("2017-11-01T12:00:00.000Z"), Some("honorable.sheriff"), Some("The Honorable Sheriff of Nottingham"), None)))
+    val expectedMetadata = baseOpenMetadata.copy(domain = fontanaDomain.cname, approvals = approvals)
+    testContextMetaData(vmDomain.cname, fontanaDomain.cname, "d0-v0", expectedMetadata)
+  }
+
+  test("visibility info for a fontana domain with an RA context") {
+    val approvals = Some(Vector(FlattenedApproval("publicize", "approved", "2017-10-31T12:00:00.000Z", "robin-hood", "Robin Hood", None,
+      Some(false), Some("2017-11-01T12:00:00.000Z"), Some("honorable.sheriff"), Some("The Honorable Sheriff of Nottingham"), None)))
+    val expectedMetadata = baseOpenMetadata.copy(domain = fontanaDomain.cname, approvals = approvals)
+    testContextMetaData(raDomain.cname, fontanaDomain.cname, "d0-v0", expectedMetadata)
+  }
+
+  test("visibility info for a fontana domain with a VM + RA context") {
+    val approvals = Some(Vector(FlattenedApproval("publicize", "approved", "2017-10-31T12:00:00.000Z", "robin-hood", "Robin Hood", None,
+      Some(false), Some("2017-11-01T12:00:00.000Z"), Some("honorable.sheriff"), Some("The Honorable Sheriff of Nottingham"), None)))
+    val expectedMetadata = baseOpenMetadata.copy(domain = fontanaDomain.cname, approvals = approvals)
+    testContextMetaData(vmRaDomain.cname, fontanaDomain.cname, "d0-v0", expectedMetadata)
+  }
+
+  // the status of views from VM domains will vary based on whether the context has VM or RA
+  test("visibility info for a VM domain with a fontana domain context") {
+    val expectedMetadata = baseOpenMetadata.copy(domain = vmDomain.cname, isModerationApproved = Some(true), moderationStatus = Some("approved"))
+    testContextMetaData(fontanaDomain.cname, vmDomain.cname, "d1-v0", expectedMetadata)
+  }
+
+  test("visibility info for a VM domain with a VM context") {
+    val expectedMetadata = baseOpenMetadata.copy(domain = vmDomain.cname, isModerationApproved = Some(true), moderationStatus = Some("approved"),
+      isModerationApprovedOnContext = Some(true), isRoutingApprovedOnContext = Some(true))
+    testContextMetaData(vmRaDomain.cname, vmDomain.cname, "d1-v0", expectedMetadata)
+  }
+
+  test("visibility info for a VM domain with an RA context") {
+    val expectedMetadata = baseOpenMetadata.copy(domain = vmDomain.cname, isModerationApproved = Some(true), moderationStatus = Some("approved"),
+      isRoutingApprovedOnContext = Some(true))
+    testContextMetaData(raDomain.cname, vmDomain.cname, "d1-v0", expectedMetadata)
+  }
+
+  // the status of views from RA domains will vary based on whether the context has VM or RA
+  test("visibility info for an RA domain with a fontana domain context") {
+    val expectedMetadata = baseOpenMetadata.copy(domain = raDomain.cname, isRoutingApproved = Some(true), routingStatus = Some("approved"))
+    testContextMetaData(fontanaDomain.cname, raDomain.cname, "d2-v2", expectedMetadata)
+  }
+
+  test("visibility info for an RA domain with a VM domain context") {
+    val expectedMetadata = baseOpenMetadata.copy(domain = raDomain.cname, isRoutingApproved = Some(true), routingStatus = Some("approved"),
+      isModerationApprovedOnContext = Some(true))
+    testContextMetaData(vmDomain.cname, raDomain.cname, "d2-v2", expectedMetadata)
+  }
+
+  test("visibility info for an RA domain with an RA domain context") {
+    val expectedMetadata = baseOpenMetadata.copy(domain = raDomain.cname, isRoutingApproved = Some(true), routingStatus = Some("approved"),
+      isRoutingApprovedOnContext = Some(true), isModerationApprovedOnContext = Some(true))
+    testContextMetaData(vmRaDomain.cname, raDomain.cname, "d2-v2", expectedMetadata)
+  }
+
+  // the status of views from VM + RA domains will vary based on whether the context has VM or RA
+  test("visibility info for a VM + RA domain with a fontana domain context") {
+    val expectedMetadata = baseOpenMetadata.copy(domain = vmRaDomain.cname, isModerationApproved = Some(true), isRoutingApproved = Some(true),
+      moderationStatus = Some("approved"), routingStatus = Some("approved"))
+    testContextMetaData(fontanaDomain.cname, vmRaDomain.cname, "d3-v3", expectedMetadata)
+  }
+
+  test("visibility info for a VM + RA domain with a VM domain context") {
+    val expectedMetadata = baseOpenMetadata.copy(domain = vmRaDomain.cname, isModerationApproved = Some(true), isRoutingApproved = Some(true),
+      moderationStatus = Some("approved"), routingStatus = Some("approved"), isModerationApprovedOnContext = Some(true))
+    testContextMetaData(vmDomain.cname, vmRaDomain.cname, "d3-v3", expectedMetadata)
+  }
+
+  test("visibility info for a VM + RA domain with an RA domain context") {
+    val expectedMetadata = baseOpenMetadata.copy(domain = vmRaDomain.cname, isModerationApproved = Some(true), isRoutingApproved = Some(true),
+      moderationStatus = Some("approved"), routingStatus = Some("approved"), isRoutingApprovedOnContext = Some(true))
+    testContextMetaData(raDomain.cname, vmRaDomain.cname, "d3-v3", expectedMetadata)
   }
 
   test("search response without a searchContext should have the correct set of documents") {
-    val customerDomainIds = domains.filter(d => d.isCustomerDomain).map(_.domainId)
+    val customerDomainIds = domains.filter(d => d.isCustomerDomain).map(_.id)
     val anonymousCustomerDocs = anonymouslyViewableDocs.filter(d => customerDomainIds.contains(d.socrataId.domainId))
     val expectedFxfs = anonymousCustomerDocs.map(_.socrataId.datasetId)
-
-    // this shows that:
-    //   * rejected and pending views don't show up regardless of domain setting
-    //   * that the ES type returned includes only documents (i.e. no domains)
-    //   * that non-customer domains don't show up
     val (_, res, _, _) = service.doSearch(Map.empty, AuthParams(), None, None)
     val actualFxfs = fxfs(res)
     actualFxfs should contain theSameElementsAs expectedFxfs
@@ -197,8 +259,8 @@ class SearchServiceSpecForAnonymousUsers
   }
 
   test("adding on the set of 'browse' params should not change the set of anonymously viewable results when the search_context and domains are unmoderated") {
-    val unmoderatedDomains = domains.filter(!_.moderationEnabled).map(_.domainCname)
-    val params = Map("search_context" -> Seq(domains(0).domainCname), "domains" -> unmoderatedDomains)
+    val unmoderatedDomains = domains.filter(!_.moderationEnabled).map(_.cname)
+    val params = Map("search_context" -> Seq(domains(0).cname), "domains" -> unmoderatedDomains)
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     val (_, resultsWithRedundantParams, _, _) = service.doSearch(params ++ browseParams, AuthParams(), None, None)
 
@@ -208,8 +270,8 @@ class SearchServiceSpecForAnonymousUsers
   }
 
   test("adding on the set of 'browse' params should not change the set of anonymously viewable results when the search_context and domains are moderated") {
-    val moderatedDomains = domains.filter(_.moderationEnabled).map(_.domainCname)
-    val params = Map("search_context" -> Seq(domains(1).domainCname), "domains" -> moderatedDomains)
+    val moderatedDomains = domains.filter(_.moderationEnabled).map(_.cname)
+    val params = Map("search_context" -> Seq(domains(1).cname), "domains" -> moderatedDomains)
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     val (_, resultsWithRedundantParams, _, _) = service.doSearch(params ++ browseParams, AuthParams(), None, None)
 
@@ -219,8 +281,8 @@ class SearchServiceSpecForAnonymousUsers
   }
 
   test("adding on the set of 'browse' params should not change the set of anonymously viewable results when the search_context is unmoderated, and the domains are moderated") {
-    val moderatedDomains = domains.filter(_.moderationEnabled).map(_.domainCname)
-    val params = Map("search_context" -> Seq(domains(0).domainCname), "domains" -> moderatedDomains)
+    val moderatedDomains = domains.filter(_.moderationEnabled).map(_.cname)
+    val params = Map("search_context" -> Seq(domains(0).cname), "domains" -> moderatedDomains)
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     val (_, resultsWithRedundantParams, _, _) = service.doSearch(params ++ browseParams, AuthParams(), None, None)
 
@@ -230,8 +292,8 @@ class SearchServiceSpecForAnonymousUsers
   }
 
   test("adding on the set of 'browse' params should not change the set of anonymously viewable results when the search_context is moderated, and the domains are unmoderated") {
-    val unmoderatedDomains = domains.filter(!_.moderationEnabled).map(_.domainCname)
-    val params = Map("search_context" -> Seq(domains(1).domainCname), "domains" -> unmoderatedDomains)
+    val unmoderatedDomains = domains.filter(!_.moderationEnabled).map(_.cname)
+    val params = Map("search_context" -> Seq(domains(1).cname), "domains" -> unmoderatedDomains)
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     val (_, resultsWithRedundantParams, _, _) = service.doSearch(params ++ browseParams, AuthParams(), None, None)
 
@@ -292,7 +354,7 @@ class SearchServiceSpecForAnonymousUsers
 
   test("private documents should always be hidden") {
     val (_, res, _, _) = service.doSearch(Map(
-      Params.domains -> domains.map(_.domainCname).mkString(","),
+      Params.domains -> domains.map(_.cname).mkString(","),
       Params.public -> "false"
     ).mapValues(Seq(_)), AuthParams(), None, None)
     val actualFxfs = fxfs(res)
@@ -301,7 +363,7 @@ class SearchServiceSpecForAnonymousUsers
 
   test("unpublished documents should always be hidden") {
     val (_, res, _, _) = service.doSearch(Map(
-      Params.domains -> domains.map(_.domainCname).mkString(","),
+      Params.domains -> domains.map(_.cname).mkString(","),
       Params.published -> "false"
     ).mapValues(Seq(_)), AuthParams(), None, None)
     val actualFxfs = fxfs(res)
@@ -310,7 +372,7 @@ class SearchServiceSpecForAnonymousUsers
 
   test("hidden documents should always be hidden") {
     val (_, res, _, _) = service.doSearch(Map(
-      Params.domains -> domains.map(_.domainCname).mkString(","),
+      Params.domains -> domains.map(_.cname).mkString(","),
       Params.explicitlyHidden -> "true"
     ).mapValues(Seq(_)), AuthParams(), None, None)
     val actualFxfs = fxfs(res)
@@ -319,7 +381,7 @@ class SearchServiceSpecForAnonymousUsers
 
   test("rejected documents should always be hidden") {
     val (_, res, _, _) = service.doSearch(Map(
-      Params.domains -> domains.map(_.domainCname).mkString(","),
+      Params.domains -> domains.map(_.cname).mkString(","),
       Params.approvalStatus -> ApprovalStatus.rejected.status
     ).mapValues(Seq(_)), AuthParams(), None, None)
     val actualFxfs = fxfs(res)
@@ -328,39 +390,15 @@ class SearchServiceSpecForAnonymousUsers
 
   test("pending documents should always be hidden") {
     val (_, res, _, _) = service.doSearch(Map(
-      Params.domains -> domains.map(_.domainCname).mkString(","),
+      Params.domains -> domains.map(_.cname).mkString(","),
       Params.approvalStatus -> ApprovalStatus.pending.status
     ).mapValues(Seq(_)), AuthParams(), None, None)
     val actualFxfs = fxfs(res)
     actualFxfs should contain theSameElementsAs Set.empty
   }
 
-  test("not_moderated data federated to a moderated domain should not be in the response") {
-    // the domain params will limit us to fxfs 0,4,8,13 and 1,5,9
-    val params = Map(
-      "domains" -> "opendata-demo.socrata.com,petercetera.net",
-      "search_context" -> "opendata-demo.socrata.com"
-    ).mapValues(Seq(_))
-    // of those fxfs, only show: d1-v0 is approved and d0-v2 & d0-v3 are default views
-    val expectedFxfs = Set("d1-v0", "d0-v2", "d0-v3", "d0-v7")
-    val res = service.doSearch(params, AuthParams(), None, None)._2
-    val actualFxfs = fxfs(res)
-    actualFxfs should contain theSameElementsAs expectedFxfs
-  }
-
-  test("if a domain has routing & approval, only parent domain approved datasets should show up") {
-    val routedDomain = domains(2)
-    val params = Map("domains" -> routedDomain.domainCname).mapValues(Seq(_))
-    val domain2Docs = docs.filter(d => d.socrataId.domainId == 2)
-    // the filters below to find expected 4x4s are only correct because of the limited set of data on domain 2
-    val expectedFxfs = domain2Docs.filter(d => d.isApprovedByParentDomain && !d.isHiddenFromCatalog).map(_.socrataId.datasetId)
-    val res = service.doSearch(params, AuthParams(), None, None)._2
-    val actualFxfs = fxfs(res)
-    actualFxfs should contain theSameElementsAs expectedFxfs
-  }
-
   test("if a domain is locked and no auth is provided, nothing should come back") {
-    val lockedDomain = domains(8).domainCname
+    val lockedDomain = domains(8).cname
     val params = Map(
       "domains" -> lockedDomain,
       "search_context" -> lockedDomain
@@ -371,27 +409,11 @@ class SearchServiceSpecForAnonymousUsers
     actualFxfs should be('empty)
 
     // ensure something could have come back
-    val docFrom8 = docs.filter(d => d.socrataId.domainId == 8).headOption.get
-    docFrom8.socrataId.domainId should be(domains(8).domainId)
+    val docFrom8 = dom8Docs.headOption.get
+    docFrom8.socrataId.domainId should be(domains(8).id)
     docFrom8.isPublic should be(true)
     docFrom8.isPublished should be(true)
     docFrom8.isApprovedByParentDomain should be(true)
-  }
-
-  test("if a search context has routing & approval, only datasets approved by that domain too should show up") {
-    val routedDomain2 = domains(2)
-    val routedDomain3 = domains(3)
-    val params = Map(
-      "domains" -> s"${routedDomain2.domainCname},${routedDomain3.domainCname}",
-      "search_context" -> routedDomain3.domainCname
-    ).mapValues(Seq(_))
-    val domain2Or3Docs = docs.filter(d => d.socrataId.domainId == 2 || d.socrataId.domainId == 3)
-    val expectedFxfs = domain2Or3Docs.filter(d =>
-      d.isApprovedByParentDomain && d.isPublic && (d.isDefaultView || d.isVmApproved)
-        && d.isRaApproved(3)).map(_.socrataId.datasetId)
-    val res = service.doSearch(params, AuthParams(), None, None)._2
-    val actualFxfs = fxfs(res)
-    actualFxfs should contain theSameElementsAs expectedFxfs
   }
 
   test("if a user is provided, only anonymously viewabled datasets owned by that user should show up") {
@@ -449,7 +471,7 @@ class SearchServiceSpecForAnonymousUsers
   }
 
   test("using 'visibility=open' filters nothing, since anonymous users already see 'open' views") {
-    val dom = domains(0).domainCname
+    val dom = domains(0).cname
     val params = Map("search_context" -> Seq(dom), "domains" -> Seq(dom))
     val vizParams = Map("search_context" -> Seq(dom), "domains" -> Seq(dom), "visibility" -> Seq("open"))
 
@@ -462,7 +484,7 @@ class SearchServiceSpecForAnonymousUsers
   }
 
   test("using 'visibility=internal' filters everything, since anonymous users can only see 'open' views") {
-    val dom = domains(0).domainCname
+    val dom = domains(0).cname
     val params = Map("search_context" -> Seq(dom), "domains" -> Seq(dom), "visibility" -> Seq("internal"))
     val (_, res, _, _) = service.doSearch(params, AuthParams(), None, None)
     val actualFxfs = fxfs(res)
@@ -514,7 +536,7 @@ class SearchServiceSpecForAnonymousUsers
 
     docsWithPartialMatch.size should be > expectedFxfs.size
 
-    testResultSet(params, expectedFxfs)
+    testResultSet(params, Some(expectedFxfs))
   }
 
   test("custom domain categories filter should NOT include partial phrase matches") {
@@ -530,7 +552,7 @@ class SearchServiceSpecForAnonymousUsers
 
     docsWithPartialMatch.size should be > expectedFxfs.size
 
-    testResultSet(params, expectedFxfs)
+    testResultSet(params, Some(expectedFxfs))
   }
 
   test("categories filter should NOT include individual term matches") {
@@ -541,8 +563,7 @@ class SearchServiceSpecForAnonymousUsers
       "categories" -> "Alpha Beta Gaga"
     ).mapValues(Seq(_))
 
-    val expectedFxfs = Seq.empty[String]
-    testResultSet(params, expectedFxfs)
+    testResultSet(params, None)
   }
 
   test("searching for a category should include case insensitive partial phrase matches") {
@@ -555,7 +576,7 @@ class SearchServiceSpecForAnonymousUsers
       .map(_.exists(_.name.toLowerCase().contains("personal"))).get)
       .map(_.socrataId.datasetId)
 
-    testResultSet(params, expectedFxfs)
+    testResultSet(params, Some(expectedFxfs))
   }
 
   test("searching for a custom domain category should include case insensitive partial phrase matches") {
@@ -568,7 +589,7 @@ class SearchServiceSpecForAnonymousUsers
     val expectedFxfs = anonymousDomain0Docs.filter(_.customerCategory.exists(_.toLowerCase.contains("alpha")))
       .map(_.socrataId.datasetId)
 
-    testResultSet(params, expectedFxfs)
+    testResultSet(params, Some(expectedFxfs))
   }
 
   //////////////////////////////////////////////////
@@ -616,7 +637,7 @@ class SearchServiceSpecForAnonymousUsers
 
     docsWithPartialMatch.size should be > expectedFxfs.size
 
-    testResultSet(params, expectedFxfs)
+    testResultSet(params, Some(expectedFxfs))
   }
 
   test("custom domain tags filter should NOT include partial phrase matches") {
@@ -632,7 +653,7 @@ class SearchServiceSpecForAnonymousUsers
 
     docsWithPartialMatch.size should be > expectedFxfs.size
 
-    testResultSet(params, expectedFxfs)
+    testResultSet(params, Some(expectedFxfs))
   }
 
   test("tags filter should NOT include individual term matches") {
@@ -643,8 +664,7 @@ class SearchServiceSpecForAnonymousUsers
       "tags" -> "Happy Days Is My Favorite"
     ).mapValues(Seq(_))
 
-    val expectedFxfs = Seq.empty[String]
-    testResultSet(params, expectedFxfs)
+    testResultSet(params, None)
   }
 
   test("searching for a tag should include case insensitive partial phrase matches") {
@@ -657,7 +677,7 @@ class SearchServiceSpecForAnonymousUsers
       .map(_.exists(_.name.toLowerCase().contains("happy"))).get)
       .map(_.socrataId.datasetId)
 
-    testResultSet(params, expectedFxfs)
+    testResultSet(params, Some(expectedFxfs))
   }
 
   test("searching for a custom domain tag should include case insensitive partial phrase matches") {
@@ -669,7 +689,7 @@ class SearchServiceSpecForAnonymousUsers
 
     val expectedFxfs = anonymousDomain0Docs.filter(_.customerTags.exists(_.contains("1-one"))).map(_.socrataId.datasetId)
 
-    testResultSet(params, expectedFxfs)
+    testResultSet(params, Some(expectedFxfs))
   }
 
   //////////////////////////////////////////////////
@@ -771,7 +791,7 @@ class SearchServiceSpecForAnonymousUsers
   }
 
   test("a query that results in a dataset with a license should return metadata with a 'license' field") {
-    val params = Map("q" -> Seq("A dataset with a multiword title"))
+    val params = Map("q" -> Seq("Five"))
     val (_, results, _, _) = service.doSearch(params, AuthParams(), None, None)
     results.results(0).metadata.license should be(Some("Academic Free License"))
   }

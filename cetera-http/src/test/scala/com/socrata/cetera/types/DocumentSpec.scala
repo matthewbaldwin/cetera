@@ -28,12 +28,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
     doc.isVmPending should be(true)
   }
 
-  def verifyVmMissing(doc: Document): Unit = {
-    doc.isVmApproved should be(false)
-    doc.isVmRejected should be(false)
-    doc.isVmPending should be(false)
-  }
-
   def verifyRaApproved(doc: Document, domainId: Int): Unit = {
     doc.isRaApproved(domainId) should be(true)
     doc.isRaRejected(domainId) should be(false)
@@ -67,8 +61,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(false)
       doc.isSharedOrOwned("robin-hood") should be(true)
-      verifyVmMissing(doc)
-      verifyRaMissing(doc, 0)
+      doc.isFontanaApproved should be(true)
       verifyRaPending(doc, 2)
     }
 
@@ -80,21 +73,19 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isHiddenFromCatalog should be(true)
       doc.isDefaultView should be(false)
       doc.isSharedOrOwned("robin-hood") should be(true)
-      verifyVmMissing(doc)
-      verifyRaMissing(doc, 0)
+      doc.approvals should be(Some(List.empty))
       verifyRaApproved(doc, 2)
     }
 
     "have the expected statuses for d0-v2" in {
       val doc = docs.find(d => d.socrataId.datasetId == "d0-v2").get
-        doc.isPublic should be(true)
+      doc.isPublic should be(true)
       doc.isPublished should be(true)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(true)
       doc.isSharedOrOwned("robin-hood") should be(true)
-      verifyVmMissing(doc)
-      verifyRaMissing(doc, 0)
+      doc.isFontanaApproved should be(true)
       verifyRaRejected(doc, 2)
     }
 
@@ -106,8 +97,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(true)
       doc.isSharedOrOwned("robin-hood") should be(true)
-      verifyVmMissing(doc)
-      verifyRaMissing(doc, 0)
+      doc.isFontanaApproved should be(true)
       verifyRaRejected(doc, 2)
     }
 
@@ -119,8 +109,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(false)
       doc.isSharedOrOwned("robin-hood") should be(true)
-      verifyVmMissing(doc)
-      verifyRaMissing(doc, 0)
+      doc.isFontanaApproved should be(true)
       verifyRaApproved(doc, 2)
     }
 
@@ -134,7 +123,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isSharedOrOwned("lil-john") should be(true)
       doc.isSharedOrOwned("cook-mons") should be(true)
       doc.isSharedOrOwned("maid-marian") should be(true)
-      verifyRaMissing(doc, 0)
+      doc.isFontanaPending should be(true)
       verifyRaPending(doc, 2)
     }
 
@@ -147,8 +136,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isDefaultView should be(true)
       doc.isSharedOrOwned("cook-mons") should be(true)
       doc.isSharedOrOwned("Little John") should be(true)
-      verifyVmMissing(doc)
-      verifyRaMissing(doc, 0)
+      doc.isFontanaRejected should be(true)
       verifyRaMissing(doc, 2)  // isn't in 2's queue, b/c of RA bug ;)
     }
 
@@ -161,8 +149,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isDefaultView should be(true)
       doc.isSharedOrOwned("lil-john") should be(true)
       doc.isSharedOrOwned("King Richard") should be(true)
-      verifyVmMissing(doc)
-      verifyRaMissing(doc, 0)
+      doc.isFontanaApproved should be(true)
       verifyRaApproved(doc, 2)
     }
 
@@ -175,7 +162,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isDefaultView should be(false)
       doc.isSharedOrOwned("lil-john") should be(true)
       doc.isSharedOrOwned("maid-marian") should be(true)
-      verifyRaMissing(doc, 0)
+      doc.isFontanaApproved should be(true)
       verifyRaPending(doc, 2)
     }
 
@@ -187,7 +174,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(false)
       doc.isSharedOrOwned("lil-john") should be(true)
-      verifyRaMissing(doc, 0)
+      doc.isFontanaApproved should be(true)
       verifyRaApproved(doc, 2)
     }
   }
@@ -202,7 +189,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isDefaultView should be(false)
       doc.isSharedOrOwned("maid-marian") should be(true)
       verifyVmApproved(doc)
-      verifyRaMissing(doc, 1)
     }
 
     "have the expected statuses for d1-v1" in {
@@ -215,7 +201,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isSharedOrOwned("maid-marian") should be(true)
       doc.isSharedOrOwned("friar-tuck") should be(true)
       verifyVmRejected(doc)
-      verifyRaMissing(doc, 1)
+      verifyRaMissing(doc, 2)
     }
 
     "have the expected statuses for d1-v2" in {
@@ -228,12 +214,36 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isSharedOrOwned("maid-marian") should be(true)
       doc.isSharedOrOwned("friar-tuck") should be(true)
       verifyVmPending(doc)
-      verifyRaMissing(doc, 1)
+      verifyRaMissing(doc, 2)
+    }
+
+    "have the expected statuses for d1-v3" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d1-v3").get
+      doc.isPublic should be(true)
+      doc.isPublished should be(true)
+      doc.isStory should be(false)
+      doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(false)
+      doc.isSharedOrOwned("maid-marian") should be(true)
+      verifyVmApproved(doc)
+      verifyRaRejected(doc, 2)
+    }
+
+    "have the expected statuses for d1-v4" in {
+      val doc = docs.find(d => d.socrataId.datasetId == "d1-v4").get
+      doc.isPublic should be(true)
+      doc.isPublished should be(true)
+      doc.isStory should be(false)
+      doc.isHiddenFromCatalog should be(false)
+      doc.isDefaultView should be(false)
+      doc.isSharedOrOwned("maid-marian") should be(true)
+      verifyVmApproved(doc)
+      verifyRaPending(doc, 2)
     }
   }
 
 
-  "domain 2 is a customer domain with RA, but no VM, that federates into domain 0 (which has neither VM or RA) and domain 3 (which has both VM & RA)" should {
+  "domain 2 is a customer domain with RA, but no VM, that federates into domain 0, 1 and 3" should {
     "have the expected statuses for d2-v0" in {
       val doc = docs.find(d => d.socrataId.datasetId == "d2-v0").get
       doc.isPublic should be(true)
@@ -255,7 +265,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(false)
       doc.isSharedOrOwned("robin-hood") should be(true)
-      verifyVmMissing(doc)
       verifyRaRejected(doc, 2)
       verifyRaMissing(doc, 0)
       verifyRaApproved(doc, 3)
@@ -269,7 +278,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(true)
       doc.isSharedOrOwned("robin-hood") should be(true)
-      verifyVmMissing(doc) // is default view
       verifyRaApproved(doc, 2)
       verifyRaMissing(doc, 0)
       verifyRaApproved(doc, 3)
@@ -284,7 +292,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isDefaultView should be(true)
       doc.isSharedOrOwned("robin-hood") should be(true)
       doc.isSharedOrOwned("Little John") should be(true)
-      verifyVmMissing(doc)
       verifyRaRejected(doc, 2)
       verifyRaMissing(doc, 0)
       verifyRaRejected(doc, 3)
@@ -298,7 +305,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(false)
       doc.isSharedOrOwned("john-clan") should be(true)
-      verifyVmMissing(doc)
       verifyRaApproved(doc, 2)
       verifyRaMissing(doc, 0)
       verifyRaApproved(doc, 3)
@@ -312,7 +318,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isHiddenFromCatalog should be(true)
       doc.isDefaultView should be(false)
       doc.isSharedOrOwned("prince-john") should be(true)
-      verifyVmMissing(doc)
       verifyRaApproved(doc, 2)
       verifyRaMissing(doc, 0)
       verifyRaRejected(doc, 3)
@@ -327,7 +332,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isDefaultView should be(false)
       doc.isSharedOrOwned("maid-marian") should be(true)
       doc.isSharedOrOwned("lil-john") should be(true)
-      verifyVmMissing(doc)
       verifyRaRejected(doc, 2)
     }
 
@@ -340,7 +344,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isDefaultView should be(false)
       doc.isSharedOrOwned("maid-marian") should be(true)
       doc.isSharedOrOwned("lil-john") should be(true)
-      verifyVmMissing(doc)
       verifyRaPending(doc, 2)
     }
   }
@@ -353,7 +356,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(true)
       doc.isSharedOrOwned("prince-john") should be(true)
-      verifyVmMissing(doc) // b/c is a default view
       verifyRaRejected(doc, 3)
     }
 
@@ -375,9 +377,7 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isPublished should be(true)
       doc.isStory should be(false)
       doc.isHiddenFromCatalog should be(false)
-      doc.isPublic should be(true)
       doc.isSharedOrOwned("prince-john") should be(true)
-      verifyVmMissing(doc)  // is default view
       verifyRaApproved(doc, 3)
     }
 
@@ -389,7 +389,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isHiddenFromCatalog should be(false)
       doc.isDefaultView should be(true)
       doc.isSharedOrOwned("prince-john") should be(true)
-      verifyVmMissing(doc)  // is default view
       verifyRaApproved(doc, 3)
     }
 
@@ -466,7 +465,6 @@ class DocumentSpec extends WordSpec with ShouldMatchers with TestESData with Bef
       doc.isDefaultView should be(false)
       doc.isSharedOrOwned("maid-marian") should be(true)
       doc.isSharedOrOwned("lil-john") should be(true)
-      verifyVmMissing(doc)
       verifyRaRejected(doc, 3)
       verifyRaPending(doc, 2)
     }

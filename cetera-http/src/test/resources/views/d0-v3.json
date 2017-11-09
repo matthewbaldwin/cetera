@@ -101,5 +101,18 @@
   "provenance": "community",
   "owner": {
     "id": "robin-hood"
-  }
+  },
+  "approvals": [ {
+    "outcome": "publicize",
+    "state": "approved",
+    "submitted_at": "2017-10-31T12:00:00.000Z",
+    "submitter_id" : "robin-hood",
+    "submitter_name" : "Robin Hood",
+    "submitter_email" : "robin-hood@nottingham.com",
+    "reviewed_automatically": false,
+    "reviewed_at": "2017-11-01T12:00:00.000Z",
+    "reviewer_id" : "honorable.sheriff",
+    "reviewer_name" : "The Honorable Sheriff of Nottingham",
+    "reviewer_email" : "honorable.sheriff@nottingham.com"
+  } ]
 }

@@ -145,7 +145,7 @@ class DomainClientSpec extends WordSpec with ShouldMatchers with TestESData
       val expectedDomains = domains.filter(_.isCustomerDomain)
       val expectedContext = domains(0)
       val expectedHost = domains(0)
-      val (actualDset, _) = domainClient.findDomainSet(Some(expectedContext.domainCname), Some(expectedHost.domainCname), Some(Set.empty), true)
+      val (actualDset, _) = domainClient.findDomainSet(Some(expectedContext.cname), Some(expectedHost.cname), Some(Set.empty), true)
       actualDset.domains should contain theSameElementsAs(expectedDomains)
       actualDset.searchContext.get should be(expectedContext)
       actualDset.extendedHost.get should be(expectedHost)
@@ -154,7 +154,7 @@ class DomainClientSpec extends WordSpec with ShouldMatchers with TestESData
     "return most of the things if context and extend host are given but no domains are given and not opting to get customer domains" in {
       val expectedContext = domains(0)
       val expectedHost = domains(2)
-      val (actualDset, _) = domainClient.findDomainSet(Some(expectedContext.domainCname), Some(expectedHost.domainCname), Some(Set.empty), false)
+      val (actualDset, _) = domainClient.findDomainSet(Some(expectedContext.cname), Some(expectedHost.cname), Some(Set.empty), false)
       actualDset.domains should be('empty)
       actualDset.searchContext.get should be(expectedContext)
       actualDset.extendedHost.get should be(expectedHost)
@@ -164,7 +164,7 @@ class DomainClientSpec extends WordSpec with ShouldMatchers with TestESData
       val expectedDomains = Set(domains(0), domains(2), domains(3))
       val expectedContext = domains(0)
       val expectedHost = domains(2)
-      val (actualDset, _) = domainClient.findDomainSet(Some(expectedContext.domainCname), Some(expectedHost.domainCname), Some(expectedDomains.map(_.domainCname)), true)
+      val (actualDset, _) = domainClient.findDomainSet(Some(expectedContext.cname), Some(expectedHost.cname), Some(expectedDomains.map(_.cname)), true)
       actualDset.domains should contain theSameElementsAs(expectedDomains)
       actualDset.searchContext.get should be(expectedContext)
       actualDset.extendedHost.get should be(expectedHost)
@@ -173,19 +173,19 @@ class DomainClientSpec extends WordSpec with ShouldMatchers with TestESData
 
   "finding the context from findSearchableDomains when no cnames are given (and we rely on customer domain search)" should {
     "return the context if it's unlocked and no auth is given" in {
-      val (domainSet, _) = domainClient.findSearchableDomains(Some(unlockedCustomerDomain.domainCname), None, None, true, None, None)
+      val (domainSet, _) = domainClient.findSearchableDomains(Some(unlockedCustomerDomain.cname), None, None, true, None, None)
       domainSet.searchContext.get should be(unlockedCustomerDomain)
     }
 
     "return None for the context if it's locked and no auth is given" in {
-      val (domainSet, _) = domainClient.findSearchableDomains(Some(lockedCustomerDomain.domainCname), None, None, true, None, None)
+      val (domainSet, _) = domainClient.findSearchableDomains(Some(lockedCustomerDomain.cname), None, None, true, None, None)
       domainSet.searchContext should be(None)
     }
 
     "return the context if it's locked and auth is given for the context" in {
       val user = prepUserAuth("editor")
       val (domainSet, _) = domainClient.findSearchableDomains(
-        Some(lockedCustomerDomain.domainCname), Some(lockedCustomerDomain.domainCname), None, true, user, None)
+        Some(lockedCustomerDomain.cname), Some(lockedCustomerDomain.cname), None, true, user, None)
 
       domainSet.searchContext.get should be(lockedCustomerDomain)
     }
@@ -194,7 +194,7 @@ class DomainClientSpec extends WordSpec with ShouldMatchers with TestESData
       val user = prepUserAuth("editor")
       val authingDomain = unlockedCustomerDomain2
       val (domainSet, _) = domainClient.findSearchableDomains(
-        Some(lockedCustomerDomain.domainCname), Some(authingDomain.domainCname), None, true, user, None)
+        Some(lockedCustomerDomain.cname), Some(authingDomain.cname), None, true, user, None)
 
       domainSet.searchContext should be(None)
     }
@@ -203,13 +203,13 @@ class DomainClientSpec extends WordSpec with ShouldMatchers with TestESData
   "finding the extended host from findSearchableDomains when no cnames are given (and we rely on customer domain search)" should {
     "return the extended host regardless of state if auth isn't given" in {
       val (lockedCustomerDomainSet, _) = domainClient.findSearchableDomains(
-        None, Some(lockedCustomerDomain.domainCname), None, true, None, None)
+        None, Some(lockedCustomerDomain.cname), None, true, None, None)
       val (lockedNonCustomerDomainSet, _) = domainClient.findSearchableDomains(
-        None, Some(lockedNonCustomerDomain.domainCname), None, true, None, None)
+        None, Some(lockedNonCustomerDomain.cname), None, true, None, None)
       val (unlockedCustomerDomainSet, _) = domainClient.findSearchableDomains(
-        None, Some(unlockedCustomerDomain.domainCname), None, true, None, None)
+        None, Some(unlockedCustomerDomain.cname), None, true, None, None)
       val (unlockedNonCustomerDomainSet, _) = domainClient.findSearchableDomains(
-        None, Some(unlockedNonCustomerDomain.domainCname), None, true, None, None)
+        None, Some(unlockedNonCustomerDomain.cname), None, true, None, None)
 
       lockedCustomerDomainSet.extendedHost.get should be(lockedCustomerDomain)
       lockedNonCustomerDomainSet.extendedHost.get should be(lockedNonCustomerDomain)
@@ -221,13 +221,13 @@ class DomainClientSpec extends WordSpec with ShouldMatchers with TestESData
       val user = prepUserAuth("administrator")
 
       val (lockedCustomerDomainSet, _) = domainClient.findSearchableDomains(
-        None, Some(lockedCustomerDomain.domainCname), None, true, user, None)
+        None, Some(lockedCustomerDomain.cname), None, true, user, None)
       val (lockedNonCustomerDomainSet, _) = domainClient.findSearchableDomains(
-        None, Some(lockedNonCustomerDomain.domainCname), None, true, user, None)
+        None, Some(lockedNonCustomerDomain.cname), None, true, user, None)
       val (unlockedCustomerDomainSet, _) = domainClient.findSearchableDomains(
-        None, Some(unlockedCustomerDomain.domainCname), None, true, user, None)
+        None, Some(unlockedCustomerDomain.cname), None, true, user, None)
       val (unlockedNonCustomerDomainSet, _) = domainClient.findSearchableDomains(
-        None, Some(unlockedNonCustomerDomain.domainCname), None, true, user, None)
+        None, Some(unlockedNonCustomerDomain.cname), None, true, user, None)
 
       lockedCustomerDomainSet.extendedHost.get should be(lockedCustomerDomain)
       lockedNonCustomerDomainSet.extendedHost.get should be(lockedNonCustomerDomain)
@@ -245,36 +245,36 @@ class DomainClientSpec extends WordSpec with ShouldMatchers with TestESData
     "return unlocked customer domains + locked customer domains if auth is given for the locked domain" in {
       val expectedDomains = unlockedCustomerDomains ++ Some(lockedCustomerDomain)
       val user = prepUserAuth("editor")
-      val (domainSet, _) = domainClient.findSearchableDomains(None, Some(lockedCustomerDomain.domainCname), None, true, user, None)
+      val (domainSet, _) = domainClient.findSearchableDomains(None, Some(lockedCustomerDomain.cname), None, true, user, None)
 
       domainSet.domains should contain theSameElementsAs(expectedDomains)
     }
 
     "return only unlocked customer domains if auth is given but it ain't for any locked domain" in {
       val user = prepUserAuth("editor")
-      val (domainSet, _) = domainClient.findSearchableDomains(None, Some(lockedNonCustomerDomain.domainCname), None, true, user, None)
+      val (domainSet, _) = domainClient.findSearchableDomains(None, Some(lockedNonCustomerDomain.cname), None, true, user, None)
 
       domainSet.domains should contain theSameElementsAs(unlockedCustomerDomains)
     }
   }
 
   "finding the context from findSearchableDomains when cnames are given" should {
-    val domainsToSearch = Some(domains.map(_.domainCname).toSet)
+    val domainsToSearch = Some(domains.map(_.cname).toSet)
 
     "return the context if it's unlocked and no auth is given" in {
-      val (domainSet, _) = domainClient.findSearchableDomains(Some(unlockedCustomerDomain.domainCname), None, domainsToSearch, true, None, None)
+      val (domainSet, _) = domainClient.findSearchableDomains(Some(unlockedCustomerDomain.cname), None, domainsToSearch, true, None, None)
       domainSet.searchContext.get should be(unlockedCustomerDomain)
     }
 
     "return None for the context if it's locked and no auth is given" in {
-      val (domainSet, _) = domainClient.findSearchableDomains(Some(lockedCustomerDomain.domainCname), None, domainsToSearch, true, None, None)
+      val (domainSet, _) = domainClient.findSearchableDomains(Some(lockedCustomerDomain.cname), None, domainsToSearch, true, None, None)
       domainSet.searchContext should be(None)
     }
 
     "return the context if it's locked and auth is given for the context" in {
       val user = prepUserAuth("editor")
       val (domainSet, _) = domainClient.findSearchableDomains(
-        Some(lockedCustomerDomain.domainCname), Some(lockedCustomerDomain.domainCname), domainsToSearch, true, user, None)
+        Some(lockedCustomerDomain.cname), Some(lockedCustomerDomain.cname), domainsToSearch, true, user, None)
 
       domainSet.searchContext.get should be(lockedCustomerDomain)
     }
@@ -283,24 +283,24 @@ class DomainClientSpec extends WordSpec with ShouldMatchers with TestESData
       val user = prepUserAuth("editor")
       val authingDomain = unlockedCustomerDomain2
       val (domainSet, _) = domainClient.findSearchableDomains(
-        Some(lockedCustomerDomain.domainCname), Some(authingDomain.domainCname), domainsToSearch, true, user, None)
+        Some(lockedCustomerDomain.cname), Some(authingDomain.cname), domainsToSearch, true, user, None)
 
       domainSet.searchContext should be(None)
     }
   }
 
   "finding the extended host from findSearchableDomains when cnames are given" should {
-    val domainsToSearch = Some(domains.map(_.domainCname).toSet)
+    val domainsToSearch = Some(domains.map(_.cname).toSet)
 
     "return the extended host regardless of state if auth isn't given" in {
       val (lockedCustomerDomainSet, _) = domainClient.findSearchableDomains(
-        None, Some(lockedCustomerDomain.domainCname), domainsToSearch, true, None, None)
+        None, Some(lockedCustomerDomain.cname), domainsToSearch, true, None, None)
       val (lockedNonCustomerDomainSet, _) = domainClient.findSearchableDomains(
-        None, Some(lockedNonCustomerDomain.domainCname), domainsToSearch, true, None, None)
+        None, Some(lockedNonCustomerDomain.cname), domainsToSearch, true, None, None)
       val (unlockedCustomerDomainSet, _) = domainClient.findSearchableDomains(
-        None, Some(unlockedCustomerDomain.domainCname), domainsToSearch, true, None, None)
+        None, Some(unlockedCustomerDomain.cname), domainsToSearch, true, None, None)
       val (unlockedNonCustomerDomainSet, _) = domainClient.findSearchableDomains(
-        None, Some(unlockedNonCustomerDomain.domainCname), domainsToSearch, true, None, None)
+        None, Some(unlockedNonCustomerDomain.cname), domainsToSearch, true, None, None)
 
       lockedCustomerDomainSet.extendedHost.get should be(lockedCustomerDomain)
       lockedNonCustomerDomainSet.extendedHost.get should be(lockedNonCustomerDomain)
@@ -312,13 +312,13 @@ class DomainClientSpec extends WordSpec with ShouldMatchers with TestESData
       val user = prepUserAuth("administrator")
 
       val (lockedCustomerDomainSet, _) = domainClient.findSearchableDomains(
-        None, Some(lockedCustomerDomain.domainCname), domainsToSearch, true, user, None)
+        None, Some(lockedCustomerDomain.cname), domainsToSearch, true, user, None)
       val (lockedNonCustomerDomainSet, _) = domainClient.findSearchableDomains(
-        None, Some(lockedNonCustomerDomain.domainCname), domainsToSearch, true, user, None)
+        None, Some(lockedNonCustomerDomain.cname), domainsToSearch, true, user, None)
       val (unlockedCustomerDomainSet, _) = domainClient.findSearchableDomains(
-        None, Some(unlockedCustomerDomain.domainCname), domainsToSearch, true, user, None)
+        None, Some(unlockedCustomerDomain.cname), domainsToSearch, true, user, None)
       val (unlockedNonCustomerDomainSet, _) = domainClient.findSearchableDomains(
-        None, Some(unlockedNonCustomerDomain.domainCname), domainsToSearch, true, user, None)
+        None, Some(unlockedNonCustomerDomain.cname), domainsToSearch, true, user, None)
 
       lockedCustomerDomainSet.extendedHost.get should be(lockedCustomerDomain)
       lockedNonCustomerDomainSet.extendedHost.get should be(lockedNonCustomerDomain)
@@ -328,7 +328,7 @@ class DomainClientSpec extends WordSpec with ShouldMatchers with TestESData
   }
 
   "finding the domains to search from findSearchableDomains when cnames are given" should {
-    val domainsToSearch = Some(domains.map(_.domainCname).toSet)
+    val domainsToSearch = Some(domains.map(_.cname).toSet)
 
     "return only unlocked domains if auth isn't given" in {
       val (domainSet, _) = domainClient.findSearchableDomains(None, None, domainsToSearch, true, None, None)
@@ -338,14 +338,14 @@ class DomainClientSpec extends WordSpec with ShouldMatchers with TestESData
     "return unlocked domains + locked domains if auth is given for the locked domain" in {
       val expectedDomains = unlockedDomains ++ Some(lockedCustomerDomain)
       val user = prepUserAuth("editor")
-      val (domainSet, _) = domainClient.findSearchableDomains(None, Some(lockedCustomerDomain.domainCname), domainsToSearch, true, user, None)
+      val (domainSet, _) = domainClient.findSearchableDomains(None, Some(lockedCustomerDomain.cname), domainsToSearch, true, user, None)
 
       domainSet.domains should contain theSameElementsAs(expectedDomains)
     }
 
     "return only unlocked domains if auth is given but it ain't for any locked domain" in {
       val user = prepUserAuth("editor")
-      val (domainSet, _) = domainClient.findSearchableDomains(None, Some(unlockedCustomerDomain.domainCname), domainsToSearch, true, user, None)
+      val (domainSet, _) = domainClient.findSearchableDomains(None, Some(unlockedCustomerDomain.cname), domainsToSearch, true, user, None)
 
       domainSet.domains should contain theSameElementsAs(unlockedDomains)
     }
@@ -355,7 +355,7 @@ class DomainClientSpec extends WordSpec with ShouldMatchers with TestESData
     "return the context, extended host and domains even if they are all the same thing: opendata-demo.socrata.com" in {
       val domain = domains(1)
       val (domainSet, _) = domainClient.findSearchableDomains(
-        Some(domain.domainCname), Some(domain.domainCname), Some(Set(domain.domainCname)), true, None, None)
+        Some(domain.cname), Some(domain.cname), Some(Set(domain.cname)), true, None, None)
 
       domainSet.searchContext.get should be(domain)
       domainSet.extendedHost.get should be(domain)

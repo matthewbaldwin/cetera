@@ -1,21 +1,20 @@
 {
-  "created_at": "2017-05-18T10:37:20.933-07:00",
-  "updated_at": "2017-05-18T10:37:20.933-07:00",
+  "created_at": "2016-09-19T10:37:20.933-07:00",
+  "updated_at": "2016-09-19T10:37:20.857-07:00",
   "socrata_id": {
-    "dataset_id": "d9-v2",
+    "dataset_id": "d1-v4",
     "parent_dataset_id": [],
-    "domain_id": 9,
-    "nbe_id": "abcd-efgh",
-    "obe_id": "hgfe-dcba"
+    "domain_id": 1,
+    "obe_id": "d1-v0"
   },
   "resource": {
-    "description": "A recently updated dataset",
-    "parent_fxf": null,
-    "updatedAt": "2017-05-18T10:37:20.933-07:00",
-    "createdAt": "2017-05-18T10:37:20.933-07:00",
-    "type": "dataset",
-    "id": "d9-v2",
-    "name": "'bravo",
+    "description": "approved on 1, but pending on 2",
+    "parent_fxf": ["d1-v0"],
+    "updatedAt": "2016-09-19T10:37:20.857-07:00",
+    "createdAt": "2016-09-19T10:37:20.933-07:00",
+    "type": "filter",
+    "id": "d1-v4",
+    "name": "Two",
     "attribution": null,
     "provenance": "community",
     "columns_field_name": [],
@@ -27,24 +26,25 @@
     "categories": [],
     "tags": []
   },
-  "datatype": "dataset",
+  "datatype": "filter",
   "viewtype": "",
   "indexed_metadata": {
-    "name": "'bravo",
-    "description": "A recently updated dataset",
+    "name": "Two",
+    "description": "Second the best",
     "columns_field_name": [],
     "columns_description": [],
     "columns_name": []
   },
   "customer_metadata_flattened": [],
   "private_customer_metadata_flattened": [],
+  "customer_tags": [],
   "is_public": true,
   "is_published": true,
-  "is_default_view": true,
+  "is_default_view": false,
   "moderation_status": "approved",
   "approving_domain_ids": [],
   "rejecting_domain_ids": [],
-  "pending_domain_ids": [],
+  "pending_domain_ids": [ 2 ],
   "is_approved_by_parent_domain": false,
   "is_rejected_by_parent_domain": false,
   "is_pending_on_parent_domain": false,
@@ -53,8 +53,6 @@
     "page_views_last_month": 2,
     "page_views_last_week": 2
   },
-  "customer_category": "Science",
-  "customer_tags": [],
   "shared_to": [],
   "attribution": null,
   "preview_image_id": null,
@@ -63,16 +61,6 @@
   "hide_from_data_json": false,
   "provenance": "community",
   "owner": {
-    "id": "honorable.sheriff"
-  },
-  "approvals": [ {
-    "outcome": "publicize",
-    "state": "approved",
-    "submitted_at": "2017-10-31T12:00:00.000Z",
-    "submitter_id" : "honorable.sheriff",
-    "submitter_name" : "The Honorable Sheriff of Nottingham",
-    "submittwer_email" : "honorable.sheriff@nottingham.com",
-    "reviewed_automatically": true,
-    "reviewed_at": "2017-11-01T12:00:00.000Z"
-  } ]
+    "id": "maid-marian"
+  }
 }

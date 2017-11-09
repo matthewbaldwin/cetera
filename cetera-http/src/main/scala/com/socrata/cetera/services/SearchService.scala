@@ -32,8 +32,8 @@ class SearchService(
     domain.foreach { d =>
       query match {
         case NoQuery => // nothing to log to balboa
-        case SimpleQuery(q) => balboaClient.logQuery(d.domainId, q)
-        case AdvancedQuery(q) => balboaClient.logQuery(d.domainId, q)
+        case SimpleQuery(q) => balboaClient.logQuery(d.id, q)
+        case AdvancedQuery(q) => balboaClient.logQuery(d.id, q)
       }
     }
   }

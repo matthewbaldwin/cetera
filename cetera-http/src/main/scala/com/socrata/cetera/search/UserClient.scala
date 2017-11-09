@@ -37,7 +37,7 @@ class UserClient(esClient: ElasticSearchClient, indexAliasName: String) {
       case Some(d) =>
         val req = esClient.client.prepareSearch(indexAliasName)
           .setTypes(esDocumentType)
-          .setQuery(DocumentQuery().domainIdQuery(Set(d.domainId)))
+          .setQuery(DocumentQuery().domainIdQuery(Set(d.id)))
           .addAggregation(DocumentAggregations.owners(OwnerAggregationSize))
 
         val res = req.execute.actionGet
@@ -76,7 +76,7 @@ class UserClient(esClient: ElasticSearchClient, indexAliasName: String) {
       .setQuery(userQuery(searchParams.copy(ids=ids), domain, authorizedUser))
       .setFrom(pagingParams.offset)
       .setSize(pagingParams.limit)
-      .addSort(Sorts.buildSort(pagingParams.sortKey, pagingParams.sortOrder, Some(domainForRoles.domainId)))
+      .addSort(Sorts.buildSort(pagingParams.sortKey, pagingParams.sortOrder, Some(domainForRoles.id)))
     logger.info(LogHelper.formatEsRequest(req))
 
     val res = req.execute.actionGet
@@ -162,7 +162,7 @@ class UserClient(esClient: ElasticSearchClient, indexAliasName: String) {
       .setQuery(UserQueries.autocompleteQuery(searchParams, scoringParams, domain, authorizedUser))
       .setFrom(pagingParams.offset)
       .setSize(pagingParams.limit)
-      .addSort(Sorts.buildSort(pagingParams.sortKey, pagingParams.sortOrder, Some(domainForRoles.domainId)))
+      .addSort(Sorts.buildSort(pagingParams.sortKey, pagingParams.sortOrder, Some(domainForRoles.id)))
       .highlighter(highlighter)
 
     logger.info(LogHelper.formatEsRequest(req))

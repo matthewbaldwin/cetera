@@ -64,11 +64,7 @@ class Router(
 
     // catalog autocomplete
     Route("/catalog/autocomplete", autocompleteResource),
-    Route("/catalog/v1/autocomplete", autocompleteResource),
-
-    // TODO: remove when this is no longer used in cetera-ruby
-    Route("/internal_catalog", catalogResource),
-    Route("/internal_catalog/v1", catalogResource)
+    Route("/catalog/v1/autocomplete", autocompleteResource)
   )
 
   val rerouted = LiteralOnlyPathTree(Map("api" -> routes), None, None).merge(routes)

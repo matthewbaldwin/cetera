@@ -42,7 +42,7 @@ case class AuthedUser(
   def hasRight(right: String): Boolean = rights.exists(r => r.contains(right))
 
   def authorizedOnDomain(domainId: Int): Boolean =
-    authenticatingDomain.domainId == domainId || isSuperAdmin
+    authenticatingDomain.id == domainId || isSuperAdmin
 
   def canViewResource(domainId: Int, isAuthorized: Boolean): Boolean =
     isAuthorized && authorizedOnDomain(domainId) || isSuperAdmin

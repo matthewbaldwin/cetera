@@ -22,7 +22,7 @@ class UserSpec extends WordSpec with ShouldMatchers with TestESUsers {
 
     "return true if the user is a super admin" in {
       domains.foreach { d =>
-        superAdminUser(domId).authorizedOnDomain(d.domainId) should be(true)
+        superAdminUser(domId).authorizedOnDomain(d.id) should be(true)
       }
     }
 
@@ -62,7 +62,7 @@ class UserSpec extends WordSpec with ShouldMatchers with TestESUsers {
 
     "return true if the user is a super admin" in  {
       domains.foreach { d =>
-        superAdminUser(d.domainId).canViewResource(d.domainId, isAuthorized = false) should be(true)
+        superAdminUser(d.id).canViewResource(d.id, isAuthorized = false) should be(true)
       }
     }
 

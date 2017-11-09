@@ -101,7 +101,7 @@ class FormatSpec extends WordSpec with ShouldMatchers
         new Suggest(List.empty.asJava), new SearchProfileShardResults(Map.empty[String, ProfileShardResult].asJava),
         false, false, 0)
       val badSearchResponse =  new SearchResponse(internalSearchResponse, "", 15, 15, 4, Array[ShardSearchFailure]())
-      val domain = Domain(1, "tempuri.org", None, Some("Title"), Some("Temp Org"), isCustomerDomain = true, moderationEnabled = false, routingApprovalEnabled = false, lockedDown = false, apiLockedDown = false)
+      val domain = Domain(1, "tempuri.org", None, Some("Title"), Some("Temp Org"), true, false, false, false, false, false)
 
       val searchResults = Format.formatDocumentResponse(badSearchResponse, None, domainSet, FormatParamSet())
       val results = searchResults.results
@@ -341,33 +341,6 @@ class FormatSpec extends WordSpec with ShouldMatchers
     }
   }
 
-  "the moderationApproved method" should {
-    "return None if the domain does not have moderation enabled" in {
-      val unmoderatedDomain = domains(0)
-      Format.moderationApproved(docs(0).copy(moderationStatus = Some("approved"), datatype = "chart"), unmoderatedDomain) should be(None)
-    }
-
-    "return false if the view is rejected and the domain has moderation enabled" in {
-      val moderatedDomain = domains(1)
-      Format.moderationApproved(docs(1).copy(moderationStatus = Some("rejected"), datatype = "chart"), moderatedDomain) should be(Some(false))
-    }
-
-    "return false if the view is pending and the domain has moderation enabled" in {
-      val moderatedDomain = domains(1)
-      Format.moderationApproved(docs(1).copy(moderationStatus = Some("pending"), datatype = "chart"), moderatedDomain) should be(Some(false))
-    }
-
-    "return true if the view is a dataset and the domain has moderation enabled" in {
-      val moderatedDomain = domains(1)
-      Format.moderationApproved(docs(1).copy(isDefaultView = true, datatype = "dataset"), moderatedDomain) should be(Some(true))
-    }
-
-    "return true if the view is approved and the domain has moderation enabled)" in {
-      val moderatedDomain = domains(1)
-      Format.moderationApproved(docs(1).copy(moderationStatus = Some("approved"), datatype = "chart"), moderatedDomain) should be(Some(true))
-    }
-  }
-
   "the moderationApprovedByContext method" should {
     "return None if the context doesn't have view moderation" in {
       val view = docs(1).copy(moderationStatus = Some("approved"), datatype = "chart")
@@ -377,6 +350,12 @@ class FormatSpec extends WordSpec with ShouldMatchers
       val context = DomainSet(searchContext = Some(unmoderatedDomain0))
       Format.moderationApprovedByContext(view, unmoderatedDomain2, context) should be(None)
       Format.moderationApprovedByContext(view, moderatedDomain, context) should be(None)
+    }
+
+    "return None if the the view comes from a fontana domain" in {
+      val view = dom0Docs.headOption.get
+      val context = DomainSet(searchContext = Some(vmDomain))
+      Format.moderationApprovedByContext(view, fontanaDomain, context) should be(None)
     }
 
     "return false if the view is rejected and the domain and context have moderation enabled" in {
@@ -412,19 +391,15 @@ class FormatSpec extends WordSpec with ShouldMatchers
     }
 
     "return false if the view is not default and the context has moderation enabled, but not the view's domain" in {
-      val view = docs(0).copy(isDefaultView = false, datatype = "chart")
-      val moderatedDomain = domains(1)
-      val viewsDomain = domains(0)
-      val context = DomainSet(searchContext = Some(moderatedDomain))
-      Format.moderationApprovedByContext(view, viewsDomain, context) should be(Some(false))
+      val view = dom2Docs.head.copy(isDefaultView = false)
+      val context = DomainSet(searchContext = Some(vmDomain))
+      Format.moderationApprovedByContext(view, raDomain, context) should be(Some(false))
     }
 
     "return true if the view is a dataset and the context has moderation enabled, but not the view's domain" in {
-      val view = docs(0).copy(isDefaultView = true, datatype = "dataset")
-      val moderatedDomain = domains(1)
-      val viewsDomain = domains(0)
-      val context = DomainSet(searchContext = Some(moderatedDomain))
-      Format.moderationApprovedByContext(view, viewsDomain, context) should be(Some(true))
+      val view = dom2Docs.head.copy(isDefaultView = true, datatype = "dataset")
+      val context = DomainSet(searchContext = Some(vmDomain))
+      Format.moderationApprovedByContext(view, raDomain, context) should be(Some(true))
     }
   }
 
@@ -443,24 +418,6 @@ class FormatSpec extends WordSpec with ShouldMatchers
     }
   }
 
-  "the routingApproved method" should {
-    "return None if the domain does not have R&A enabled" in {
-      val unroutedDomain = domains(0)
-      Format.routingApproved(docs(0), unroutedDomain) should be(None)
-    }
-
-    "return false if the dataset isn't approved by its parent domain" in {
-      val unroutedDomain = domains(0)
-      val routedDomain = domains(2)
-      Format.routingApproved(docs(2).copy(datatype = "dataset", approvingDomainIds = Some(List(0))), routedDomain) should be(Some(false))
-    }
-
-    "return true if the dataset is approved by its parent domain" in {
-      val routedDomain = domains(2)
-      Format.routingApproved(docs(2).copy(datatype = "dataset", approvingDomainIds = Some(List(2))), routedDomain) should be(Some(true))
-    }
-  }
-
   "the routingApprovedByContext method" should {
     "return None if there is no search context regardless of parent domain" in {
       val unroutedDomain = domains(0)
@@ -476,6 +433,12 @@ class FormatSpec extends WordSpec with ShouldMatchers
       val unroutedContext = DomainSet(searchContext = Some(domains(1)))
       Format.routingApprovedByContext(docs(0).copy(datatype = "dataset", approvingDomainIds = Some(List(0, 2))), unroutedDomain, unroutedContext) should be(None)
       Format.routingApprovedByContext(docs(2).copy(datatype = "dataset", approvingDomainIds = Some(List(0, 2))), routedDomain, unroutedContext) should be(None)
+    }
+
+    "return None if the the view comes from a fontana domain" in {
+      val view = dom0Docs.headOption.get
+      val context = DomainSet(searchContext = Some(vmDomain))
+      Format.routingApprovedByContext(view, fontanaDomain, context) should be(None)
     }
 
     "return false if the dataset isn't approved by the RA-enabled context" in {

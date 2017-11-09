@@ -29,7 +29,7 @@ class AutocompleteServiceSpec
 
   test("an autocomplete search without a search query throws") {
     intercept[MissingRequiredParameterError] {
-      val basicDomain = domains(0).domainCname
+      val basicDomain = domains(0).cname
       val params = Map("search_context" -> basicDomain, "domains" -> basicDomain).mapValues(Seq(_))
       autocompleteService.doSearch(params, AuthParams(), None, None)._2
     }
@@ -52,7 +52,7 @@ class AutocompleteServiceSpec
   }
 
   test("an autocomplete search restricted to a domain should return the expected results") {
-    val basicDomain = domains(0).domainCname
+    val basicDomain = domains(0).cname
     val params = Map("search_context" -> basicDomain, "domains" -> basicDomain, "q" -> "o")
       .mapValues(Seq(_))
     val SearchResults(actualCompletions, _, _) = autocompleteService.doSearch(
@@ -62,7 +62,7 @@ class AutocompleteServiceSpec
   }
 
   test("an autocomplete search honors the order parameter") {
-    val params = Map("domains" -> domains.map(_.domainCname).mkString(","), "q" -> "t", "order" -> "name")
+    val params = Map("domains" -> domains.map(_.cname).mkString(","), "q" -> "t", "order" -> "name")
       .mapValues(Seq(_))
 
     val SearchResults(actualCompletions, _, _) = autocompleteService.doSearch(
@@ -73,7 +73,7 @@ class AutocompleteServiceSpec
   }
 
   test("by default, autocomplete requires that all specified terms match") {
-    val params = Map("domains" -> domains.map(_.domainCname).mkString(","), "q" -> "latest foo")
+    val params = Map("domains" -> domains.map(_.cname).mkString(","), "q" -> "latest foo")
       .mapValues(Seq(_))
 
     val SearchResults(actualCompletions1, _, _) = autocompleteService.doSearch(
@@ -88,7 +88,7 @@ class AutocompleteServiceSpec
   }
 
   test("autocomplete honors the min_should_match parameter") {
-    val params = Map("domains" -> domains.map(_.domainCname).mkString(","), "q" -> "latest foo")
+    val params = Map("domains" -> domains.map(_.cname).mkString(","), "q" -> "latest foo")
       .mapValues(Seq(_))
 
     val SearchResults(actualCompletions1, _, _) = autocompleteService.doSearch(

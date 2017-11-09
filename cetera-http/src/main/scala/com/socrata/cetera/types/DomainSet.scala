@@ -13,12 +13,12 @@ case class DomainSet(
 
   def idMap: Map[Int, Domain] = {
     val allDomains = domains ++ searchContext ++ extendedHost
-    allDomains.map(d => d.domainId -> d).toMap
+    allDomains.map(d => d.id -> d).toMap
   }
 
   def idCnameMap: Map[Int, String] = {
     val allDomains = domains ++ searchContext ++ extendedHost
-    allDomains.map(d => d.domainId -> d.domainCname).toMap
+    allDomains.map(d => d.id -> d.cname).toMap
   }
 
   def cnameIdMap: Map[String, Int] = idCnameMap.map(_.swap)
@@ -37,12 +37,13 @@ case class DomainSet(
     */
   private def partitionIds(predicate: Domain => Boolean): (Set[Int], Set[Int]) = {
     val (trueDomains, falseDomains) = domains.partition(predicate)
-    (trueDomains.map(_.domainId), falseDomains.map(_.domainId))
+    (trueDomains.map(_.id), falseDomains.map(_.id))
   }
 
   val contextIsModerated = searchContext.exists(_.moderationEnabled)
   val contextHasRoutingApproval = searchContext.exists(_.routingApprovalEnabled)
-  val allIds = domains.map(_.domainId)
+  val allIds = domains.map(_.id)
   val (moderationEnabledIds, moderationDisabledIds) = partitionIds(_.moderationEnabled)
   val (raEnabledIds, raDisabledIds) = partitionIds(_.routingApprovalEnabled)
+  val (hasFontanaApprovals, lacksFontanaApprovals) = partitionIds(_.hasFontanaApprovals)
 }
