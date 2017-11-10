@@ -98,6 +98,7 @@ case class FlattenedApproval(
     submitterId: String,
     submitterName: String,
     submitterEmail: Option[String],
+    notes: Option[String],
     reviewedAutomatically: Option[Boolean],
     reviewedAt: Option[String],
     reviewerId: Option[String],
@@ -105,6 +106,7 @@ case class FlattenedApproval(
     reviewerEmail: Option[String]
 ) {
 
+  def removeNotesAndEmails(): FlattenedApproval = this.copy(notes = None, submitterEmail = None, reviewerEmail = None)
   def removeEmails(): FlattenedApproval = this.copy(submitterEmail = None, reviewerEmail = None)
 }
 

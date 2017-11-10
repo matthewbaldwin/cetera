@@ -259,66 +259,141 @@ class FormatSpec extends WordSpec with ShouldMatchers
     val storyWithPrivateMetadata = story.copy(privateCustomerMetadataFlattened = privateMetadata)
 
     "return None if no user is provided" in {
-      Format.domainPrivateMetadata(docWithPrivateMetadata, None, viewsDomainId) should be(None)
+      Format.domainPrivateMetadata(docWithPrivateMetadata, None) should be(None)
     }
 
     "return None if the user doesn't own/share it and has no edit rights for non-stories" in {
-      Format.domainPrivateMetadata(docWithPrivateMetadata, Some(userWithAllTheStoriesRights(viewsDomainId)), viewsDomainId) should be(None)
-      Format.domainPrivateMetadata(docWithPrivateMetadata, Some(userWithAllTheViewRights(viewsDomainId)), viewsDomainId) should be(None)
-      Format.domainPrivateMetadata(docWithPrivateMetadata, Some(userWithOnlyManageUsersRight(viewsDomainId)), viewsDomainId) should be(None)
-      Format.domainPrivateMetadata(docWithPrivateMetadata, Some(userWithRoleButNoRights(viewsDomainId)), viewsDomainId) should be(None)
-      Format.domainPrivateMetadata(docWithPrivateMetadata, Some(userWithNoRoleAndNoRights(viewsDomainId)), viewsDomainId) should be(None)
+      Format.domainPrivateMetadata(docWithPrivateMetadata, Some(userWithAllTheStoriesRights(viewsDomainId))) should be(None)
+      Format.domainPrivateMetadata(docWithPrivateMetadata, Some(userWithAllTheViewRights(viewsDomainId))) should be(None)
+      Format.domainPrivateMetadata(docWithPrivateMetadata, Some(userWithOnlyManageUsersRight(viewsDomainId))) should be(None)
+      Format.domainPrivateMetadata(docWithPrivateMetadata, Some(userWithRoleButNoRights(viewsDomainId))) should be(None)
+      Format.domainPrivateMetadata(docWithPrivateMetadata, Some(userWithNoRoleAndNoRights(viewsDomainId))) should be(None)
     }
 
     "return None if the user doesn't own/share it and has no edit rights for stories" in {
-      Format.domainPrivateMetadata(storyWithPrivateMetadata, Some(userWithAllTheNonStoriesRights(viewsDomainId)), viewsDomainId) should be(None)
-      Format.domainPrivateMetadata(storyWithPrivateMetadata, Some(userWithAllTheViewRights(viewsDomainId)), viewsDomainId) should be(None)
-      Format.domainPrivateMetadata(storyWithPrivateMetadata, Some(userWithOnlyManageUsersRight(viewsDomainId)), viewsDomainId) should be(None)
-      Format.domainPrivateMetadata(storyWithPrivateMetadata, Some(userWithRoleButNoRights(viewsDomainId)), viewsDomainId) should be(None)
-      Format.domainPrivateMetadata(storyWithPrivateMetadata, Some(userWithNoRoleAndNoRights(viewsDomainId)), viewsDomainId) should be(None)
+      Format.domainPrivateMetadata(storyWithPrivateMetadata, Some(userWithAllTheNonStoriesRights(viewsDomainId))) should be(None)
+      Format.domainPrivateMetadata(storyWithPrivateMetadata, Some(userWithAllTheViewRights(viewsDomainId))) should be(None)
+      Format.domainPrivateMetadata(storyWithPrivateMetadata, Some(userWithOnlyManageUsersRight(viewsDomainId))) should be(None)
+      Format.domainPrivateMetadata(storyWithPrivateMetadata, Some(userWithRoleButNoRights(viewsDomainId))) should be(None)
+      Format.domainPrivateMetadata(storyWithPrivateMetadata, Some(userWithNoRoleAndNoRights(viewsDomainId))) should be(None)
     }
 
     "return None if the user has edit rights for non-stories, but it isn't on the view's domain" in {
-      Format.domainPrivateMetadata(docWithPrivateMetadata, Some(userWithAllTheRights(8)), viewsDomainId) should be(None)
-      Format.domainPrivateMetadata(docWithPrivateMetadata, Some(userWithAllTheNonStoriesRights(8)), viewsDomainId) should be(None)
+      Format.domainPrivateMetadata(docWithPrivateMetadata, Some(userWithAllTheRights(8))) should be(None)
+      Format.domainPrivateMetadata(docWithPrivateMetadata, Some(userWithAllTheNonStoriesRights(8))) should be(None)
     }
 
     "return None if the user has edit rights for stories, but it isn't on the view's domain" in {
-      Format.domainPrivateMetadata(storyWithPrivateMetadata, Some(userWithAllTheRights(8)), viewsDomainId) should be(None)
-      Format.domainPrivateMetadata(storyWithPrivateMetadata, Some(userWithAllTheStoriesRights(8)), viewsDomainId) should be(None)
+      Format.domainPrivateMetadata(storyWithPrivateMetadata, Some(userWithAllTheRights(8))) should be(None)
+      Format.domainPrivateMetadata(storyWithPrivateMetadata, Some(userWithAllTheStoriesRights(8))) should be(None)
     }
 
     "return the expected value if the user owns the view" in {
       val user = Some(AuthedUser("robin-hood", domains(0)))
-      val metadata = Format.domainPrivateMetadata(docWithPrivateMetadata, user, viewsDomainId)
+      val metadata = Format.domainPrivateMetadata(docWithPrivateMetadata, user)
       metadata should be(Some(privateMetadata))
     }
 
     "return the expected value if the user shares the view" in {
       val user = Some(AuthedUser("friar-tuck", domains(1)))
       val sharedDoc = docs.filter(d => d.socrataId.domainId == 1 && d.isSharedBy("friar-tuck")).headOption.get
-      val metadata = Format.domainPrivateMetadata(sharedDoc.copy(privateCustomerMetadataFlattened = privateMetadata), user, viewsDomainId)
+      val metadata = Format.domainPrivateMetadata(sharedDoc.copy(privateCustomerMetadataFlattened = privateMetadata), user)
       metadata should be(Some(privateMetadata))
     }
 
     "return the expected value if the user is a super admin" in {
-      val metadata = Format.domainPrivateMetadata(docWithPrivateMetadata, Some(superAdminUser(viewsDomainId)), viewsDomainId)
+      val metadata = Format.domainPrivateMetadata(docWithPrivateMetadata, Some(superAdminUser(viewsDomainId)))
       metadata should be(Some(privateMetadata))
     }
 
     "return the expected value if the user has both edit rights on the view's domain" in {
-      val metadata = Format.domainPrivateMetadata(docWithPrivateMetadata, Some(userWithAllTheRights(viewsDomainId)), viewsDomainId)
+      val metadata = Format.domainPrivateMetadata(docWithPrivateMetadata, Some(userWithAllTheRights(viewsDomainId)))
       metadata should be(Some(privateMetadata))
     }
 
     "return the expected value if the user has the non-stories edit right on the view's domain and we are looking at a non-story" in {
-      Format.domainPrivateMetadata(docWithPrivateMetadata, Some(userWithAllTheRights(viewsDomainId)), viewsDomainId) should be(Some(privateMetadata))
-      Format.domainPrivateMetadata(docWithPrivateMetadata, Some(userWithAllTheNonStoriesRights(viewsDomainId)), viewsDomainId) should be(Some(privateMetadata))
+      Format.domainPrivateMetadata(docWithPrivateMetadata, Some(userWithAllTheRights(viewsDomainId))) should be(Some(privateMetadata))
+      Format.domainPrivateMetadata(docWithPrivateMetadata, Some(userWithAllTheNonStoriesRights(viewsDomainId))) should be(Some(privateMetadata))
     }
 
     "return the expected val if the user has the stories edit right on the view's domain and we are looking at a story" in {
-      Format.domainPrivateMetadata(storyWithPrivateMetadata, Some(userWithAllTheRights(viewsDomainId)), viewsDomainId) should be(Some(privateMetadata))
-      Format.domainPrivateMetadata(storyWithPrivateMetadata, Some(userWithAllTheStoriesRights(viewsDomainId)), viewsDomainId) should be(Some(privateMetadata))
+      Format.domainPrivateMetadata(storyWithPrivateMetadata, Some(userWithAllTheRights(viewsDomainId))) should be(Some(privateMetadata))
+      Format.domainPrivateMetadata(storyWithPrivateMetadata, Some(userWithAllTheStoriesRights(viewsDomainId))) should be(Some(privateMetadata))
+    }
+  }
+
+  "the approvals method" should {
+    val viewsDomainId = 0
+    val flattenedApproval = dom0Docs.head.approvals
+    val approvalWithNotes = flattenedApproval.map(_.map(_.removeEmails))
+    val approvalWithoutNotes = flattenedApproval.map(_.map(_.removeNotesAndEmails()))
+
+    val nonStory = dom0Docs.filter(!_.isStory).head
+    val story = dom0Docs.filter(_.isStory).head
+    val docWithApprovals = nonStory.copy(approvals = flattenedApproval)
+    val storyWithApprovals = story.copy(approvals = flattenedApproval)
+
+    "return approvals without notes if no user is provided" in {
+      Format.approvals(docWithApprovals, None) should be(approvalWithoutNotes)
+    }
+
+    "return approvals without notes if the user doesn't own/share it and has no edit rights for non-stories" in {
+      Format.approvals(docWithApprovals, Some(userWithAllTheStoriesRights(viewsDomainId))) should be(approvalWithoutNotes)
+      Format.approvals(docWithApprovals, Some(userWithAllTheViewRights(viewsDomainId))) should be(approvalWithoutNotes)
+      Format.approvals(docWithApprovals, Some(userWithOnlyManageUsersRight(viewsDomainId))) should be(approvalWithoutNotes)
+      Format.approvals(docWithApprovals, Some(userWithRoleButNoRights(viewsDomainId))) should be(approvalWithoutNotes)
+      Format.approvals(docWithApprovals, Some(userWithNoRoleAndNoRights(viewsDomainId))) should be(approvalWithoutNotes)
+    }
+
+    "return approvals without notes if the user doesn't own/share it and has no edit rights for stories" in {
+      Format.approvals(storyWithApprovals, Some(userWithAllTheNonStoriesRights(viewsDomainId))) should be(approvalWithoutNotes)
+      Format.approvals(storyWithApprovals, Some(userWithAllTheViewRights(viewsDomainId))) should be(approvalWithoutNotes)
+      Format.approvals(storyWithApprovals, Some(userWithOnlyManageUsersRight(viewsDomainId))) should be(approvalWithoutNotes)
+      Format.approvals(storyWithApprovals, Some(userWithRoleButNoRights(viewsDomainId))) should be(approvalWithoutNotes)
+      Format.approvals(storyWithApprovals, Some(userWithNoRoleAndNoRights(viewsDomainId))) should be(approvalWithoutNotes)
+    }
+
+    "return approvals without notes if the user has edit rights for non-stories, but it isn't on the view's domain" in {
+      Format.approvals(docWithApprovals, Some(userWithAllTheRights(8))) should be(approvalWithoutNotes)
+      Format.approvals(docWithApprovals, Some(userWithAllTheNonStoriesRights(8))) should be(approvalWithoutNotes)
+    }
+
+    "return approvals without notes if the user has edit rights for stories, but it isn't on the view's domain" in {
+      Format.approvals(storyWithApprovals, Some(userWithAllTheRights(8))) should be(approvalWithoutNotes)
+      Format.approvals(storyWithApprovals, Some(userWithAllTheStoriesRights(8))) should be(approvalWithoutNotes)
+    }
+
+    "return approvals with notes if the user owns the view" in {
+      val user = Some(AuthedUser("robin-hood", domains(0)))
+      val approvals = Format.approvals(docWithApprovals, user)
+      approvals should be(approvalWithNotes)
+    }
+
+    "return approvals with notes if the user shares the view" in {
+      val user = Some(AuthedUser("friar-tuck", domains(1)))
+      val sharedDoc = dom1Docs.filter(_.isSharedBy("friar-tuck")).head
+      val approvals = Format.approvals(sharedDoc.copy(approvals = flattenedApproval), user)
+      approvals should be(approvalWithNotes)
+    }
+
+    "return approvals with notes if the user is a super admin" in {
+      val approvals = Format.approvals(docWithApprovals, Some(superAdminUser(viewsDomainId)))
+      approvals should be(approvalWithNotes)
+    }
+
+    "return approvals with notes if the user has both edit rights on the view's domain" in {
+      val approvals = Format.approvals(docWithApprovals, Some(userWithAllTheRights(viewsDomainId)))
+      approvals should be(approvalWithNotes)
+    }
+
+    "return approvals with notes if the user has the non-stories edit right on the view's domain and we are looking at a non-story" in {
+      Format.approvals(docWithApprovals, Some(userWithAllTheRights(viewsDomainId))) should be(approvalWithNotes)
+      Format.approvals(docWithApprovals, Some(userWithAllTheNonStoriesRights(viewsDomainId))) should be(approvalWithNotes)
+    }
+
+    "return approvals with notes if the user has the stories edit right on the view's domain and we are looking at a story" in {
+      Format.approvals(storyWithApprovals, Some(userWithAllTheRights(viewsDomainId))) should be(approvalWithNotes)
+      Format.approvals(storyWithApprovals, Some(userWithAllTheStoriesRights(viewsDomainId))) should be(approvalWithNotes)
     }
   }
 

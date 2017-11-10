@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory
 
 import com.socrata.cetera.auth.AuthedUser._
 import com.socrata.cetera.errors.UnauthorizedError
-import com.socrata.cetera.types.Domain
+import com.socrata.cetera.types.{Document, Domain}
 
 case class User(
     id: String,
@@ -68,6 +68,15 @@ case class AuthedUser(
       canViewResource(domainId, hasRight(toEditOthersViews))
     }
 
+  def canViewAllOfSomeApprovalsNotes(domainId: Int, isStory: Boolean): Boolean =
+    if (isStory) {
+      canViewResource(domainId,
+        hasRight(toReviewApprovals) || hasRight(toConfigureApprovals) || hasRight(toEditOthersStories))
+    } else {
+      canViewResource(domainId,
+        hasRight(toReviewApprovals) || hasRight(toConfigureApprovals) || hasRight(toEditOthersViews))
+    }
+
   def canViewAllUsers: Boolean =
     hasRight(toViewAllUsers) || isSuperAdmin
 
@@ -77,6 +86,9 @@ case class AuthedUser(
 
   def canViewUsersOnDomain(domainId: Int): Boolean =
     canViewResource(domainId, hasAnyRole)
+
+  def owns(doc: Document): Boolean = doc.owner.id == id
+  def shares(doc: Document): Boolean = doc.sharedTo.contains(id)
 }
 
 object AuthedUser {
@@ -87,4 +99,6 @@ object AuthedUser {
   val toViewAllUsers = "manage_users"
   val toEditOthersViews = "edit_others_datasets"
   val toEditOthersStories = "edit_others_stories"
+  val toReviewApprovals = "review_approvals"
+  val toConfigureApprovals = "configure_approvals"
 }

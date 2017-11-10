@@ -55,6 +55,7 @@
         "submitter_id": { "type": "keyword" },
         "submitter_name": { "type": "text", "analyzer": "lowercase_alphanumeric", "fielddata": true },
         "submitter_email": { "type": "keyword" },
+        "notes": { "type": "keyword" },
         "reviewed_automatically" : { "type": "boolean" },
         "reviewer_id": { "type": "keyword" },
         "reviewer_name": { "type": "text", "analyzer": "lowercase_alphanumeric", "fielddata": true },

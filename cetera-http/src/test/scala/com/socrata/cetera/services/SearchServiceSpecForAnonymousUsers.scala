@@ -134,7 +134,7 @@ class SearchServiceSpecForAnonymousUsers
   }
 
   test("visibility info on a fontana domain") {
-    val approvals = Some(Vector(FlattenedApproval("publicize", "approved", "2017-10-31T12:00:00.000Z", "robin-hood", "Robin Hood", None,
+    val approvals = Some(Vector(FlattenedApproval("publicize", "approved", "2017-10-31T12:00:00.000Z", "robin-hood", "Robin Hood", None, None,
       Some(false), Some("2017-11-01T12:00:00.000Z"), Some("honorable.sheriff"), Some("The Honorable Sheriff of Nottingham"), None)))
     val expectedMetadata = baseOpenMetadata.copy(domain = fontanaDomain.cname, approvals = approvals)
     testMetaData(fontanaDomain.cname, "d0-v0", expectedMetadata)
@@ -158,21 +158,21 @@ class SearchServiceSpecForAnonymousUsers
 
   // views from fontana domains are special - their status isn't changed by the context, so their vis info should be constant regardless of context
   test("visibility info for a fontana domain with a VM context") {
-    val approvals = Some(Vector(FlattenedApproval("publicize", "approved", "2017-10-31T12:00:00.000Z", "robin-hood", "Robin Hood", None,
+    val approvals = Some(Vector(FlattenedApproval("publicize", "approved", "2017-10-31T12:00:00.000Z", "robin-hood", "Robin Hood", None, None,
       Some(false), Some("2017-11-01T12:00:00.000Z"), Some("honorable.sheriff"), Some("The Honorable Sheriff of Nottingham"), None)))
     val expectedMetadata = baseOpenMetadata.copy(domain = fontanaDomain.cname, approvals = approvals)
     testContextMetaData(vmDomain.cname, fontanaDomain.cname, "d0-v0", expectedMetadata)
   }
 
   test("visibility info for a fontana domain with an RA context") {
-    val approvals = Some(Vector(FlattenedApproval("publicize", "approved", "2017-10-31T12:00:00.000Z", "robin-hood", "Robin Hood", None,
+    val approvals = Some(Vector(FlattenedApproval("publicize", "approved", "2017-10-31T12:00:00.000Z", "robin-hood", "Robin Hood", None, None,
       Some(false), Some("2017-11-01T12:00:00.000Z"), Some("honorable.sheriff"), Some("The Honorable Sheriff of Nottingham"), None)))
     val expectedMetadata = baseOpenMetadata.copy(domain = fontanaDomain.cname, approvals = approvals)
     testContextMetaData(raDomain.cname, fontanaDomain.cname, "d0-v0", expectedMetadata)
   }
 
   test("visibility info for a fontana domain with a VM + RA context") {
-    val approvals = Some(Vector(FlattenedApproval("publicize", "approved", "2017-10-31T12:00:00.000Z", "robin-hood", "Robin Hood", None,
+    val approvals = Some(Vector(FlattenedApproval("publicize", "approved", "2017-10-31T12:00:00.000Z", "robin-hood", "Robin Hood", None, None,
       Some(false), Some("2017-11-01T12:00:00.000Z"), Some("honorable.sheriff"), Some("The Honorable Sheriff of Nottingham"), None)))
     val expectedMetadata = baseOpenMetadata.copy(domain = fontanaDomain.cname, approvals = approvals)
     testContextMetaData(vmRaDomain.cname, fontanaDomain.cname, "d0-v0", expectedMetadata)

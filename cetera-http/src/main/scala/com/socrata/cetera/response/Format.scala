@@ -28,7 +28,8 @@ object Format {
       datasetId: String,
       datasetCategory: Option[String],
       datasetName: String,
-      previewImageId: Option[String]): Map[String, String] = {
+      previewImageId: Option[String])
+    : Map[String, String] = {
 
     val cnameWithLocale = locale.foldLeft(cname){ (path, locale) => s"$path/$locale" }
 
@@ -57,21 +58,21 @@ object Format {
     ) ++ previewImageUrl.map(url => ("previewImageUrl", url))
   }
 
-  def domainPrivateMetadata(doc: Document, user: Option[AuthedUser], domainId: Int)
-  : Option[Seq[CustomerMetadataFlattened]] =
-    user.flatMap { case u: AuthedUser =>
-      val ownsIt = doc.owner.id == u.id
-      val sharesIt = doc.sharedTo.contains(u.id)
-      // a user may only view private metadata from docs on their authenticating domain,
-      // assuming they are authed to do so for stories or non-stories
-      val isStory = doc.isStory
-      val canViewIt = u.canViewAllOfSomePrivateMetadata(domainId, isStory)
-
-      if (ownsIt || sharesIt || canViewIt) {
+  def domainPrivateMetadata(doc: Document, user: Option[AuthedUser]): Option[Seq[CustomerMetadataFlattened]] =
+    user match {
+      case Some(u) if (u.owns(doc) || u.shares(doc) ||
+        u.canViewAllOfSomePrivateMetadata(doc.socrataId.domainId.toInt, doc.isStory)) =>
         Some(doc.privateCustomerMetadataFlattened)
-      } else {
-        None
-      }
+      case _ => None
+    }
+
+  def approvals(doc: Document, user: Option[AuthedUser]): Option[Seq[FlattenedApproval]] =
+    user match {
+      case Some(u) if (u.owns(doc) || u.shares(doc) ||
+        u.canViewAllOfSomeApprovalsNotes(doc.socrataId.domainId.toInt, doc.isStory)) =>
+        doc.approvals.map(_.map(_.removeEmails))
+      case _ =>
+        doc.approvals.map(_.map(_.removeNotesAndEmails()))
     }
 
   private def literallyApproved(doc: Document): Boolean =
@@ -146,18 +147,23 @@ object Format {
     if (viewDomainId != contextDomainId) (moderationApprovalOnContext, routingApprovalOnContext) else (None, None)
   }
 
-  def calculateVisibility(doc: Document, viewsDomain: Domain, domainSet: DomainSet): Metadata = {
+  def calculateVisibility(
+      doc: Document,
+      viewsDomain: Domain,
+      domainSet: DomainSet,
+      user: Option[AuthedUser])
+    : Metadata = {
     val vmStatus = moderationStatus(doc, viewsDomain)
     val raStatus = routingStatus(doc, viewsDomain)
-    val moderationApproval = vmStatus.map(_ == ApprovalStatus.approved.status)
-    val routingApproval = raStatus.map(_ == ApprovalStatus.approved.status)
+    val moderationApproved = vmStatus.map(_ == ApprovalStatus.approved.status)
+    val routingApproved = raStatus.map(_ == ApprovalStatus.approved.status)
     val fontanaApproved = if (!viewsDomain.hasFontanaApprovals) true else doc.isFontanaApproved
     val(moderationApprovalOnContext, routingApprovalOnContext) = contextApprovals(doc, viewsDomain, domainSet)
     val viewGrants = if (doc.grants.isEmpty) None else Some(doc.grants)
     val anonymousVis =
       doc.isPublic & doc.isPublished & !doc.isHiddenFromCatalog &
-      routingApproval.getOrElse(true) & routingApprovalOnContext.getOrElse(true) &
-      moderationApproval.getOrElse(true) & moderationApprovalOnContext.getOrElse(true) &
+      routingApproved.getOrElse(true) & routingApprovalOnContext.getOrElse(true) &
+      moderationApproved.getOrElse(true) & moderationApprovalOnContext.getOrElse(true) &
       fontanaApproved
 
     Metadata(
@@ -166,15 +172,15 @@ object Format {
       isPublic = Some(doc.isPublic),
       isPublished = Some(doc.isPublished),
       isHidden = Some(doc.isHiddenFromCatalog),
-      isModerationApproved = moderationApproval,
+      isModerationApproved = moderationApproved,
       isModerationApprovedOnContext = moderationApprovalOnContext,
-      isRoutingApproved = routingApproval,
+      isRoutingApproved = routingApproved,
       isRoutingApprovedOnContext = routingApprovalOnContext,
       visibleToAnonymous = Some(anonymousVis),
       moderationStatus = moderationStatus(doc, viewsDomain),
       routingStatus = routingStatus(doc, viewsDomain),
       grants = viewGrants,
-      approvals = doc.approvals.map(_.map(_.removeEmails)) // not bothering with auth to show emails
+      approvals = approvals(doc, user)
     )
   }
 
@@ -193,7 +199,7 @@ object Format {
 
       val viewLicense = doc.license
       val scorelessMetadata = if (showVisibility) {
-        calculateVisibility(doc, viewsDomain, domainSet)
+        calculateVisibility(doc, viewsDomain, domainSet, user)
       } else {
         Metadata(viewsDomain.cname, viewLicense)
       }
@@ -218,7 +224,7 @@ object Format {
           doc.customerCategory,
           doc.customerTags,
           doc.customerMetadataFlattened,
-          domainPrivateMetadata(doc, user, viewsDomainId)),
+          domainPrivateMetadata(doc, user)),
         metadata,
         linkMap.getOrElse("permalink", ""),
         linkMap.getOrElse("link", ""),
